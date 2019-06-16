@@ -1,0 +1,74 @@
+;(load "git@github.com:carpentry-org/uri@0.0.1")
+;(load "git@github.com:carpentry-org/time@0.0.2")
+(load "../time/time.carp")
+
+(deftype Cookie [name String,
+                 value String,
+                 path String,
+                 expires Datetime,
+                 domain String,
+                 secure Bool,
+                 http-only Bool,
+                 extension String])
+
+(defmodule Cookie
+  (defn expired? [c] (> &(Datetime.now) (expires c)))
+)
+
+(deftype Request [verb String,
+                  version String,
+                  uri (Maybe String),
+                  cookies (Array Cookie),
+                  headers (Map String (Array String)),
+                  body String])
+
+(defmodule Request
+  (defn ignore-body? [r] (= (verb r) "HEAD"))
+
+
+; GET / HTTP/1.1
+; Host: localhost:1313
+; User-Agent: curl/7.54.0
+; Accept: */*
+; 
+  (defn parse [txt]
+    (let [ls (String.lines txt)
+          fst (Array.first &ls)]
+      (match fst
+        (Maybe.Nothing) (Result.Error @"Malformed request: empty")
+        (Maybe.Just s)
+          (let [splt (String.words &s)]
+            (if (/= (Array.length &splt) 3)
+              (Result.Error (fmt "Malformed request: found first line '%s'" &s))
+              (let-do [headers {}
+                       body @""
+                       failed @""]
+                (for [i 1 (Array.length &ls)]
+                  (let [l (Array.nth &ls i)]
+                    (if (= l "")
+                      (do
+                        (set! body (String.join @"\n" &(Array.suffix-array &ls i)))
+                        (break))
+                      (let [splt (String.split-by l &[\:])]
+                        (if (< (Array.length &splt) 2)
+                          (do
+                            (set! failed @l)
+                            (break))
+                          (let [v &(String.trim &(String.join @":" &(Array.suffix-array &splt 1)))]
+                            (set! headers
+                              (Map.update-with-default
+                                headers
+                                (Array.nth &splt 0)
+                                &(fn [h] (Array.push-back h @v))
+                                []))))))))
+                (if (/= &failed "")
+                  (Result.Error (fmt "Malformed request: found header '%s'" &failed))
+                  (Result.Success
+                    (Request.init
+                      @(Array.nth &splt 0)
+                      @(Array.nth &splt 2)
+                      (Maybe.Just @(Array.nth &splt 1))
+                      []
+                      headers
+                      body)))))))))
+)
