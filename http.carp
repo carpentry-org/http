@@ -1,6 +1,5 @@
-;(load "git@github.com:carpentry-org/uri@0.0.1")
-;(load "git@github.com:carpentry-org/time@0.0.2")
-(load "../time/time.carp")
+(load "git@github.com:carpentry-org/uri@0.0.3")
+(load "git@github.com:carpentry-org/time@0.0.3")
 
 (deftype Cookie [name String,
                  value String,
@@ -17,23 +16,63 @@
 
 (deftype Request [verb String,
                   version String,
-                  uri (Maybe String),
+                  uri URI,
                   cookies (Array Cookie),
                   headers (Map String (Array String)),
                   body String])
 
 (defmodule Request
+  (doc ignore-body? "checks whether the body of the request should be ignored.")
   (defn ignore-body? [r] (= (verb r) "HEAD"))
 
+  (private str-headers)
+  (hidden str-headers)
+  (defn str-headers [r]
+    (Map.kv-reduce
+      &(fn [acc k v]
+        (fmt "%s\r\n%s"
+             &acc
+             &(String.join @"\r\n" &(Array.copy-map &(fn [x] (fmt "%s: %s" k x)) v))
+        ))
+      @""
+      (headers r)))
 
-; GET / HTTP/1.1
-; Host: localhost:1313
-; User-Agent: curl/7.54.0
-; Accept: */*
-; 
+  (doc str "stringifies the request. It should be stringified exactly as it
+looks on the wire.")
+  (defn str [r]
+    (fmt "%s %s %s%s\r\n\r\n%s"
+         (verb r)
+         &(str (uri r))
+         (version r)
+         &(str-headers r)
+         (body r)))
+
+  ; TODO: restrict this to \r\n
+  (private rn-lines)
+  (hidden rn-lines)
+  (defn rn-lines [s]
+    (let-do [pat #"\n"
+             ns &(Pattern.substitute pat s "\n" -1)
+             idx (Pattern.find-all pat ns)
+             lidx (Array.length &idx)
+             result (Array.allocate (Int.inc lidx))]
+      (Array.aset-uninitialized! &result 0
+        (substring ns 0 (if (> lidx 0) @(Array.nth &idx 0) (length ns))))
+      (for [i 0 (Int.dec (Array.length &idx))]
+        (Array.aset-uninitialized! &result (Int.inc i)
+          (substring ns (Int.inc @(Array.nth &idx i)) @(Array.nth &idx (Int.inc i)))))
+      (when (> lidx 0)
+        (Array.aset-uninitialized! &result lidx
+          (suffix-string ns (Int.inc @(Array.nth &idx (Int.dec lidx))))))
+      result))
+
+  ; TODO: parse cookies
+  (doc parse "parses a HTTP request from a string `txt`.
+
+Returns a `(Error String)` if it fails.")
   (defn parse [txt]
-    (let [ls (String.lines txt)
-          fst (Array.first &ls)]
+    (let [ls &(rn-lines txt)
+          fst (Array.first ls)]
       (match fst
         (Maybe.Nothing) (Result.Error @"Malformed request: empty")
         (Maybe.Just s)
@@ -43,18 +82,22 @@
               (let-do [headers {}
                        body @""
                        failed @""]
-                (for [i 1 (Array.length &ls)]
-                  (let [l (Array.nth &ls i)]
+                (for [i 1 (Array.length ls)]
+                  (let [l (Array.nth ls i)]
                     (if (= l "")
                       (do
-                        (set! body (String.join @"\n" &(Array.suffix-array &ls i)))
+                        (when (> (Array.length ls) (Int.inc i))
+                          (set! body
+                            (String.join @"\n"
+                                         &(Array.suffix-array ls (Int.inc i)))))
                         (break))
                       (let [splt (String.split-by l &[\:])]
                         (if (< (Array.length &splt) 2)
                           (do
                             (set! failed @l)
                             (break))
-                          (let [v &(String.trim &(String.join @":" &(Array.suffix-array &splt 1)))]
+                          (let [k (Array.nth &splt 0)
+                                v &(String.trim &(String.join @":" &(Array.suffix-array &splt 1)))]
                             (set! headers
                               (Map.update-with-default
                                 headers
@@ -63,12 +106,18 @@
                                 []))))))))
                 (if (/= &failed "")
                   (Result.Error (fmt "Malformed request: found header '%s'" &failed))
-                  (Result.Success
-                    (Request.init
-                      @(Array.nth &splt 0)
-                      @(Array.nth &splt 2)
-                      (Maybe.Just @(Array.nth &splt 1))
-                      []
-                      headers
-                      body)))))))))
+                  (let [uri (URI.parse (Array.nth &splt 1))]
+                    (match uri
+                      (Result.Success uri)
+                        (Result.Success
+                          (Request.init
+                            @(Array.nth &splt 0)
+                            @(Array.nth &splt 2)
+                            uri
+                            []
+                            headers
+                            body))
+                      (Result.Error err)
+                        (Result.Error
+                          (fmt "Malformed request: uri decoding error: '%s'" &err)))))))))))
 )
