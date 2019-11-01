@@ -32,7 +32,7 @@
       &(fn [acc k v]
         (fmt "%s\r\n%s"
              &acc
-             &(String.join @"\r\n" &(Array.copy-map &(fn [x] (fmt "%s: %s" k x)) v))
+             &(String.join "\r\n" &(Array.copy-map &(fn [x] (fmt "%s: %s" k x)) v))
         ))
       @""
       (headers r)))
@@ -88,7 +88,7 @@ Returns a `(Error String)` if it fails.")
                       (do
                         (when (> (Array.length ls) (Int.inc i))
                           (set! body
-                            (String.join @"\n"
+                            (String.join "\n"
                                          &(Array.suffix-array ls (Int.inc i)))))
                         (break))
                       (let [splt (String.split-by l &[\:])]
@@ -97,7 +97,7 @@ Returns a `(Error String)` if it fails.")
                             (set! failed @l)
                             (break))
                           (let [k (Array.nth &splt 0)
-                                v &(String.trim &(String.join @":" &(Array.suffix-array &splt 1)))]
+                                v &(String.trim &(String.join ":" &(Array.suffix-array &splt 1)))]
                             (set! headers
                               (Map.update-with-default
                                 headers
