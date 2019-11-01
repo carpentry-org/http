@@ -1,5 +1,5 @@
 (load "git@github.com:carpentry-org/uri@0.0.3")
-(load "git@github.com:carpentry-org/time@0.0.3")
+(load "git@github.com:carpentry-org/time@0.0.4")
 
 (deftype Cookie [name String,
                  value String,
@@ -32,7 +32,7 @@
       &(fn [acc k v]
         (fmt "%s\r\n%s"
              &acc
-             &(String.join @"\r\n" &(Array.copy-map &(fn [x] (fmt "%s: %s" k x)) v))
+             &(String.join "\r\n" &(Array.copy-map &(fn [x] (fmt "%s: %s" k x)) v))
         ))
       @""
       (headers r)))
@@ -57,13 +57,13 @@ looks on the wire.")
              lidx (Array.length &idx)
              result (Array.allocate (Int.inc lidx))]
       (Array.aset-uninitialized! &result 0
-        (substring ns 0 (if (> lidx 0) @(Array.nth &idx 0) (length ns))))
+        (substring ns 0 (if (> lidx 0) @(Array.unsafe-nth &idx 0) (length ns))))
       (for [i 0 (Int.dec (Array.length &idx))]
         (Array.aset-uninitialized! &result (Int.inc i)
-          (substring ns (Int.inc @(Array.nth &idx i)) @(Array.nth &idx (Int.inc i)))))
+          (substring ns (Int.inc @(Array.unsafe-nth &idx i)) @(Array.unsafe-nth &idx (Int.inc i)))))
       (when (> lidx 0)
         (Array.aset-uninitialized! &result lidx
-          (suffix-string ns (Int.inc @(Array.nth &idx (Int.dec lidx))))))
+          (suffix-string ns (Int.inc @(Array.unsafe-nth &idx (Int.dec lidx))))))
       result))
 
   ; TODO: parse cookies
@@ -83,12 +83,12 @@ Returns a `(Error String)` if it fails.")
                        body @""
                        failed @""]
                 (for [i 1 (Array.length ls)]
-                  (let [l (Array.nth ls i)]
+                  (let [l (Array.unsafe-nth ls i)]
                     (if (= l "")
                       (do
                         (when (> (Array.length ls) (Int.inc i))
                           (set! body
-                            (String.join @"\n"
+                            (String.join "\n"
                                          &(Array.suffix-array ls (Int.inc i)))))
                         (break))
                       (let [splt (String.split-by l &[\:])]
@@ -97,22 +97,22 @@ Returns a `(Error String)` if it fails.")
                             (set! failed @l)
                             (break))
                           (let [k (Array.nth &splt 0)
-                                v &(String.trim &(String.join @":" &(Array.suffix-array &splt 1)))]
+                                v &(String.trim &(String.join ":" &(Array.suffix-array &splt 1)))]
                             (set! headers
                               (Map.update-with-default
                                 headers
-                                (Array.nth &splt 0)
+                                (Array.unsafe-nth &splt 0)
                                 &(fn [h] (Array.push-back h @v))
                                 []))))))))
                 (if (/= &failed "")
                   (Result.Error (fmt "Malformed request: found header '%s'" &failed))
-                  (let [uri (URI.parse (Array.nth &splt 1))]
+                  (let [uri (URI.parse (Array.unsafe-nth &splt 1))]
                     (match uri
                       (Result.Success uri)
                         (Result.Success
                           (Request.init
-                            @(Array.nth &splt 0)
-                            @(Array.nth &splt 2)
+                            @(Array.unsafe-nth &splt 0)
+                            @(Array.unsafe-nth &splt 2)
                             uri
                             []
                             headers
