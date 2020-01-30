@@ -66,6 +66,24 @@ looks on the wire.")
           (suffix-string ns (Int.inc @(Array.unsafe-nth &idx (Int.dec lidx))))))
       result))
 
+  (defn request [verb uri cookies headers body]
+    (init verb @"1.1" uri cookies headers body))
+
+  (defn get [uri cookies headers body]
+    (request @"GET" uri cookies headers body))
+
+  (defn post [uri cookies headers body]
+    (request @"POST" uri cookies headers body))
+
+  (defn put [uri cookies headers body]
+    (request @"PUT" uri cookies headers body))
+
+  (defn delete [uri cookies headers body]
+    (request @"DELETE" uri cookies headers body))
+
+  (defn patch [uri cookies headers body]
+    (request @"PATCH" uri cookies headers body))
+
   ; TODO: parse cookies
   (doc parse "parses a HTTP request from a string `txt`.
 
