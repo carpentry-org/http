@@ -78,7 +78,7 @@ looks on the wire.")
   (defn put [uri cookies headers body]
     (request @"PUT" uri cookies headers body))
 
-  (defn delete [uri cookies headers body]
+  (defn del [uri cookies headers body]
     (request @"DELETE" uri cookies headers body))
 
   (defn patch [uri cookies headers body]
