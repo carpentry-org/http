@@ -1,4 +1,4 @@
-(load "git@github.com:carpentry-org/uri@0.0.3")
+(load "git@github.com:carpentry-org/uri@0.0.4")
 (load "git@github.com:carpentry-org/time@0.0.4")
 
 (deftype Cookie [name String,
