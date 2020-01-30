@@ -67,7 +67,7 @@ looks on the wire.")
       result))
 
   (defn request [verb uri cookies headers body]
-    (init verb @"1.1" uri cookies headers body))
+    (init verb @"HTTP/1.1" uri cookies headers body))
 
   (defn get [uri cookies headers body]
     (request @"GET" uri cookies headers body))
