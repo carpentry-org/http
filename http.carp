@@ -176,6 +176,15 @@ looks on the wire.")
          &(str-headers r)
          (body r)))
 
+  (doc ok? "checks whether the status code is less than 400.")
+  (defn ok? [r] (< @(code r) 400))
+
+  (doc client-error? "checks whether the status code is between 400 and 500.")
+  (defn client-error? [r] (let [c @(code r)] (and (<= 400 c) (< c 500))))
+
+  (doc server-error? "checks whether the status code is between 500 and 600.")
+  (defn server-error? [r] (let [c @(code r)] (and (<= 500 c) (< c 600))))
+
   ; TODO: restrict this to \r\n
   (private rn-lines)
   (hidden rn-lines)
