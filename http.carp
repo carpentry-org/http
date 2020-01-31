@@ -66,21 +66,27 @@ looks on the wire.")
           (suffix-string ns (Int.inc @(Array.unsafe-nth &idx (Int.dec lidx))))))
       result))
 
+  (doc request "builds a HTTP `1.1` request.")
   (defn request [verb uri cookies headers body]
     (init verb @"1.1" uri cookies headers body))
 
+  (doc get "builds a HTTP GET request (version `1.1`).")
   (defn get [uri cookies headers body]
     (request @"GET" uri cookies headers body))
 
+  (doc post "builds a HTTP POST request (version `1.1`).")
   (defn post [uri cookies headers body]
     (request @"POST" uri cookies headers body))
 
+  (doc put "builds a HTTP PUT request (version `1.1`).")
   (defn put [uri cookies headers body]
     (request @"PUT" uri cookies headers body))
 
+  (doc del "builds a HTTP DELETE request (version `1.1`).")
   (defn del [uri cookies headers body]
     (request @"DELETE" uri cookies headers body))
 
+  (doc patch "builds a HTTP PATCH request (version `1.1`).")
   (defn patch [uri cookies headers body]
     (request @"PATCH" uri cookies headers body))
 
@@ -128,7 +134,7 @@ Returns a `(Error String)` if it fails.")
                     (match uri
                       (Result.Success uri)
                         (Result.Success
-                          (Request.init
+                          (init
                             @(Array.unsafe-nth &splt 0)
                             @(Array.unsafe-nth &splt 2)
                             uri
@@ -138,4 +144,108 @@ Returns a `(Error String)` if it fails.")
                       (Result.Error err)
                         (Result.Error
                           (fmt "Malformed request: uri decoding error: '%s'" &err)))))))))))
+)
+
+(deftype Response [code Int,
+                   message String,
+                   version String,
+                   cookies (Array Cookie),
+                   headers (Map String (Array String)),
+                   body String])
+
+(defmodule Response
+  (private str-headers)
+  (hidden str-headers)
+  (defn str-headers [r]
+    (Map.kv-reduce
+      &(fn [acc k v]
+        (fmt "%s\r\n%s"
+             &acc
+             &(String.join "\r\n" &(Array.copy-map &(fn [x] (fmt "%s: %s" k x)) v))
+        ))
+      @""
+      (headers r)))
+
+  (doc str "stringifies the request. It should be stringified exactly as it
+looks on the wire.")
+  (defn str [r]
+    (fmt "%s %d %s%s\r\n\r\n%s"
+         (version r)
+         &(str (code r))
+         (message r)
+         &(str-headers r)
+         (body r)))
+
+  ; TODO: restrict this to \r\n
+  (private rn-lines)
+  (hidden rn-lines)
+  (defn rn-lines [s]
+    (let-do [pat #"\n"
+             ns &(Pattern.substitute pat s "\n" -1)
+             idx (Pattern.find-all pat ns)
+             lidx (Array.length &idx)
+             result (Array.allocate (Int.inc lidx))]
+      (Array.aset-uninitialized! &result 0
+        (substring ns 0 (if (> lidx 0) @(Array.unsafe-nth &idx 0) (length ns))))
+      (for [i 0 (Int.dec (Array.length &idx))]
+        (Array.aset-uninitialized! &result (Int.inc i)
+          (substring ns (Int.inc @(Array.unsafe-nth &idx i)) @(Array.unsafe-nth &idx (Int.inc i)))))
+      (when (> lidx 0)
+        (Array.aset-uninitialized! &result lidx
+          (suffix-string ns (Int.inc @(Array.unsafe-nth &idx (Int.dec lidx))))))
+      result))
+
+  ; TODO: parse cookies
+  (doc parse "parses a HTTP response from a string `txt`.
+
+Returns a `(Error String)` if it fails.")
+  (defn parse [txt]
+    (let [ls &(rn-lines txt)
+          fst (Array.first ls)]
+      (match fst
+        (Maybe.Nothing) (Result.Error @"Malformed response: empty")
+        (Maybe.Just s)
+          (let [splt (String.words &s)]
+            (if (< (Array.length &splt) 3)
+              (Result.Error (fmt "Malformed response: found first line '%s'" &s))
+              (let-do [headers {}
+                       body @""
+                       failed @""]
+                (for [i 1 (Array.length ls)]
+                  (let [l (Array.unsafe-nth ls i)]
+                    (if (= l "")
+                      (do
+                        (when (> (Array.length ls) (Int.inc i))
+                          (set! body
+                            (String.join "\n"
+                                         &(Array.suffix-array ls (Int.inc i)))))
+                        (break))
+                      (let [splt (String.split-by l &[\:])]
+                        (if (< (Array.length &splt) 2)
+                          (do
+                            (set! failed @l)
+                            (break))
+                          (let [k (Array.nth &splt 0)
+                                v &(String.trim &(String.join ":" &(Array.suffix-array &splt 1)))]
+                            (set! headers
+                              (Map.update-with-default
+                                headers
+                                (Array.unsafe-nth &splt 0)
+                                &(fn [h] (Array.push-back h @v))
+                                []))))))))
+                (if (/= &failed "")
+                  (Result.Error (fmt "Malformed response: found header '%s'" &failed))
+                  (let [status-code (Array.unsafe-nth &splt 1)]
+                    (if (String.num? status-code)
+                      (Result.Success
+                        (init
+                          (Int.from-string status-code)
+                          (String.join " " &(Array.suffix-array &splt 2))
+                          @(Array.unsafe-nth &splt 0)
+                          []
+                          headers
+                          body))
+                      (Result.Error
+                        (fmt "Malformed request: status code decoding error: '%s'"
+                          status-code)))))))))))
 )
