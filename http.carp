@@ -171,7 +171,7 @@ looks on the wire.")
   (defn str [r]
     (fmt "%s %d %s%s\r\n\r\n%s"
          (version r)
-         &(str (code r))
+         @(code r)
          (message r)
          &(str-headers r)
          (body r)))
