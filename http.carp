@@ -68,7 +68,7 @@ looks on the wire.")
 
   (doc request "builds a HTTP `1.1` request.")
   (defn request [verb uri cookies headers body]
-    (init verb @"1.1" uri cookies headers body))
+    (init verb @"HTTP/1.1" uri cookies headers body))
 
   (doc get "builds a HTTP GET request (version `1.1`).")
   (defn get [uri cookies headers body]
