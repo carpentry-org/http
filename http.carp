@@ -44,6 +44,8 @@ the type yourself, instead you can [parse](#parse) it.")
                 (Result.Success c) (Result.Success (Array.push-back arr c)))))
         (Result.Success []) &(String.split-by s &[\;])))
 
+  (doc kv "makes a `name=value` pair from a cookie.")
+  (defn kv [c] (fmt "%s=%s" (name c) (value c)))
 )
 
 (doc Request "is a request data type. It holds the `verb` of the request, the
@@ -66,7 +68,7 @@ the type yourself, instead you can [parse](#parse) it.")
       &(fn [acc k v]
         (fmt "%s\r\n%s"
              &acc
-             &(String.join "\r\n" &(Array.copy-map &(fn [x] (fmt "%s: %s" k x)) v))
+             &(join "\r\n" &(Array.copy-map &(fn [x] (fmt "%s: %s" k x)) v))
         ))
       @""
       (headers r)))
@@ -74,20 +76,12 @@ the type yourself, instead you can [parse](#parse) it.")
   (private str-cookies)
   (hidden str-cookies)
   (defn str-cookies [r]
-    (Array.reduce
-      &(fn [acc c]
-        (fmt "%s\r\nCookie: %s=%s"
-             &acc
-             (Cookie.name c)
-             (Cookie.value c)
-        ))
-      @""
-      (cookies r)))
+    (fmt "Cookie: %s" &(join ";" &(Array.copy-map &Cookie.kv (cookies r)))))
 
   (doc str "stringifies the request. It should be stringified exactly as it
 looks on the wire.")
   (defn str [r]
-    (fmt "%s %s %s%s%s\r\n\r\n%s"
+    (fmt "%s %s %s%s\r\n%s\r\n\r\n%s"
          (verb r)
          &(str (uri r))
          (version r)
