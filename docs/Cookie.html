@@ -1,0 +1,768 @@
+<!DOCTYPE HTML>
+
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+        <link rel="stylesheet" href="style.css">
+    </head>
+    <body>
+        <div class="content">
+            <div class="logo">
+                <a href="http://github.com/carp-lang/Carp">
+                    <img src="logo.png">
+                </a>
+                <div class="title">
+                    http
+                </div>
+                <div class="index">
+                    <ul>
+                        <li>
+                            <a href="Request.html">
+                                Request
+                            </a>
+                        </li>
+                        <li>
+                            <a href="Response.html">
+                                Response
+                            </a>
+                        </li>
+                        <li>
+                            <a href="Cookie.html">
+                                Cookie
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            <h1>
+                Cookie
+            </h1>
+            <div class="module-description">
+                <p>is a simple cookie data type. You usually shouldn’t need to build
+the type yourself, instead you can <a href="#parse">parse</a> it.</p>
+
+            </div>
+            <div class="binder">
+                <a class="anchor" href="#domain">
+                    <h3 id="domain">
+                        domain
+                    </h3>
+                </a>
+                <div class="description">
+                    instantiate
+                </div>
+                <p class="sig">
+                    (λ [(Ref Cookie)] &amp;String)
+                </p>
+                <span>
+                    
+                </span>
+                <p class="doc">
+                    <p>gets the <code>domain</code> property of a <code>Cookie</code>.</p>
+
+                </p>
+            </div>
+            <div class="binder">
+                <a class="anchor" href="#expired?">
+                    <h3 id="expired?">
+                        expired?
+                    </h3>
+                </a>
+                <div class="description">
+                    defn
+                </div>
+                <p class="sig">
+                    (λ [(Ref Cookie)] Bool)
+                </p>
+                <pre class="args">
+                    (expired? c)
+                </pre>
+                <p class="doc">
+                    <p>checks if a cookie is expired now.</p>
+
+                </p>
+            </div>
+            <div class="binder">
+                <a class="anchor" href="#expires">
+                    <h3 id="expires">
+                        expires
+                    </h3>
+                </a>
+                <div class="description">
+                    instantiate
+                </div>
+                <p class="sig">
+                    (λ [(Ref Cookie)] (Ref Datetime))
+                </p>
+                <span>
+                    
+                </span>
+                <p class="doc">
+                    <p>gets the <code>expires</code> property of a <code>Cookie</code>.</p>
+
+                </p>
+            </div>
+            <div class="binder">
+                <a class="anchor" href="#extension">
+                    <h3 id="extension">
+                        extension
+                    </h3>
+                </a>
+                <div class="description">
+                    instantiate
+                </div>
+                <p class="sig">
+                    (λ [(Ref Cookie)] &amp;String)
+                </p>
+                <span>
+                    
+                </span>
+                <p class="doc">
+                    <p>gets the <code>extension</code> property of a <code>Cookie</code>.</p>
+
+                </p>
+            </div>
+            <div class="binder">
+                <a class="anchor" href="#http-only">
+                    <h3 id="http-only">
+                        http-only
+                    </h3>
+                </a>
+                <div class="description">
+                    instantiate
+                </div>
+                <p class="sig">
+                    (λ [(Ref Cookie)] &amp;Bool)
+                </p>
+                <span>
+                    
+                </span>
+                <p class="doc">
+                    <p>gets the <code>http-only</code> property of a <code>Cookie</code>.</p>
+
+                </p>
+            </div>
+            <div class="binder">
+                <a class="anchor" href="#init">
+                    <h3 id="init">
+                        init
+                    </h3>
+                </a>
+                <div class="description">
+                    instantiate
+                </div>
+                <p class="sig">
+                    (λ [String, String, String, Datetime, String, Bool, Bool, String] Cookie)
+                </p>
+                <span>
+                    
+                </span>
+                <p class="doc">
+                    <p>creates a <code>Cookie</code>.</p>
+
+                </p>
+            </div>
+            <div class="binder">
+                <a class="anchor" href="#name">
+                    <h3 id="name">
+                        name
+                    </h3>
+                </a>
+                <div class="description">
+                    instantiate
+                </div>
+                <p class="sig">
+                    (λ [(Ref Cookie)] &amp;String)
+                </p>
+                <span>
+                    
+                </span>
+                <p class="doc">
+                    <p>gets the <code>name</code> property of a <code>Cookie</code>.</p>
+
+                </p>
+            </div>
+            <div class="binder">
+                <a class="anchor" href="#parse">
+                    <h3 id="parse">
+                        parse
+                    </h3>
+                </a>
+                <div class="description">
+                    defn
+                </div>
+                <p class="sig">
+                    (λ [a] ())
+                </p>
+                <pre class="args">
+                    (parse s)
+                </pre>
+                <p class="doc">
+                    <p>parses a cookie.</p>
+
+                </p>
+            </div>
+            <div class="binder">
+                <a class="anchor" href="#path">
+                    <h3 id="path">
+                        path
+                    </h3>
+                </a>
+                <div class="description">
+                    instantiate
+                </div>
+                <p class="sig">
+                    (λ [(Ref Cookie)] &amp;String)
+                </p>
+                <span>
+                    
+                </span>
+                <p class="doc">
+                    <p>gets the <code>path</code> property of a <code>Cookie</code>.</p>
+
+                </p>
+            </div>
+            <div class="binder">
+                <a class="anchor" href="#secure">
+                    <h3 id="secure">
+                        secure
+                    </h3>
+                </a>
+                <div class="description">
+                    instantiate
+                </div>
+                <p class="sig">
+                    (λ [(Ref Cookie)] &amp;Bool)
+                </p>
+                <span>
+                    
+                </span>
+                <p class="doc">
+                    <p>gets the <code>secure</code> property of a <code>Cookie</code>.</p>
+
+                </p>
+            </div>
+            <div class="binder">
+                <a class="anchor" href="#set-domain">
+                    <h3 id="set-domain">
+                        set-domain
+                    </h3>
+                </a>
+                <div class="description">
+                    instantiate
+                </div>
+                <p class="sig">
+                    (λ [Cookie, String] Cookie)
+                </p>
+                <span>
+                    
+                </span>
+                <p class="doc">
+                    <p>sets the <code>domain</code> property of a <code>Cookie</code>.</p>
+
+                </p>
+            </div>
+            <div class="binder">
+                <a class="anchor" href="#set-domain!">
+                    <h3 id="set-domain!">
+                        set-domain!
+                    </h3>
+                </a>
+                <div class="description">
+                    instantiate
+                </div>
+                <p class="sig">
+                    (λ [(Ref Cookie), String] ())
+                </p>
+                <span>
+                    
+                </span>
+                <p class="doc">
+                    <p>sets the <code>domain</code> property of a <code>Cookie</code> in place.</p>
+
+                </p>
+            </div>
+            <div class="binder">
+                <a class="anchor" href="#set-expires">
+                    <h3 id="set-expires">
+                        set-expires
+                    </h3>
+                </a>
+                <div class="description">
+                    instantiate
+                </div>
+                <p class="sig">
+                    (λ [Cookie, Datetime] Cookie)
+                </p>
+                <span>
+                    
+                </span>
+                <p class="doc">
+                    <p>sets the <code>expires</code> property of a <code>Cookie</code>.</p>
+
+                </p>
+            </div>
+            <div class="binder">
+                <a class="anchor" href="#set-expires!">
+                    <h3 id="set-expires!">
+                        set-expires!
+                    </h3>
+                </a>
+                <div class="description">
+                    instantiate
+                </div>
+                <p class="sig">
+                    (λ [(Ref Cookie), Datetime] ())
+                </p>
+                <span>
+                    
+                </span>
+                <p class="doc">
+                    <p>sets the <code>expires</code> property of a <code>Cookie</code> in place.</p>
+
+                </p>
+            </div>
+            <div class="binder">
+                <a class="anchor" href="#set-extension">
+                    <h3 id="set-extension">
+                        set-extension
+                    </h3>
+                </a>
+                <div class="description">
+                    instantiate
+                </div>
+                <p class="sig">
+                    (λ [Cookie, String] Cookie)
+                </p>
+                <span>
+                    
+                </span>
+                <p class="doc">
+                    <p>sets the <code>extension</code> property of a <code>Cookie</code>.</p>
+
+                </p>
+            </div>
+            <div class="binder">
+                <a class="anchor" href="#set-extension!">
+                    <h3 id="set-extension!">
+                        set-extension!
+                    </h3>
+                </a>
+                <div class="description">
+                    instantiate
+                </div>
+                <p class="sig">
+                    (λ [(Ref Cookie), String] ())
+                </p>
+                <span>
+                    
+                </span>
+                <p class="doc">
+                    <p>sets the <code>extension</code> property of a <code>Cookie</code> in place.</p>
+
+                </p>
+            </div>
+            <div class="binder">
+                <a class="anchor" href="#set-http-only">
+                    <h3 id="set-http-only">
+                        set-http-only
+                    </h3>
+                </a>
+                <div class="description">
+                    instantiate
+                </div>
+                <p class="sig">
+                    (λ [Cookie, Bool] Cookie)
+                </p>
+                <span>
+                    
+                </span>
+                <p class="doc">
+                    <p>sets the <code>http-only</code> property of a <code>Cookie</code>.</p>
+
+                </p>
+            </div>
+            <div class="binder">
+                <a class="anchor" href="#set-http-only!">
+                    <h3 id="set-http-only!">
+                        set-http-only!
+                    </h3>
+                </a>
+                <div class="description">
+                    instantiate
+                </div>
+                <p class="sig">
+                    (λ [(Ref Cookie), Bool] ())
+                </p>
+                <span>
+                    
+                </span>
+                <p class="doc">
+                    <p>sets the <code>http-only</code> property of a <code>Cookie</code> in place.</p>
+
+                </p>
+            </div>
+            <div class="binder">
+                <a class="anchor" href="#set-name">
+                    <h3 id="set-name">
+                        set-name
+                    </h3>
+                </a>
+                <div class="description">
+                    instantiate
+                </div>
+                <p class="sig">
+                    (λ [Cookie, String] Cookie)
+                </p>
+                <span>
+                    
+                </span>
+                <p class="doc">
+                    <p>sets the <code>name</code> property of a <code>Cookie</code>.</p>
+
+                </p>
+            </div>
+            <div class="binder">
+                <a class="anchor" href="#set-name!">
+                    <h3 id="set-name!">
+                        set-name!
+                    </h3>
+                </a>
+                <div class="description">
+                    instantiate
+                </div>
+                <p class="sig">
+                    (λ [(Ref Cookie), String] ())
+                </p>
+                <span>
+                    
+                </span>
+                <p class="doc">
+                    <p>sets the <code>name</code> property of a <code>Cookie</code> in place.</p>
+
+                </p>
+            </div>
+            <div class="binder">
+                <a class="anchor" href="#set-path">
+                    <h3 id="set-path">
+                        set-path
+                    </h3>
+                </a>
+                <div class="description">
+                    instantiate
+                </div>
+                <p class="sig">
+                    (λ [Cookie, String] Cookie)
+                </p>
+                <span>
+                    
+                </span>
+                <p class="doc">
+                    <p>sets the <code>path</code> property of a <code>Cookie</code>.</p>
+
+                </p>
+            </div>
+            <div class="binder">
+                <a class="anchor" href="#set-path!">
+                    <h3 id="set-path!">
+                        set-path!
+                    </h3>
+                </a>
+                <div class="description">
+                    instantiate
+                </div>
+                <p class="sig">
+                    (λ [(Ref Cookie), String] ())
+                </p>
+                <span>
+                    
+                </span>
+                <p class="doc">
+                    <p>sets the <code>path</code> property of a <code>Cookie</code> in place.</p>
+
+                </p>
+            </div>
+            <div class="binder">
+                <a class="anchor" href="#set-secure">
+                    <h3 id="set-secure">
+                        set-secure
+                    </h3>
+                </a>
+                <div class="description">
+                    instantiate
+                </div>
+                <p class="sig">
+                    (λ [Cookie, Bool] Cookie)
+                </p>
+                <span>
+                    
+                </span>
+                <p class="doc">
+                    <p>sets the <code>secure</code> property of a <code>Cookie</code>.</p>
+
+                </p>
+            </div>
+            <div class="binder">
+                <a class="anchor" href="#set-secure!">
+                    <h3 id="set-secure!">
+                        set-secure!
+                    </h3>
+                </a>
+                <div class="description">
+                    instantiate
+                </div>
+                <p class="sig">
+                    (λ [(Ref Cookie), Bool] ())
+                </p>
+                <span>
+                    
+                </span>
+                <p class="doc">
+                    <p>sets the <code>secure</code> property of a <code>Cookie</code> in place.</p>
+
+                </p>
+            </div>
+            <div class="binder">
+                <a class="anchor" href="#set-value">
+                    <h3 id="set-value">
+                        set-value
+                    </h3>
+                </a>
+                <div class="description">
+                    instantiate
+                </div>
+                <p class="sig">
+                    (λ [Cookie, String] Cookie)
+                </p>
+                <span>
+                    
+                </span>
+                <p class="doc">
+                    <p>sets the <code>value</code> property of a <code>Cookie</code>.</p>
+
+                </p>
+            </div>
+            <div class="binder">
+                <a class="anchor" href="#set-value!">
+                    <h3 id="set-value!">
+                        set-value!
+                    </h3>
+                </a>
+                <div class="description">
+                    instantiate
+                </div>
+                <p class="sig">
+                    (λ [(Ref Cookie), String] ())
+                </p>
+                <span>
+                    
+                </span>
+                <p class="doc">
+                    <p>sets the <code>value</code> property of a <code>Cookie</code> in place.</p>
+
+                </p>
+            </div>
+            <div class="binder">
+                <a class="anchor" href="#str">
+                    <h3 id="str">
+                        str
+                    </h3>
+                </a>
+                <div class="description">
+                    instantiate
+                </div>
+                <p class="sig">
+                    (λ [(Ref Cookie)] String)
+                </p>
+                <span>
+                    
+                </span>
+                <p class="doc">
+                    <p>converts a <code>Cookie</code> to a string.</p>
+
+                </p>
+            </div>
+            <div class="binder">
+                <a class="anchor" href="#update-domain">
+                    <h3 id="update-domain">
+                        update-domain
+                    </h3>
+                </a>
+                <div class="description">
+                    instantiate
+                </div>
+                <p class="sig">
+                    (λ [Cookie, (Ref (λ [String] String))] Cookie)
+                </p>
+                <span>
+                    
+                </span>
+                <p class="doc">
+                    <p>updates the <code>domain</code> property of a <code>Cookie</code> using a function <code>f</code>.</p>
+
+                </p>
+            </div>
+            <div class="binder">
+                <a class="anchor" href="#update-expires">
+                    <h3 id="update-expires">
+                        update-expires
+                    </h3>
+                </a>
+                <div class="description">
+                    instantiate
+                </div>
+                <p class="sig">
+                    (λ [Cookie, (Ref (λ [Datetime] Datetime))] Cookie)
+                </p>
+                <span>
+                    
+                </span>
+                <p class="doc">
+                    <p>updates the <code>expires</code> property of a <code>Cookie</code> using a function <code>f</code>.</p>
+
+                </p>
+            </div>
+            <div class="binder">
+                <a class="anchor" href="#update-extension">
+                    <h3 id="update-extension">
+                        update-extension
+                    </h3>
+                </a>
+                <div class="description">
+                    instantiate
+                </div>
+                <p class="sig">
+                    (λ [Cookie, (Ref (λ [String] String))] Cookie)
+                </p>
+                <span>
+                    
+                </span>
+                <p class="doc">
+                    <p>updates the <code>extension</code> property of a <code>Cookie</code> using a function <code>f</code>.</p>
+
+                </p>
+            </div>
+            <div class="binder">
+                <a class="anchor" href="#update-http-only">
+                    <h3 id="update-http-only">
+                        update-http-only
+                    </h3>
+                </a>
+                <div class="description">
+                    instantiate
+                </div>
+                <p class="sig">
+                    (λ [Cookie, (Ref (λ [Bool] Bool))] Cookie)
+                </p>
+                <span>
+                    
+                </span>
+                <p class="doc">
+                    <p>updates the <code>http-only</code> property of a <code>Cookie</code> using a function <code>f</code>.</p>
+
+                </p>
+            </div>
+            <div class="binder">
+                <a class="anchor" href="#update-name">
+                    <h3 id="update-name">
+                        update-name
+                    </h3>
+                </a>
+                <div class="description">
+                    instantiate
+                </div>
+                <p class="sig">
+                    (λ [Cookie, (Ref (λ [String] String))] Cookie)
+                </p>
+                <span>
+                    
+                </span>
+                <p class="doc">
+                    <p>updates the <code>name</code> property of a <code>Cookie</code> using a function <code>f</code>.</p>
+
+                </p>
+            </div>
+            <div class="binder">
+                <a class="anchor" href="#update-path">
+                    <h3 id="update-path">
+                        update-path
+                    </h3>
+                </a>
+                <div class="description">
+                    instantiate
+                </div>
+                <p class="sig">
+                    (λ [Cookie, (Ref (λ [String] String))] Cookie)
+                </p>
+                <span>
+                    
+                </span>
+                <p class="doc">
+                    <p>updates the <code>path</code> property of a <code>Cookie</code> using a function <code>f</code>.</p>
+
+                </p>
+            </div>
+            <div class="binder">
+                <a class="anchor" href="#update-secure">
+                    <h3 id="update-secure">
+                        update-secure
+                    </h3>
+                </a>
+                <div class="description">
+                    instantiate
+                </div>
+                <p class="sig">
+                    (λ [Cookie, (Ref (λ [Bool] Bool))] Cookie)
+                </p>
+                <span>
+                    
+                </span>
+                <p class="doc">
+                    <p>updates the <code>secure</code> property of a <code>Cookie</code> using a function <code>f</code>.</p>
+
+                </p>
+            </div>
+            <div class="binder">
+                <a class="anchor" href="#update-value">
+                    <h3 id="update-value">
+                        update-value
+                    </h3>
+                </a>
+                <div class="description">
+                    instantiate
+                </div>
+                <p class="sig">
+                    (λ [Cookie, (Ref (λ [String] String))] Cookie)
+                </p>
+                <span>
+                    
+                </span>
+                <p class="doc">
+                    <p>updates the <code>value</code> property of a <code>Cookie</code> using a function <code>f</code>.</p>
+
+                </p>
+            </div>
+            <div class="binder">
+                <a class="anchor" href="#value">
+                    <h3 id="value">
+                        value
+                    </h3>
+                </a>
+                <div class="description">
+                    instantiate
+                </div>
+                <p class="sig">
+                    (λ [(Ref Cookie)] &amp;String)
+                </p>
+                <span>
+                    
+                </span>
+                <p class="doc">
+                    <p>gets the <code>value</code> property of a <code>Cookie</code>.</p>
+
+                </p>
+            </div>
+        </div>
+    </body>
+</html>

@@ -1,6 +1,9 @@
 (load "git@github.com:carpentry-org/uri@0.0.4")
 (load "git@github.com:carpentry-org/time@0.0.4")
 
+(doc Cookie "is a simple cookie data type. You usually shouldn’t need to build
+the type yourself, instead you can [parse](#parse) it.")
+
 (deftype Cookie [name String,
                  value String,
                  path String,
@@ -11,9 +14,15 @@
                  extension String])
 
 (defmodule Cookie
+  (doc expired? "checks if a cookie is expired now.")
   (defn expired? [c] (> &(Datetime.now) (expires c)))
+
+  (doc parse "parses a cookie.")
+  (defn parse [s] ())
 )
 
+(doc Request "is a request data type. It holds the `verb` of the request, the
+`version`, the `uri`, the `cookies`, the `headers`, and the `body`.")
 (deftype Request [verb String,
                   version String,
                   uri URI,
@@ -93,7 +102,8 @@ looks on the wire.")
   ; TODO: parse cookies
   (doc parse "parses a HTTP request from a string `txt`.
 
-Returns a `(Error String)` if it fails.")
+Returns an `(Error String)` holding the error message if it fails, otherwise
+it will return a `(Success Request)`.")
   (defn parse [txt]
     (let [ls &(rn-lines txt)
           fst (Array.first ls)]
@@ -146,6 +156,8 @@ Returns a `(Error String)` if it fails.")
                           (fmt "Malformed request: uri decoding error: '%s'" &err)))))))))))
 )
 
+(doc Response "is a response data type. It holds the `code` of the request, the
+`version`, the `message`, the `cookies`, the `headers`, and the `body`.")
 (deftype Response [code Int,
                    message String,
                    version String,
@@ -207,7 +219,8 @@ looks on the wire.")
   ; TODO: parse cookies
   (doc parse "parses a HTTP response from a string `txt`.
 
-Returns a `(Error String)` if it fails.")
+Returns a `(Error String)` holding the error message if it fails, otherwise
+it will return a `(Success Response)`.")
   (defn parse [txt]
     (let [ls &(rn-lines txt)
           fst (Array.first ls)]

@@ -1,0 +1,691 @@
+<!DOCTYPE HTML>
+
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+        <link rel="stylesheet" href="style.css">
+    </head>
+    <body>
+        <div class="content">
+            <div class="logo">
+                <a href="http://github.com/carp-lang/Carp">
+                    <img src="logo.png">
+                </a>
+                <div class="title">
+                    http
+                </div>
+                <div class="index">
+                    <ul>
+                        <li>
+                            <a href="Request.html">
+                                Request
+                            </a>
+                        </li>
+                        <li>
+                            <a href="Response.html">
+                                Response
+                            </a>
+                        </li>
+                        <li>
+                            <a href="Cookie.html">
+                                Cookie
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            <h1>
+                Response
+            </h1>
+            <div class="module-description">
+                <p>is a response data type. It holds the <code>code</code> of the request, the
+<code>version</code>, the <code>message</code>, the <code>cookies</code>, the <code>headers</code>, and the <code>body</code>.</p>
+
+            </div>
+            <div class="binder">
+                <a class="anchor" href="#body">
+                    <h3 id="body">
+                        body
+                    </h3>
+                </a>
+                <div class="description">
+                    instantiate
+                </div>
+                <p class="sig">
+                    (λ [(Ref Response)] &amp;String)
+                </p>
+                <span>
+                    
+                </span>
+                <p class="doc">
+                    <p>gets the <code>body</code> property of a <code>Response</code>.</p>
+
+                </p>
+            </div>
+            <div class="binder">
+                <a class="anchor" href="#client-error?">
+                    <h3 id="client-error?">
+                        client-error?
+                    </h3>
+                </a>
+                <div class="description">
+                    defn
+                </div>
+                <p class="sig">
+                    (λ [(Ref Response)] Bool)
+                </p>
+                <pre class="args">
+                    (client-error? r)
+                </pre>
+                <p class="doc">
+                    <p>checks whether the status code is between 400 and 500.</p>
+
+                </p>
+            </div>
+            <div class="binder">
+                <a class="anchor" href="#code">
+                    <h3 id="code">
+                        code
+                    </h3>
+                </a>
+                <div class="description">
+                    instantiate
+                </div>
+                <p class="sig">
+                    (λ [(Ref Response)] &amp;Int)
+                </p>
+                <span>
+                    
+                </span>
+                <p class="doc">
+                    <p>gets the <code>code</code> property of a <code>Response</code>.</p>
+
+                </p>
+            </div>
+            <div class="binder">
+                <a class="anchor" href="#cookies">
+                    <h3 id="cookies">
+                        cookies
+                    </h3>
+                </a>
+                <div class="description">
+                    instantiate
+                </div>
+                <p class="sig">
+                    (λ [(Ref Response)] (Ref (Array Cookie)))
+                </p>
+                <span>
+                    
+                </span>
+                <p class="doc">
+                    <p>gets the <code>cookies</code> property of a <code>Response</code>.</p>
+
+                </p>
+            </div>
+            <div class="binder">
+                <a class="anchor" href="#copy">
+                    <h3 id="copy">
+                        copy
+                    </h3>
+                </a>
+                <div class="description">
+                    instantiate
+                </div>
+                <p class="sig">
+                    (λ [(Ref Response)] Response)
+                </p>
+                <span>
+                    
+                </span>
+                <p class="doc">
+                    <p>copies a <code>Response</code>.</p>
+
+                </p>
+            </div>
+            <div class="binder">
+                <a class="anchor" href="#headers">
+                    <h3 id="headers">
+                        headers
+                    </h3>
+                </a>
+                <div class="description">
+                    instantiate
+                </div>
+                <p class="sig">
+                    (λ [(Ref Response)] (Ref (Map String (Array String))))
+                </p>
+                <span>
+                    
+                </span>
+                <p class="doc">
+                    <p>gets the <code>headers</code> property of a <code>Response</code>.</p>
+
+                </p>
+            </div>
+            <div class="binder">
+                <a class="anchor" href="#init">
+                    <h3 id="init">
+                        init
+                    </h3>
+                </a>
+                <div class="description">
+                    instantiate
+                </div>
+                <p class="sig">
+                    (λ [Int, String, String, (Array Cookie), (Map String (Array String)), String] Response)
+                </p>
+                <span>
+                    
+                </span>
+                <p class="doc">
+                    <p>creates a <code>Response</code>.</p>
+
+                </p>
+            </div>
+            <div class="binder">
+                <a class="anchor" href="#message">
+                    <h3 id="message">
+                        message
+                    </h3>
+                </a>
+                <div class="description">
+                    instantiate
+                </div>
+                <p class="sig">
+                    (λ [(Ref Response)] &amp;String)
+                </p>
+                <span>
+                    
+                </span>
+                <p class="doc">
+                    <p>gets the <code>message</code> property of a <code>Response</code>.</p>
+
+                </p>
+            </div>
+            <div class="binder">
+                <a class="anchor" href="#ok?">
+                    <h3 id="ok?">
+                        ok?
+                    </h3>
+                </a>
+                <div class="description">
+                    defn
+                </div>
+                <p class="sig">
+                    (λ [(Ref Response)] Bool)
+                </p>
+                <pre class="args">
+                    (ok? r)
+                </pre>
+                <p class="doc">
+                    <p>checks whether the status code is less than 400.</p>
+
+                </p>
+            </div>
+            <div class="binder">
+                <a class="anchor" href="#parse">
+                    <h3 id="parse">
+                        parse
+                    </h3>
+                </a>
+                <div class="description">
+                    defn
+                </div>
+                <p class="sig">
+                    (λ [&amp;String] (Result Response String))
+                </p>
+                <pre class="args">
+                    (parse txt)
+                </pre>
+                <p class="doc">
+                    <p>parses a HTTP response from a string <code>txt</code>.</p>
+<p>Returns a <code>(Error String)</code> holding the error message if it fails, otherwise
+it will return a <code>(Success Response)</code>.</p>
+
+                </p>
+            </div>
+            <div class="binder">
+                <a class="anchor" href="#prn">
+                    <h3 id="prn">
+                        prn
+                    </h3>
+                </a>
+                <div class="description">
+                    instantiate
+                </div>
+                <p class="sig">
+                    (λ [(Ref Response)] String)
+                </p>
+                <span>
+                    
+                </span>
+                <p class="doc">
+                    <p>converts a <code>Response</code> to a string.</p>
+
+                </p>
+            </div>
+            <div class="binder">
+                <a class="anchor" href="#server-error?">
+                    <h3 id="server-error?">
+                        server-error?
+                    </h3>
+                </a>
+                <div class="description">
+                    defn
+                </div>
+                <p class="sig">
+                    (λ [(Ref Response)] Bool)
+                </p>
+                <pre class="args">
+                    (server-error? r)
+                </pre>
+                <p class="doc">
+                    <p>checks whether the status code is between 500 and 600.</p>
+
+                </p>
+            </div>
+            <div class="binder">
+                <a class="anchor" href="#set-body">
+                    <h3 id="set-body">
+                        set-body
+                    </h3>
+                </a>
+                <div class="description">
+                    instantiate
+                </div>
+                <p class="sig">
+                    (λ [Response, String] Response)
+                </p>
+                <span>
+                    
+                </span>
+                <p class="doc">
+                    <p>sets the <code>body</code> property of a <code>Response</code>.</p>
+
+                </p>
+            </div>
+            <div class="binder">
+                <a class="anchor" href="#set-body!">
+                    <h3 id="set-body!">
+                        set-body!
+                    </h3>
+                </a>
+                <div class="description">
+                    instantiate
+                </div>
+                <p class="sig">
+                    (λ [(Ref Response), String] ())
+                </p>
+                <span>
+                    
+                </span>
+                <p class="doc">
+                    <p>sets the <code>body</code> property of a <code>Response</code> in place.</p>
+
+                </p>
+            </div>
+            <div class="binder">
+                <a class="anchor" href="#set-code">
+                    <h3 id="set-code">
+                        set-code
+                    </h3>
+                </a>
+                <div class="description">
+                    instantiate
+                </div>
+                <p class="sig">
+                    (λ [Response, Int] Response)
+                </p>
+                <span>
+                    
+                </span>
+                <p class="doc">
+                    <p>sets the <code>code</code> property of a <code>Response</code>.</p>
+
+                </p>
+            </div>
+            <div class="binder">
+                <a class="anchor" href="#set-code!">
+                    <h3 id="set-code!">
+                        set-code!
+                    </h3>
+                </a>
+                <div class="description">
+                    instantiate
+                </div>
+                <p class="sig">
+                    (λ [(Ref Response), Int] ())
+                </p>
+                <span>
+                    
+                </span>
+                <p class="doc">
+                    <p>sets the <code>code</code> property of a <code>Response</code> in place.</p>
+
+                </p>
+            </div>
+            <div class="binder">
+                <a class="anchor" href="#set-cookies">
+                    <h3 id="set-cookies">
+                        set-cookies
+                    </h3>
+                </a>
+                <div class="description">
+                    instantiate
+                </div>
+                <p class="sig">
+                    (λ [Response, (Array Cookie)] Response)
+                </p>
+                <span>
+                    
+                </span>
+                <p class="doc">
+                    <p>sets the <code>cookies</code> property of a <code>Response</code>.</p>
+
+                </p>
+            </div>
+            <div class="binder">
+                <a class="anchor" href="#set-cookies!">
+                    <h3 id="set-cookies!">
+                        set-cookies!
+                    </h3>
+                </a>
+                <div class="description">
+                    instantiate
+                </div>
+                <p class="sig">
+                    (λ [(Ref Response), (Array Cookie)] ())
+                </p>
+                <span>
+                    
+                </span>
+                <p class="doc">
+                    <p>sets the <code>cookies</code> property of a <code>Response</code> in place.</p>
+
+                </p>
+            </div>
+            <div class="binder">
+                <a class="anchor" href="#set-headers">
+                    <h3 id="set-headers">
+                        set-headers
+                    </h3>
+                </a>
+                <div class="description">
+                    instantiate
+                </div>
+                <p class="sig">
+                    (λ [Response, (Map String (Array String))] Response)
+                </p>
+                <span>
+                    
+                </span>
+                <p class="doc">
+                    <p>sets the <code>headers</code> property of a <code>Response</code>.</p>
+
+                </p>
+            </div>
+            <div class="binder">
+                <a class="anchor" href="#set-headers!">
+                    <h3 id="set-headers!">
+                        set-headers!
+                    </h3>
+                </a>
+                <div class="description">
+                    instantiate
+                </div>
+                <p class="sig">
+                    (λ [(Ref Response), (Map String (Array String))] ())
+                </p>
+                <span>
+                    
+                </span>
+                <p class="doc">
+                    <p>sets the <code>headers</code> property of a <code>Response</code> in place.</p>
+
+                </p>
+            </div>
+            <div class="binder">
+                <a class="anchor" href="#set-message">
+                    <h3 id="set-message">
+                        set-message
+                    </h3>
+                </a>
+                <div class="description">
+                    instantiate
+                </div>
+                <p class="sig">
+                    (λ [Response, String] Response)
+                </p>
+                <span>
+                    
+                </span>
+                <p class="doc">
+                    <p>sets the <code>message</code> property of a <code>Response</code>.</p>
+
+                </p>
+            </div>
+            <div class="binder">
+                <a class="anchor" href="#set-message!">
+                    <h3 id="set-message!">
+                        set-message!
+                    </h3>
+                </a>
+                <div class="description">
+                    instantiate
+                </div>
+                <p class="sig">
+                    (λ [(Ref Response), String] ())
+                </p>
+                <span>
+                    
+                </span>
+                <p class="doc">
+                    <p>sets the <code>message</code> property of a <code>Response</code> in place.</p>
+
+                </p>
+            </div>
+            <div class="binder">
+                <a class="anchor" href="#set-version">
+                    <h3 id="set-version">
+                        set-version
+                    </h3>
+                </a>
+                <div class="description">
+                    instantiate
+                </div>
+                <p class="sig">
+                    (λ [Response, String] Response)
+                </p>
+                <span>
+                    
+                </span>
+                <p class="doc">
+                    <p>sets the <code>version</code> property of a <code>Response</code>.</p>
+
+                </p>
+            </div>
+            <div class="binder">
+                <a class="anchor" href="#set-version!">
+                    <h3 id="set-version!">
+                        set-version!
+                    </h3>
+                </a>
+                <div class="description">
+                    instantiate
+                </div>
+                <p class="sig">
+                    (λ [(Ref Response), String] ())
+                </p>
+                <span>
+                    
+                </span>
+                <p class="doc">
+                    <p>sets the <code>version</code> property of a <code>Response</code> in place.</p>
+
+                </p>
+            </div>
+            <div class="binder">
+                <a class="anchor" href="#str">
+                    <h3 id="str">
+                        str
+                    </h3>
+                </a>
+                <div class="description">
+                    defn
+                </div>
+                <p class="sig">
+                    (λ [(Ref Response)] String)
+                </p>
+                <pre class="args">
+                    (str r)
+                </pre>
+                <p class="doc">
+                    <p>stringifies the request. It should be stringified exactly as it
+looks on the wire.</p>
+
+                </p>
+            </div>
+            <div class="binder">
+                <a class="anchor" href="#update-body">
+                    <h3 id="update-body">
+                        update-body
+                    </h3>
+                </a>
+                <div class="description">
+                    instantiate
+                </div>
+                <p class="sig">
+                    (λ [Response, (Ref (λ [String] String))] Response)
+                </p>
+                <span>
+                    
+                </span>
+                <p class="doc">
+                    <p>updates the <code>body</code> property of a <code>Response</code> using a function <code>f</code>.</p>
+
+                </p>
+            </div>
+            <div class="binder">
+                <a class="anchor" href="#update-code">
+                    <h3 id="update-code">
+                        update-code
+                    </h3>
+                </a>
+                <div class="description">
+                    instantiate
+                </div>
+                <p class="sig">
+                    (λ [Response, (Ref (λ [Int] Int))] Response)
+                </p>
+                <span>
+                    
+                </span>
+                <p class="doc">
+                    <p>updates the <code>code</code> property of a <code>Response</code> using a function <code>f</code>.</p>
+
+                </p>
+            </div>
+            <div class="binder">
+                <a class="anchor" href="#update-cookies">
+                    <h3 id="update-cookies">
+                        update-cookies
+                    </h3>
+                </a>
+                <div class="description">
+                    instantiate
+                </div>
+                <p class="sig">
+                    (λ [Response, (Ref (λ [(Array Cookie)] (Array Cookie)))] Response)
+                </p>
+                <span>
+                    
+                </span>
+                <p class="doc">
+                    <p>updates the <code>cookies</code> property of a <code>Response</code> using a function <code>f</code>.</p>
+
+                </p>
+            </div>
+            <div class="binder">
+                <a class="anchor" href="#update-headers">
+                    <h3 id="update-headers">
+                        update-headers
+                    </h3>
+                </a>
+                <div class="description">
+                    instantiate
+                </div>
+                <p class="sig">
+                    (λ [Response, (Ref (λ [(Map String (Array String))] (Map String (Array String))))] Response)
+                </p>
+                <span>
+                    
+                </span>
+                <p class="doc">
+                    <p>updates the <code>headers</code> property of a <code>Response</code> using a function <code>f</code>.</p>
+
+                </p>
+            </div>
+            <div class="binder">
+                <a class="anchor" href="#update-message">
+                    <h3 id="update-message">
+                        update-message
+                    </h3>
+                </a>
+                <div class="description">
+                    instantiate
+                </div>
+                <p class="sig">
+                    (λ [Response, (Ref (λ [String] String))] Response)
+                </p>
+                <span>
+                    
+                </span>
+                <p class="doc">
+                    <p>updates the <code>message</code> property of a <code>Response</code> using a function <code>f</code>.</p>
+
+                </p>
+            </div>
+            <div class="binder">
+                <a class="anchor" href="#update-version">
+                    <h3 id="update-version">
+                        update-version
+                    </h3>
+                </a>
+                <div class="description">
+                    instantiate
+                </div>
+                <p class="sig">
+                    (λ [Response, (Ref (λ [String] String))] Response)
+                </p>
+                <span>
+                    
+                </span>
+                <p class="doc">
+                    <p>updates the <code>version</code> property of a <code>Response</code> using a function <code>f</code>.</p>
+
+                </p>
+            </div>
+            <div class="binder">
+                <a class="anchor" href="#version">
+                    <h3 id="version">
+                        version
+                    </h3>
+                </a>
+                <div class="description">
+                    instantiate
+                </div>
+                <p class="sig">
+                    (λ [(Ref Response)] &amp;String)
+                </p>
+                <span>
+                    
+                </span>
+                <p class="doc">
+                    <p>gets the <code>version</code> property of a <code>Response</code>.</p>
+
+                </p>
+            </div>
+        </div>
+    </body>
+</html>

@@ -1,0 +1,17 @@
+(load "http.carp")
+
+(Project.config "title" "http")
+(Project.config "docs-directory" "./docs/")
+(Project.config "docs-logo" "")
+(Project.config "docs-url" "https://github.com/carpentry-org/http")
+(Project.config "docs-styling" "style.css")
+(Project.config "docs-prelude" "is a collection of modules for building and
+parsing HTTP requests.
+
+```
+(load \"git@github.com:carpentry-org/http.carp.git@master\")
+```
+")
+
+(save-docs Request Response Cookie)
+(quit)
