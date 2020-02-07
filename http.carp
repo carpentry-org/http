@@ -7,18 +7,43 @@ the type yourself, instead you can [parse](#parse) it.")
 (deftype Cookie [name String,
                  value String,
                  path String,
-                 expires Datetime,
-                 domain String,
+                 expires (Maybe Datetime),
+                 domain (Maybe String),
                  secure Bool,
                  http-only Bool,
-                 extension String])
+                 ; TODO same site?
+                 extension (Maybe String)])
 
 (defmodule Cookie
   (doc expired? "checks if a cookie is expired now.")
-  (defn expired? [c] (> &(Datetime.now) (expires c)))
+  (defn expired? [c]
+    (match @(expires c)
+      (Maybe.Just d) (> &(Datetime.now) &d)
+      (Maybe.Nothing) false))
 
   (doc parse "parses a cookie.")
-  (defn parse [s] ())
+  (defn parse [s]
+    (let [splt (String.split-by s &[\=])]
+      (if (= (Array.length &splt) 2)
+        (Result.Success
+          (init
+            (String.trim &(Array.unsafe-first &splt))
+            (String.trim (Array.unsafe-nth &splt 1)) @"/"
+            (Maybe.Nothing) (Maybe.Nothing) false false (Maybe.Nothing)))
+        (Result.Error @"cookie malformed: expected key=value pair"))))
+
+  (doc parse-many "parses multiple cookies.")
+  (defn parse-many [s]
+      (Array.reduce
+        &(fn [a s]
+          (match a
+            (Result.Error err) (Result.Error err)
+            (Result.Success arr)
+              (match (parse s)
+                (Result.Error err) (Result.Error err)
+                (Result.Success c) (Result.Success (Array.push-back arr c)))))
+        (Result.Success []) &(String.split-by s &[\;])))
+
 )
 
 (doc Request "is a request data type. It holds the `verb` of the request, the
@@ -46,14 +71,28 @@ the type yourself, instead you can [parse](#parse) it.")
       @""
       (headers r)))
 
+  (private str-cookies)
+  (hidden str-cookies)
+  (defn str-cookies [r]
+    (Array.reduce
+      &(fn [acc c]
+        (fmt "%s\r\nCookie: %s=%s"
+             &acc
+             (Cookie.name c)
+             (Cookie.value c)
+        ))
+      @""
+      (cookies r)))
+
   (doc str "stringifies the request. It should be stringified exactly as it
 looks on the wire.")
   (defn str [r]
-    (fmt "%s %s %s%s\r\n\r\n%s"
+    (fmt "%s %s %s%s%s\r\n\r\n%s"
          (verb r)
          &(str (uri r))
          (version r)
          &(str-headers r)
+         &(str-cookies r)
          (body r)))
 
   ; TODO: restrict this to \r\n
@@ -114,6 +153,7 @@ it will return a `(Success Request)`.")
             (if (/= (Array.length &splt) 3)
               (Result.Error (fmt "Malformed request: found first line '%s'" &s))
               (let-do [headers {}
+                       cookies []
                        body @""
                        failed @""]
                 (for [i 1 (Array.length ls)]
@@ -130,14 +170,22 @@ it will return a `(Success Request)`.")
                           (do
                             (set! failed @l)
                             (break))
-                          (let [k (Array.nth &splt 0)
+                          (let [k (Array.unsafe-nth &splt 0)
                                 v &(String.trim &(String.join ":" &(Array.suffix-array &splt 1)))]
-                            (set! headers
-                              (Map.update-with-default
-                                headers
-                                (Array.unsafe-nth &splt 0)
-                                &(fn [h] (Array.push-back h @v))
-                                []))))))))
+                            (if (= k "Cookie")
+                              (match (Cookie.parse-many v)
+                                (Result.Error err)
+                                  (do
+                                    (set! failed err)
+                                    (break))
+                                (Result.Success arr)
+                                  (set! cookies (Array.concat &[cookies arr])))
+                              (set! headers
+                                (Map.update-with-default
+                                  headers
+                                  k
+                                  &(fn [h] (Array.push-back h @v))
+                                  [])))))))))
                 (if (/= &failed "")
                   (Result.Error (fmt "Malformed request: found header '%s'" &failed))
                   (let [uri (URI.parse (Array.unsafe-nth &splt 1))]
@@ -148,7 +196,7 @@ it will return a `(Success Request)`.")
                             @(Array.unsafe-nth &splt 0)
                             @(Array.unsafe-nth &splt 2)
                             uri
-                            []
+                            cookies
                             headers
                             body))
                       (Result.Error err)
