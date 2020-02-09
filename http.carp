@@ -166,7 +166,6 @@ looks on the wire.")
          &(str-cookies r)
          (body r)))
 
-  ; TODO: restrict this to \r\n
   (private rn-lines)
   (hidden rn-lines)
   (defn rn-lines [s]
@@ -325,23 +324,21 @@ looks on the wire.")
   (doc server-error? "checks whether the status code is between 500 and 600.")
   (defn server-error? [r] (let [c @(code r)] (and (<= 500 c) (< c 600))))
 
-  ; TODO: restrict this to \r\n
   (private rn-lines)
   (hidden rn-lines)
   (defn rn-lines [s]
-    (let-do [pat #"\n"
-             ns &(Pattern.substitute pat s "\n" -1)
-             idx (Pattern.find-all pat ns)
+    (let-do [pat #"\r\n"
+             idx (Pattern.find-all pat s)
              lidx (Array.length &idx)
              result (Array.allocate (Int.inc lidx))]
       (Array.aset-uninitialized! &result 0
-        (substring ns 0 (if (> lidx 0) @(Array.unsafe-nth &idx 0) (length ns))))
+        (substring s 0 (if (> lidx 0) @(Array.unsafe-nth &idx 0) (length s))))
       (for [i 0 (Int.dec (Array.length &idx))]
         (Array.aset-uninitialized! &result (Int.inc i)
-          (substring ns (Int.inc @(Array.unsafe-nth &idx i)) @(Array.unsafe-nth &idx (Int.inc i)))))
+          (substring s (+ 2 @(Array.unsafe-nth &idx i)) @(Array.unsafe-nth &idx (Int.inc i)))))
       (when (> lidx 0)
         (Array.aset-uninitialized! &result lidx
-          (suffix-string ns (Int.inc @(Array.unsafe-nth &idx (Int.dec lidx))))))
+          (suffix-string s (+ 2 @(Array.unsafe-nth &idx (Int.dec lidx))))))
       result))
 
   (doc parse "parses a HTTP response from a string `txt`.
