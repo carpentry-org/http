@@ -1,5 +1,5 @@
-(load "git@github.com:carpentry-org/uri@0.0.5")
-(load "git@github.com:carpentry-org/time@0.0.5")
+(load "git@github.com:carpentry-org/uri@0.0.6")
+(load "git@github.com:carpentry-org/time@0.0.6")
 
 (deftype SameSite
   (Lax [])
@@ -89,12 +89,12 @@ the type yourself, instead you can [parse](#parse) it.")
             (starts-with? prop "Path")
               (if l<2
                 (Result.Error @"malformed path property in set-cookie, no value")
-                (Result.Success (set-path c (join "=" &(Array.suffix-array splt 1)))))
+                (Result.Success (set-path c (join "=" &(Array.suffix splt 1)))))
             (starts-with? prop "Domain")
               (if l<2
                 (Result.Error @"malformed domain property in set-cookie, no value")
                 (Result.Success
-                  (set-domain c (Maybe.Just (join "=" &(Array.suffix-array splt 1))))))
+                  (set-domain c (Maybe.Just (join "=" &(Array.suffix splt 1))))))
             (starts-with? prop "Expires")
               (if l<2
                 (Result.Error @"malformed expires property in set-cookie, no value")
@@ -102,14 +102,14 @@ the type yourself, instead you can [parse](#parse) it.")
             (starts-with? prop "Max-Age")
               (if l<2
                 (Result.Error @"malformed max-age property in set-cookie, no value")
-                (let [i (Int.from-string &(join "=" &(Array.suffix-array splt 1)))]
+                (let [i (Int.from-string &(join "=" &(Array.suffix splt 1)))]
                   (Result.Success
                     (set-expires c
                       (Maybe.Just (Datetime.add-seconds &(Datetime.now) i))))))
             (starts-with? prop "SameSite")
               (if l<2
                 (Result.Error @"malformed samesite property in set-cookie, no value")
-                (let [s (join "=" &(Array.suffix-array splt 1))]
+                (let [s (join "=" &(Array.suffix splt 1))]
                   (case &s
                     "Lax"    (Result.Success (set-same-site c (SameSite.Lax)))
                     "Strict" (Result.Success (set-same-site c (SameSite.Strict)))
@@ -122,7 +122,7 @@ the type yourself, instead you can [parse](#parse) it.")
   (defn parse-set [s]
     (let [splt (split-by s &[\;])]
       (Array.reduce &parse-set-prop (parse &(Array.unsafe-first &splt))
-                    &(Array.suffix-array &splt 1))))
+                    &(Array.suffix &splt 1))))
 )
 
 (doc Request "is a request data type. It holds the `verb` of the request, the
@@ -213,7 +213,7 @@ it will return a `(Success Request)`.")
                       (do
                         (when (> (Array.length ls) (Int.inc i))
                           (set! body
-                            (join "\n" &(Array.suffix-array ls (Int.inc i)))))
+                            (join "\n" &(Array.suffix ls (Int.inc i)))))
                         (break))
                       (let [splt (split-by l &[\:])]
                         (if (< (Array.length &splt) 2)
@@ -221,7 +221,7 @@ it will return a `(Success Request)`.")
                             (set! failed @l)
                             (break))
                           (let [k (Array.unsafe-nth &splt 0)
-                                v &(trim &(join ":" &(Array.suffix-array &splt 1)))]
+                                v &(trim &(join ":" &(Array.suffix &splt 1)))]
                             (if (= k "Cookie")
                               (match (Cookie.parse-many v)
                                 (Result.Error err)
@@ -330,7 +330,7 @@ it will return a `(Success Response)`.")
                       (do
                         (when (> (Array.length ls) (Int.inc i))
                           (set! body
-                            (join "\n" &(Array.suffix-array ls (Int.inc i)))))
+                            (join "\n" &(Array.suffix ls (Int.inc i)))))
                         (break))
                       (let [splt (split-by l &[\:])]
                         (if (< (Array.length &splt) 2)
@@ -338,7 +338,7 @@ it will return a `(Success Response)`.")
                             (set! failed @l)
                             (break))
                           (let [k (Array.unsafe-nth &splt 0)
-                                v &(trim &(join ":" &(Array.suffix-array &splt 1)))]
+                                v &(trim &(join ":" &(Array.suffix &splt 1)))]
                             (if (= k "Set-Cookie")
                               (match (Cookie.parse-set v)
                                 (Result.Error err)
@@ -359,7 +359,7 @@ it will return a `(Success Response)`.")
                       (Result.Success
                         (init
                           (Int.from-string status-code)
-                          (join " " &(Array.suffix-array &splt 2))
+                          (join " " &(Array.suffix &splt 2))
                           @(Array.unsafe-nth &splt 0)
                           cookies
                           headers
