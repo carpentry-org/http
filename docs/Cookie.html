@@ -53,7 +53,7 @@ the type yourself, instead you can <a href="#parse">parse</a> it.</p>
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [(Ref Cookie)] &amp;String)
+                    (λ [(Ref Cookie a)] (Ref (Maybe String) a))
                 </p>
                 <span>
                     
@@ -73,7 +73,7 @@ the type yourself, instead you can <a href="#parse">parse</a> it.</p>
                     defn
                 </div>
                 <p class="sig">
-                    (λ [(Ref Cookie)] Bool)
+                    (λ [(Ref Cookie a)] Bool)
                 </p>
                 <pre class="args">
                     (expired? c)
@@ -93,33 +93,13 @@ the type yourself, instead you can <a href="#parse">parse</a> it.</p>
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [(Ref Cookie)] (Ref Datetime))
+                    (λ [(Ref Cookie a)] (Ref (Maybe Datetime) a))
                 </p>
                 <span>
                     
                 </span>
                 <p class="doc">
                     <p>gets the <code>expires</code> property of a <code>Cookie</code>.</p>
-
-                </p>
-            </div>
-            <div class="binder">
-                <a class="anchor" href="#extension">
-                    <h3 id="extension">
-                        extension
-                    </h3>
-                </a>
-                <div class="description">
-                    instantiate
-                </div>
-                <p class="sig">
-                    (λ [(Ref Cookie)] &amp;String)
-                </p>
-                <span>
-                    
-                </span>
-                <p class="doc">
-                    <p>gets the <code>extension</code> property of a <code>Cookie</code>.</p>
 
                 </p>
             </div>
@@ -133,7 +113,7 @@ the type yourself, instead you can <a href="#parse">parse</a> it.</p>
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [(Ref Cookie)] &amp;Bool)
+                    (λ [(Ref Cookie a)] (Ref Bool a))
                 </p>
                 <span>
                     
@@ -153,13 +133,33 @@ the type yourself, instead you can <a href="#parse">parse</a> it.</p>
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [String, String, String, Datetime, String, Bool, Bool, String] Cookie)
+                    (λ [String, String, String, (Maybe Datetime), (Maybe String), Bool, Bool, SameSite] Cookie)
                 </p>
                 <span>
                     
                 </span>
                 <p class="doc">
                     <p>creates a <code>Cookie</code>.</p>
+
+                </p>
+            </div>
+            <div class="binder">
+                <a class="anchor" href="#kv">
+                    <h3 id="kv">
+                        kv
+                    </h3>
+                </a>
+                <div class="description">
+                    defn
+                </div>
+                <p class="sig">
+                    (λ [(Ref Cookie a)] String)
+                </p>
+                <pre class="args">
+                    (kv c)
+                </pre>
+                <p class="doc">
+                    <p>makes a <code>name=value</code> pair from a cookie.</p>
 
                 </p>
             </div>
@@ -173,7 +173,7 @@ the type yourself, instead you can <a href="#parse">parse</a> it.</p>
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [(Ref Cookie)] &amp;String)
+                    (λ [(Ref Cookie a)] (Ref String a))
                 </p>
                 <span>
                     
@@ -193,13 +193,53 @@ the type yourself, instead you can <a href="#parse">parse</a> it.</p>
                     defn
                 </div>
                 <p class="sig">
-                    (λ [a] ())
+                    (λ [(Ref String a)] (Result Cookie String))
                 </p>
                 <pre class="args">
                     (parse s)
                 </pre>
                 <p class="doc">
                     <p>parses a cookie.</p>
+
+                </p>
+            </div>
+            <div class="binder">
+                <a class="anchor" href="#parse-many">
+                    <h3 id="parse-many">
+                        parse-many
+                    </h3>
+                </a>
+                <div class="description">
+                    defn
+                </div>
+                <p class="sig">
+                    (λ [(Ref String a)] (Result (Array Cookie) String))
+                </p>
+                <pre class="args">
+                    (parse-many s)
+                </pre>
+                <p class="doc">
+                    <p>parses multiple cookies.</p>
+
+                </p>
+            </div>
+            <div class="binder">
+                <a class="anchor" href="#parse-set">
+                    <h3 id="parse-set">
+                        parse-set
+                    </h3>
+                </a>
+                <div class="description">
+                    defn
+                </div>
+                <p class="sig">
+                    (λ [(Ref String a)] (Result Cookie String))
+                </p>
+                <pre class="args">
+                    (parse-set s)
+                </pre>
+                <p class="doc">
+                    <p>parses a <code>Set-Cookie</code> form.</p>
 
                 </p>
             </div>
@@ -213,13 +253,33 @@ the type yourself, instead you can <a href="#parse">parse</a> it.</p>
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [(Ref Cookie)] &amp;String)
+                    (λ [(Ref Cookie a)] (Ref String a))
                 </p>
                 <span>
                     
                 </span>
                 <p class="doc">
                     <p>gets the <code>path</code> property of a <code>Cookie</code>.</p>
+
+                </p>
+            </div>
+            <div class="binder">
+                <a class="anchor" href="#same-site">
+                    <h3 id="same-site">
+                        same-site
+                    </h3>
+                </a>
+                <div class="description">
+                    instantiate
+                </div>
+                <p class="sig">
+                    (λ [(Ref Cookie a)] (Ref SameSite a))
+                </p>
+                <span>
+                    
+                </span>
+                <p class="doc">
+                    <p>gets the <code>same-site</code> property of a <code>Cookie</code>.</p>
 
                 </p>
             </div>
@@ -233,13 +293,33 @@ the type yourself, instead you can <a href="#parse">parse</a> it.</p>
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [(Ref Cookie)] &amp;Bool)
+                    (λ [(Ref Cookie a)] (Ref Bool a))
                 </p>
                 <span>
                     
                 </span>
                 <p class="doc">
                     <p>gets the <code>secure</code> property of a <code>Cookie</code>.</p>
+
+                </p>
+            </div>
+            <div class="binder">
+                <a class="anchor" href="#set">
+                    <h3 id="set">
+                        set
+                    </h3>
+                </a>
+                <div class="description">
+                    defn
+                </div>
+                <p class="sig">
+                    (λ [(Ref Cookie a)] String)
+                </p>
+                <pre class="args">
+                    (set c)
+                </pre>
+                <p class="doc">
+                    <p>makes a proper set cookie string from a cookie.</p>
 
                 </p>
             </div>
@@ -253,7 +333,7 @@ the type yourself, instead you can <a href="#parse">parse</a> it.</p>
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [Cookie, String] Cookie)
+                    (λ [Cookie, (Maybe String)] Cookie)
                 </p>
                 <span>
                     
@@ -273,7 +353,7 @@ the type yourself, instead you can <a href="#parse">parse</a> it.</p>
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [(Ref Cookie), String] ())
+                    (λ [(Ref Cookie a), (Maybe String)] ())
                 </p>
                 <span>
                     
@@ -293,7 +373,7 @@ the type yourself, instead you can <a href="#parse">parse</a> it.</p>
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [Cookie, Datetime] Cookie)
+                    (λ [Cookie, (Maybe Datetime)] Cookie)
                 </p>
                 <span>
                     
@@ -313,53 +393,13 @@ the type yourself, instead you can <a href="#parse">parse</a> it.</p>
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [(Ref Cookie), Datetime] ())
+                    (λ [(Ref Cookie a), (Maybe Datetime)] ())
                 </p>
                 <span>
                     
                 </span>
                 <p class="doc">
                     <p>sets the <code>expires</code> property of a <code>Cookie</code> in place.</p>
-
-                </p>
-            </div>
-            <div class="binder">
-                <a class="anchor" href="#set-extension">
-                    <h3 id="set-extension">
-                        set-extension
-                    </h3>
-                </a>
-                <div class="description">
-                    instantiate
-                </div>
-                <p class="sig">
-                    (λ [Cookie, String] Cookie)
-                </p>
-                <span>
-                    
-                </span>
-                <p class="doc">
-                    <p>sets the <code>extension</code> property of a <code>Cookie</code>.</p>
-
-                </p>
-            </div>
-            <div class="binder">
-                <a class="anchor" href="#set-extension!">
-                    <h3 id="set-extension!">
-                        set-extension!
-                    </h3>
-                </a>
-                <div class="description">
-                    instantiate
-                </div>
-                <p class="sig">
-                    (λ [(Ref Cookie), String] ())
-                </p>
-                <span>
-                    
-                </span>
-                <p class="doc">
-                    <p>sets the <code>extension</code> property of a <code>Cookie</code> in place.</p>
 
                 </p>
             </div>
@@ -393,7 +433,7 @@ the type yourself, instead you can <a href="#parse">parse</a> it.</p>
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [(Ref Cookie), Bool] ())
+                    (λ [(Ref Cookie a), Bool] ())
                 </p>
                 <span>
                     
@@ -433,7 +473,7 @@ the type yourself, instead you can <a href="#parse">parse</a> it.</p>
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [(Ref Cookie), String] ())
+                    (λ [(Ref Cookie a), String] ())
                 </p>
                 <span>
                     
@@ -473,13 +513,53 @@ the type yourself, instead you can <a href="#parse">parse</a> it.</p>
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [(Ref Cookie), String] ())
+                    (λ [(Ref Cookie a), String] ())
                 </p>
                 <span>
                     
                 </span>
                 <p class="doc">
                     <p>sets the <code>path</code> property of a <code>Cookie</code> in place.</p>
+
+                </p>
+            </div>
+            <div class="binder">
+                <a class="anchor" href="#set-same-site">
+                    <h3 id="set-same-site">
+                        set-same-site
+                    </h3>
+                </a>
+                <div class="description">
+                    instantiate
+                </div>
+                <p class="sig">
+                    (λ [Cookie, SameSite] Cookie)
+                </p>
+                <span>
+                    
+                </span>
+                <p class="doc">
+                    <p>sets the <code>same-site</code> property of a <code>Cookie</code>.</p>
+
+                </p>
+            </div>
+            <div class="binder">
+                <a class="anchor" href="#set-same-site!">
+                    <h3 id="set-same-site!">
+                        set-same-site!
+                    </h3>
+                </a>
+                <div class="description">
+                    instantiate
+                </div>
+                <p class="sig">
+                    (λ [(Ref Cookie a), SameSite] ())
+                </p>
+                <span>
+                    
+                </span>
+                <p class="doc">
+                    <p>sets the <code>same-site</code> property of a <code>Cookie</code> in place.</p>
 
                 </p>
             </div>
@@ -513,7 +593,7 @@ the type yourself, instead you can <a href="#parse">parse</a> it.</p>
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [(Ref Cookie), Bool] ())
+                    (λ [(Ref Cookie a), Bool] ())
                 </p>
                 <span>
                     
@@ -553,7 +633,7 @@ the type yourself, instead you can <a href="#parse">parse</a> it.</p>
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [(Ref Cookie), String] ())
+                    (λ [(Ref Cookie a), String] ())
                 </p>
                 <span>
                     
@@ -573,7 +653,7 @@ the type yourself, instead you can <a href="#parse">parse</a> it.</p>
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [(Ref Cookie)] String)
+                    (λ [(Ref Cookie a)] String)
                 </p>
                 <span>
                     
@@ -593,7 +673,7 @@ the type yourself, instead you can <a href="#parse">parse</a> it.</p>
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [Cookie, (Ref (λ [String] String))] Cookie)
+                    (λ [Cookie, (Ref (λ [(Maybe String)] (Maybe String) a) b)] Cookie)
                 </p>
                 <span>
                     
@@ -613,33 +693,13 @@ the type yourself, instead you can <a href="#parse">parse</a> it.</p>
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [Cookie, (Ref (λ [Datetime] Datetime))] Cookie)
+                    (λ [Cookie, (Ref (λ [(Maybe Datetime)] (Maybe Datetime) a) b)] Cookie)
                 </p>
                 <span>
                     
                 </span>
                 <p class="doc">
                     <p>updates the <code>expires</code> property of a <code>Cookie</code> using a function <code>f</code>.</p>
-
-                </p>
-            </div>
-            <div class="binder">
-                <a class="anchor" href="#update-extension">
-                    <h3 id="update-extension">
-                        update-extension
-                    </h3>
-                </a>
-                <div class="description">
-                    instantiate
-                </div>
-                <p class="sig">
-                    (λ [Cookie, (Ref (λ [String] String))] Cookie)
-                </p>
-                <span>
-                    
-                </span>
-                <p class="doc">
-                    <p>updates the <code>extension</code> property of a <code>Cookie</code> using a function <code>f</code>.</p>
 
                 </p>
             </div>
@@ -653,7 +713,7 @@ the type yourself, instead you can <a href="#parse">parse</a> it.</p>
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [Cookie, (Ref (λ [Bool] Bool))] Cookie)
+                    (λ [Cookie, (Ref (λ [Bool] Bool a) b)] Cookie)
                 </p>
                 <span>
                     
@@ -673,7 +733,7 @@ the type yourself, instead you can <a href="#parse">parse</a> it.</p>
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [Cookie, (Ref (λ [String] String))] Cookie)
+                    (λ [Cookie, (Ref (λ [String] String a) b)] Cookie)
                 </p>
                 <span>
                     
@@ -693,13 +753,33 @@ the type yourself, instead you can <a href="#parse">parse</a> it.</p>
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [Cookie, (Ref (λ [String] String))] Cookie)
+                    (λ [Cookie, (Ref (λ [String] String a) b)] Cookie)
                 </p>
                 <span>
                     
                 </span>
                 <p class="doc">
                     <p>updates the <code>path</code> property of a <code>Cookie</code> using a function <code>f</code>.</p>
+
+                </p>
+            </div>
+            <div class="binder">
+                <a class="anchor" href="#update-same-site">
+                    <h3 id="update-same-site">
+                        update-same-site
+                    </h3>
+                </a>
+                <div class="description">
+                    instantiate
+                </div>
+                <p class="sig">
+                    (λ [Cookie, (Ref (λ [SameSite] SameSite a) b)] Cookie)
+                </p>
+                <span>
+                    
+                </span>
+                <p class="doc">
+                    <p>updates the <code>same-site</code> property of a <code>Cookie</code> using a function <code>f</code>.</p>
 
                 </p>
             </div>
@@ -713,7 +793,7 @@ the type yourself, instead you can <a href="#parse">parse</a> it.</p>
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [Cookie, (Ref (λ [Bool] Bool))] Cookie)
+                    (λ [Cookie, (Ref (λ [Bool] Bool a) b)] Cookie)
                 </p>
                 <span>
                     
@@ -733,7 +813,7 @@ the type yourself, instead you can <a href="#parse">parse</a> it.</p>
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [Cookie, (Ref (λ [String] String))] Cookie)
+                    (λ [Cookie, (Ref (λ [String] String a) b)] Cookie)
                 </p>
                 <span>
                     
@@ -753,7 +833,7 @@ the type yourself, instead you can <a href="#parse">parse</a> it.</p>
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [(Ref Cookie)] &amp;String)
+                    (λ [(Ref Cookie a)] (Ref String a))
                 </p>
                 <span>
                     

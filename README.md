@@ -2,23 +2,21 @@
 
 HTTP for Carp, expressed as a parser and a data structure.
 
-A very early work in progress. Currently implemented: Simple HTTP requests.
-
 ## Installation
 
-We recommend you don’t use this library yet. If you have to, use:
-
 ```clojure
-(load "git@github.com:carpentry-org/http@master")
+(load "git@github.com:carpentry-org/http@0.0.1")
 ```
 
 ## Usage
 
-Currently, all you can do is parse HTTP requests, by using `HTTP.parse`.
+Currently, all you can do is parse and build HTTP requests and responses, by
+using `Request.parse` and `Response.parse`.
+
 Hopefully you’ll soon be able to do more than that!
 
 ```clojure
-(load "git@github.com:carpentry-org/http@master")
+(load "git@github.com:carpentry-org/http@0.0.1")
 
 (def txt "POST / HTTP/1.1
 Host: https://veitheller.de
