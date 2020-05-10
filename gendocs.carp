@@ -9,7 +9,7 @@
 parsing HTTP requests.
 
 ```
-(load \"git@github.com:carpentry-org/http.carp.git@0.0.2\")
+(load \"git@github.com:carpentry-org/http.carp.git@0.0.3\")
 ```
 ")
 
