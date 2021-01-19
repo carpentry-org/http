@@ -4,13 +4,13 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
-        <link rel="stylesheet" href="style.css">
+        <link rel="stylesheet" href="../style.css">
     </head>
     <body>
         <div class="content">
             <div class="logo">
-                <a href="http://github.com/carp-lang/Carp">
-                    <img src="logo.png">
+                <a href="">
+                    <img src="">
                 </a>
                 <div class="title">
                     http
@@ -53,7 +53,7 @@
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [(Ref Request a)] (Ref String a))
+                    (Fn [(Ref Request a)] (Ref String a))
                 </p>
                 <span>
                     
@@ -73,7 +73,7 @@
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [(Ref Request a)] (Ref (Array Cookie) a))
+                    (Fn [(Ref Request a)] (Ref (Array Cookie) a))
                 </p>
                 <span>
                     
@@ -93,7 +93,7 @@
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [(Ref Request a)] Request)
+                    (Fn [(Ref Request a)] Request)
                 </p>
                 <span>
                     
@@ -113,7 +113,7 @@
                     defn
                 </div>
                 <p class="sig">
-                    (λ [URI, (Array Cookie), (Map String (Array String)), String] Request)
+                    (Fn [URI, (Array Cookie), (Map String (Array String)), String] Request)
                 </p>
                 <pre class="args">
                     (del uri cookies headers body)
@@ -133,7 +133,7 @@
                     defn
                 </div>
                 <p class="sig">
-                    (λ [URI, (Array Cookie), (Map String (Array String)), String] Request)
+                    (Fn [URI, (Array Cookie), (Map String (Array String)), String] Request)
                 </p>
                 <pre class="args">
                     (get uri cookies headers body)
@@ -153,7 +153,7 @@
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [(Ref Request a)] (Ref (Map String (Array String)) a))
+                    (Fn [(Ref Request a)] (Ref (Map String (Array String)) a))
                 </p>
                 <span>
                     
@@ -173,7 +173,7 @@
                     defn
                 </div>
                 <p class="sig">
-                    (λ [(Ref Request a)] Bool)
+                    (Fn [(Ref Request a)] Bool)
                 </p>
                 <pre class="args">
                     (ignore-body? r)
@@ -193,7 +193,7 @@
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [String, String, URI, (Array Cookie), (Map String (Array String)), String] Request)
+                    (Fn [String, String, URI, (Array Cookie), (Map String (Array String)), String] Request)
                 </p>
                 <span>
                     
@@ -213,7 +213,7 @@
                     defn
                 </div>
                 <p class="sig">
-                    (λ [(Ref String a)] (Result Request String))
+                    (Fn [(Ref String a)] (Result Request String))
                 </p>
                 <pre class="args">
                     (parse txt)
@@ -235,7 +235,7 @@ it will return a <code>(Success Request)</code>.</p>
                     defn
                 </div>
                 <p class="sig">
-                    (λ [URI, (Array Cookie), (Map String (Array String)), String] Request)
+                    (Fn [URI, (Array Cookie), (Map String (Array String)), String] Request)
                 </p>
                 <pre class="args">
                     (patch uri cookies headers body)
@@ -255,7 +255,7 @@ it will return a <code>(Success Request)</code>.</p>
                     defn
                 </div>
                 <p class="sig">
-                    (λ [URI, (Array Cookie), (Map String (Array String)), String] Request)
+                    (Fn [URI, (Array Cookie), (Map String (Array String)), String] Request)
                 </p>
                 <pre class="args">
                     (post uri cookies headers body)
@@ -275,7 +275,7 @@ it will return a <code>(Success Request)</code>.</p>
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [(Ref Request a)] String)
+                    (Fn [(Ref Request a)] String)
                 </p>
                 <span>
                     
@@ -295,7 +295,7 @@ it will return a <code>(Success Request)</code>.</p>
                     defn
                 </div>
                 <p class="sig">
-                    (λ [URI, (Array Cookie), (Map String (Array String)), String] Request)
+                    (Fn [URI, (Array Cookie), (Map String (Array String)), String] Request)
                 </p>
                 <pre class="args">
                     (put uri cookies headers body)
@@ -315,7 +315,7 @@ it will return a <code>(Success Request)</code>.</p>
                     defn
                 </div>
                 <p class="sig">
-                    (λ [String, URI, (Array Cookie), (Map String (Array String)), String] Request)
+                    (Fn [String, URI, (Array Cookie), (Map String (Array String)), String] Request)
                 </p>
                 <pre class="args">
                     (request verb uri cookies headers body)
@@ -335,7 +335,7 @@ it will return a <code>(Success Request)</code>.</p>
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [Request, String] Request)
+                    (Fn [Request, String] Request)
                 </p>
                 <span>
                     
@@ -355,7 +355,7 @@ it will return a <code>(Success Request)</code>.</p>
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [(Ref Request a), String] ())
+                    (Fn [(Ref Request a), String] ())
                 </p>
                 <span>
                     
@@ -375,7 +375,7 @@ it will return a <code>(Success Request)</code>.</p>
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [Request, (Array Cookie)] Request)
+                    (Fn [Request, (Array Cookie)] Request)
                 </p>
                 <span>
                     
@@ -395,7 +395,7 @@ it will return a <code>(Success Request)</code>.</p>
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [(Ref Request a), (Array Cookie)] ())
+                    (Fn [(Ref Request a), (Array Cookie)] ())
                 </p>
                 <span>
                     
@@ -415,7 +415,7 @@ it will return a <code>(Success Request)</code>.</p>
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [Request, (Map String (Array String))] Request)
+                    (Fn [Request, (Map String (Array String))] Request)
                 </p>
                 <span>
                     
@@ -435,7 +435,7 @@ it will return a <code>(Success Request)</code>.</p>
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [(Ref Request a), (Map String (Array String))] ())
+                    (Fn [(Ref Request a), (Map String (Array String))] ())
                 </p>
                 <span>
                     
@@ -455,7 +455,7 @@ it will return a <code>(Success Request)</code>.</p>
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [Request, URI] Request)
+                    (Fn [Request, URI] Request)
                 </p>
                 <span>
                     
@@ -475,7 +475,7 @@ it will return a <code>(Success Request)</code>.</p>
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [(Ref Request a), URI] ())
+                    (Fn [(Ref Request a), URI] ())
                 </p>
                 <span>
                     
@@ -495,7 +495,7 @@ it will return a <code>(Success Request)</code>.</p>
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [Request, String] Request)
+                    (Fn [Request, String] Request)
                 </p>
                 <span>
                     
@@ -515,7 +515,7 @@ it will return a <code>(Success Request)</code>.</p>
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [(Ref Request a), String] ())
+                    (Fn [(Ref Request a), String] ())
                 </p>
                 <span>
                     
@@ -535,7 +535,7 @@ it will return a <code>(Success Request)</code>.</p>
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [Request, String] Request)
+                    (Fn [Request, String] Request)
                 </p>
                 <span>
                     
@@ -555,7 +555,7 @@ it will return a <code>(Success Request)</code>.</p>
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [(Ref Request a), String] ())
+                    (Fn [(Ref Request a), String] ())
                 </p>
                 <span>
                     
@@ -575,7 +575,7 @@ it will return a <code>(Success Request)</code>.</p>
                     defn
                 </div>
                 <p class="sig">
-                    (λ [(Ref Request a)] String)
+                    (Fn [(Ref Request a)] String)
                 </p>
                 <pre class="args">
                     (str r)
@@ -596,7 +596,7 @@ looks on the wire.</p>
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [Request, (Ref (λ [String] String a) b)] Request)
+                    (Fn [Request, (Ref (Fn [String] String a) b)] Request)
                 </p>
                 <span>
                     
@@ -616,7 +616,7 @@ looks on the wire.</p>
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [Request, (Ref (λ [(Array Cookie)] (Array Cookie) a) b)] Request)
+                    (Fn [Request, (Ref (Fn [(Array Cookie)] (Array Cookie) a) b)] Request)
                 </p>
                 <span>
                     
@@ -636,7 +636,7 @@ looks on the wire.</p>
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [Request, (Ref (λ [(Map String (Array String))] (Map String (Array String)) a) b)] Request)
+                    (Fn [Request, (Ref (Fn [(Map String (Array String))] (Map String (Array String)) a) b)] Request)
                 </p>
                 <span>
                     
@@ -656,7 +656,7 @@ looks on the wire.</p>
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [Request, (Ref (λ [URI] URI a) b)] Request)
+                    (Fn [Request, (Ref (Fn [URI] URI a) b)] Request)
                 </p>
                 <span>
                     
@@ -676,7 +676,7 @@ looks on the wire.</p>
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [Request, (Ref (λ [String] String a) b)] Request)
+                    (Fn [Request, (Ref (Fn [String] String a) b)] Request)
                 </p>
                 <span>
                     
@@ -696,7 +696,7 @@ looks on the wire.</p>
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [Request, (Ref (λ [String] String a) b)] Request)
+                    (Fn [Request, (Ref (Fn [String] String a) b)] Request)
                 </p>
                 <span>
                     
@@ -716,7 +716,7 @@ looks on the wire.</p>
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [(Ref Request a)] (Ref URI a))
+                    (Fn [(Ref Request a)] (Ref URI a))
                 </p>
                 <span>
                     
@@ -736,7 +736,7 @@ looks on the wire.</p>
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [(Ref Request a)] (Ref String a))
+                    (Fn [(Ref Request a)] (Ref String a))
                 </p>
                 <span>
                     
@@ -756,7 +756,7 @@ looks on the wire.</p>
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [(Ref Request a)] (Ref String a))
+                    (Fn [(Ref Request a)] (Ref String a))
                 </p>
                 <span>
                     

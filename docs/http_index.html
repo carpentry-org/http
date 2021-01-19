@@ -4,11 +4,11 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
-        <link rel="stylesheet" href="style.css">
+        <link rel="stylesheet" href="../style.css">
     </head>
     <body>
         <div class="content">
-            <a href="https://github.com/carpentry-org/http">
+            <a href="">
                 <div class="logo">
                     <img src="" alt="Logo">
                     <div class="index">
@@ -37,7 +37,19 @@
                     </h1>
                     <p>is a collection of modules for building and
 parsing HTTP requests.</p>
-<pre><code>(load &quot;git@github.com:carpentry-org/http.carp.git@0.0.3&quot;)
+<pre><code class="language-clojure">(load &quot;git@github.com:carpentry-org/http@0.0.4&quot;)
+
+(def txt &quot;POST / HTTP/1.1\r
+Host: https://carpentry.dev\r
+User-Agent: carp\r
+Accept: */*\r
+\r
+hi!&quot;)
+
+(defn main []
+  (let [x (Request.parse txt)]
+    (match x
+      (Result.Success r) (println* &amp;r)
 </code></pre>
 
                 </div>

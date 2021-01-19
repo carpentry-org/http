@@ -3,13 +3,24 @@
 (Project.config "title" "http")
 (Project.config "docs-directory" "./docs/")
 (Project.config "docs-logo" "")
-(Project.config "docs-url" "https://github.com/carpentry-org/http")
-(Project.config "docs-styling" "style.css")
+(Project.config "docs-styling" "../style.css")
 (Project.config "docs-prelude" "is a collection of modules for building and
 parsing HTTP requests.
 
-```
-(load \"git@github.com:carpentry-org/http.carp.git@0.0.3\")
+```clojure
+(load \"git@github.com:carpentry-org/http@0.0.4\")
+
+(def txt \"POST / HTTP/1.1\r
+Host: https://carpentry.dev\r
+User-Agent: carp\r
+Accept: */*\r
+\r
+hi!\")
+
+(defn main []
+  (let [x (Request.parse txt)]
+    (match x
+      (Result.Success r) (println* &r)
 ```
 ")
 

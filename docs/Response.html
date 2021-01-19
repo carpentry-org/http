@@ -4,13 +4,13 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
-        <link rel="stylesheet" href="style.css">
+        <link rel="stylesheet" href="../style.css">
     </head>
     <body>
         <div class="content">
             <div class="logo">
-                <a href="http://github.com/carp-lang/Carp">
-                    <img src="logo.png">
+                <a href="">
+                    <img src="">
                 </a>
                 <div class="title">
                     http
@@ -53,7 +53,7 @@
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [(Ref Response a)] (Ref String a))
+                    (Fn [(Ref Response a)] (Ref String a))
                 </p>
                 <span>
                     
@@ -73,7 +73,7 @@
                     defn
                 </div>
                 <p class="sig">
-                    (λ [(Ref Response a)] Bool)
+                    (Fn [(Ref Response a)] Bool)
                 </p>
                 <pre class="args">
                     (client-error? r)
@@ -93,7 +93,7 @@
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [(Ref Response a)] (Ref Int a))
+                    (Fn [(Ref Response a)] (Ref Int a))
                 </p>
                 <span>
                     
@@ -113,7 +113,7 @@
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [(Ref Response a)] (Ref (Array Cookie) a))
+                    (Fn [(Ref Response a)] (Ref (Array Cookie) a))
                 </p>
                 <span>
                     
@@ -133,7 +133,7 @@
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [(Ref Response a)] Response)
+                    (Fn [(Ref Response a)] Response)
                 </p>
                 <span>
                     
@@ -153,7 +153,7 @@
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [(Ref Response a)] (Ref (Map String (Array String)) a))
+                    (Fn [(Ref Response a)] (Ref (Map String (Array String)) a))
                 </p>
                 <span>
                     
@@ -173,7 +173,7 @@
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [Int, String, String, (Array Cookie), (Map String (Array String)), String] Response)
+                    (Fn [Int, String, String, (Array Cookie), (Map String (Array String)), String] Response)
                 </p>
                 <span>
                     
@@ -193,7 +193,7 @@
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [(Ref Response a)] (Ref String a))
+                    (Fn [(Ref Response a)] (Ref String a))
                 </p>
                 <span>
                     
@@ -213,7 +213,7 @@
                     defn
                 </div>
                 <p class="sig">
-                    (λ [(Ref Response a)] Bool)
+                    (Fn [(Ref Response a)] Bool)
                 </p>
                 <pre class="args">
                     (ok? r)
@@ -233,7 +233,7 @@
                     defn
                 </div>
                 <p class="sig">
-                    (λ [(Ref String a)] (Result Response String))
+                    (Fn [(Ref String a)] (Result Response String))
                 </p>
                 <pre class="args">
                     (parse txt)
@@ -255,7 +255,7 @@ it will return a <code>(Success Response)</code>.</p>
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [(Ref Response a)] String)
+                    (Fn [(Ref Response a)] String)
                 </p>
                 <span>
                     
@@ -275,7 +275,7 @@ it will return a <code>(Success Response)</code>.</p>
                     defn
                 </div>
                 <p class="sig">
-                    (λ [(Ref Response a)] Bool)
+                    (Fn [(Ref Response a)] Bool)
                 </p>
                 <pre class="args">
                     (server-error? r)
@@ -295,7 +295,7 @@ it will return a <code>(Success Response)</code>.</p>
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [Response, String] Response)
+                    (Fn [Response, String] Response)
                 </p>
                 <span>
                     
@@ -315,7 +315,7 @@ it will return a <code>(Success Response)</code>.</p>
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [(Ref Response a), String] ())
+                    (Fn [(Ref Response a), String] ())
                 </p>
                 <span>
                     
@@ -335,7 +335,7 @@ it will return a <code>(Success Response)</code>.</p>
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [Response, Int] Response)
+                    (Fn [Response, Int] Response)
                 </p>
                 <span>
                     
@@ -355,7 +355,7 @@ it will return a <code>(Success Response)</code>.</p>
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [(Ref Response a), Int] ())
+                    (Fn [(Ref Response a), Int] ())
                 </p>
                 <span>
                     
@@ -375,7 +375,7 @@ it will return a <code>(Success Response)</code>.</p>
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [Response, (Array Cookie)] Response)
+                    (Fn [Response, (Array Cookie)] Response)
                 </p>
                 <span>
                     
@@ -395,7 +395,7 @@ it will return a <code>(Success Response)</code>.</p>
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [(Ref Response a), (Array Cookie)] ())
+                    (Fn [(Ref Response a), (Array Cookie)] ())
                 </p>
                 <span>
                     
@@ -415,7 +415,7 @@ it will return a <code>(Success Response)</code>.</p>
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [Response, (Map String (Array String))] Response)
+                    (Fn [Response, (Map String (Array String))] Response)
                 </p>
                 <span>
                     
@@ -435,7 +435,7 @@ it will return a <code>(Success Response)</code>.</p>
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [(Ref Response a), (Map String (Array String))] ())
+                    (Fn [(Ref Response a), (Map String (Array String))] ())
                 </p>
                 <span>
                     
@@ -455,7 +455,7 @@ it will return a <code>(Success Response)</code>.</p>
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [Response, String] Response)
+                    (Fn [Response, String] Response)
                 </p>
                 <span>
                     
@@ -475,7 +475,7 @@ it will return a <code>(Success Response)</code>.</p>
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [(Ref Response a), String] ())
+                    (Fn [(Ref Response a), String] ())
                 </p>
                 <span>
                     
@@ -495,7 +495,7 @@ it will return a <code>(Success Response)</code>.</p>
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [Response, String] Response)
+                    (Fn [Response, String] Response)
                 </p>
                 <span>
                     
@@ -515,7 +515,7 @@ it will return a <code>(Success Response)</code>.</p>
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [(Ref Response a), String] ())
+                    (Fn [(Ref Response a), String] ())
                 </p>
                 <span>
                     
@@ -535,7 +535,7 @@ it will return a <code>(Success Response)</code>.</p>
                     defn
                 </div>
                 <p class="sig">
-                    (λ [(Ref Response a)] String)
+                    (Fn [(Ref Response a)] String)
                 </p>
                 <pre class="args">
                     (str r)
@@ -556,7 +556,7 @@ looks on the wire.</p>
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [Response, (Ref (λ [String] String a) b)] Response)
+                    (Fn [Response, (Ref (Fn [String] String a) b)] Response)
                 </p>
                 <span>
                     
@@ -576,7 +576,7 @@ looks on the wire.</p>
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [Response, (Ref (λ [Int] Int a) b)] Response)
+                    (Fn [Response, (Ref (Fn [Int] Int a) b)] Response)
                 </p>
                 <span>
                     
@@ -596,7 +596,7 @@ looks on the wire.</p>
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [Response, (Ref (λ [(Array Cookie)] (Array Cookie) a) b)] Response)
+                    (Fn [Response, (Ref (Fn [(Array Cookie)] (Array Cookie) a) b)] Response)
                 </p>
                 <span>
                     
@@ -616,7 +616,7 @@ looks on the wire.</p>
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [Response, (Ref (λ [(Map String (Array String))] (Map String (Array String)) a) b)] Response)
+                    (Fn [Response, (Ref (Fn [(Map String (Array String))] (Map String (Array String)) a) b)] Response)
                 </p>
                 <span>
                     
@@ -636,7 +636,7 @@ looks on the wire.</p>
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [Response, (Ref (λ [String] String a) b)] Response)
+                    (Fn [Response, (Ref (Fn [String] String a) b)] Response)
                 </p>
                 <span>
                     
@@ -656,7 +656,7 @@ looks on the wire.</p>
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [Response, (Ref (λ [String] String a) b)] Response)
+                    (Fn [Response, (Ref (Fn [String] String a) b)] Response)
                 </p>
                 <span>
                     
@@ -676,7 +676,7 @@ looks on the wire.</p>
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [(Ref Response a)] (Ref String a))
+                    (Fn [(Ref Response a)] (Ref String a))
                 </p>
                 <span>
                     

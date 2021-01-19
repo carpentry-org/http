@@ -16,13 +16,13 @@ using `Request.parse` and `Response.parse`.
 Hopefully you’ll soon be able to do more than that!
 
 ```clojure
-(load "git@github.com:carpentry-org/http@0.0.3")
+(load "git@github.com:carpentry-org/http@0.0.4")
 
-(def txt "POST / HTTP/1.1
-Host: https://veitheller.de
-User-Agent: curl/7.54.0
-Accept: */*
-
+(def txt "POST / HTTP/1.1\r
+Host: https://veitheller.de\r
+User-Agent: curl/7.54.0\r
+Accept: */*\r
+\r
 hi!")
 
 (defn main []

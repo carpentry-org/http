@@ -1,5 +1,5 @@
-(load "git@github.com:carpentry-org/uri@0.0.8")
-(load "git@github.com:carpentry-org/time@0.0.7")
+(load "git@github.com:carpentry-org/uri@0.0.10")
+(load "git@github.com:carpentry-org/time@0.0.8")
 
 (deftype SameSite
   (Lax [])
@@ -9,6 +9,7 @@
 
 (defmodule SameSite
   (defn zero [] (Lax))
+  (implements zero SameSite.zero)
 )
 
 (doc Cookie "is a simple cookie data type. You usually shouldn’t need to build
@@ -36,7 +37,7 @@ the type yourself, instead you can [parse](#parse) it.")
       (if (= (Array.length &splt) 2)
         (Result.Success
           (init
-            (trim &(Array.unsafe-first &splt))
+            (trim (Array.unsafe-first &splt))
             (trim (Array.unsafe-nth &splt 1)) @"/"
             (Maybe.Nothing) (Maybe.Nothing) false false (zero)))
         (Result.Error @"cookie malformed: expected key=value pair"))))
@@ -102,10 +103,14 @@ the type yourself, instead you can [parse](#parse) it.")
             (starts-with? prop "Max-Age")
               (if l<2
                 (Result.Error @"malformed max-age property in set-cookie, no value")
-                (let [i (Int.from-string &(join "=" &(Array.suffix splt 1)))]
-                  (Result.Success
-                    (set-expires c
-                      (Maybe.Just (Datetime.add-seconds &(Datetime.now) i))))))
+                (let [mi (Int.from-string &(join "=" &(Array.suffix splt 1)))]
+                  (match mi
+                    (Maybe.Nothing)
+                      (Result.Error @"malformed max-age value in set-cookie")
+                    (Maybe.Just i)
+                      (Result.Success
+                        (set-expires c
+                          (Maybe.Just (Datetime.add-seconds &(Datetime.now) i)))))))
             (starts-with? prop "SameSite")
               (if l<2
                 (Result.Error @"malformed samesite property in set-cookie, no value")
@@ -121,7 +126,7 @@ the type yourself, instead you can [parse](#parse) it.")
   (doc parse-set "parses a `Set-Cookie` form.")
   (defn parse-set [s]
     (let [splt (split-by s &[\;])]
-      (Array.reduce &parse-set-prop (parse &(Array.unsafe-first &splt))
+      (Array.reduce &parse-set-prop (parse (Array.unsafe-first &splt))
                     &(Array.suffix &splt 1))))
 )
 
@@ -153,7 +158,9 @@ the type yourself, instead you can [parse](#parse) it.")
   (private str-cookies)
   (hidden str-cookies)
   (defn str-cookies [r]
-    (fmt "Cookie: %s" &(join ";" &(Array.copy-map &Cookie.kv (cookies r)))))
+    (if (empty? (cookies r))
+      @""
+      (fmt "Cookie: %s" &(join ";" &(Array.copy-map &Cookie.kv (cookies r))))))
 
   (doc str "stringifies the request. It should be stringified exactly as it
 looks on the wire.")
@@ -165,6 +172,7 @@ looks on the wire.")
          &(str-headers r)
          &(str-cookies r)
          (body r)))
+  (implements str Request.str)
 
   (doc request "builds a HTTP `1.1` request.")
   (defn request [verb uri cookies headers body]
@@ -297,6 +305,7 @@ looks on the wire.")
          &(str-headers r)
          &(str-cookies r)
          (body r)))
+  (implements str Response.str)
 
   (doc ok? "checks whether the status code is less than 400.")
   (defn ok? [r] (< @(code r) 400))
@@ -354,17 +363,19 @@ it will return a `(Success Response)`.")
                                   [])))))))))
                 (if (/= &failed "")
                   (Result.Error (fmt "Malformed response: found header '%s'" &failed))
-                  (let [status-code (Array.unsafe-nth &splt 1)]
-                    (if (num? status-code)
-                      (Result.Success
-                        (init
-                          (Int.from-string status-code)
-                          (join " " &(Array.suffix &splt 2))
-                          @(Array.unsafe-nth &splt 0)
-                          cookies
-                          headers
-                          body))
-                      (Result.Error
-                        (fmt "Malformed request: status code decoding error: '%s'"
-                          status-code)))))))))))
+                  (let [msc (Int.from-string (Array.unsafe-nth &splt 1))]
+                    (match msc
+                      (Maybe.Just status-code)
+                        (Result.Success
+                          (init
+                            status-code
+                            (join " " &(Array.suffix &splt 2))
+                            @(Array.unsafe-nth &splt 0)
+                            cookies
+                            headers
+                            body))
+                      (Maybe.Nothing)
+                        (Result.Error
+                          (fmt "Malformed request: status code decoding error: '%s'"
+                            (Array.unsafe-nth &splt 1))))))))))))
 )

@@ -4,13 +4,13 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
-        <link rel="stylesheet" href="style.css">
+        <link rel="stylesheet" href="../style.css">
     </head>
     <body>
         <div class="content">
             <div class="logo">
-                <a href="http://github.com/carp-lang/Carp">
-                    <img src="logo.png">
+                <a href="">
+                    <img src="">
                 </a>
                 <div class="title">
                     http
@@ -53,7 +53,7 @@ the type yourself, instead you can <a href="#parse">parse</a> it.</p>
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [(Ref Cookie a)] (Ref (Maybe String) a))
+                    (Fn [(Ref Cookie a)] (Ref (Maybe String) a))
                 </p>
                 <span>
                     
@@ -73,7 +73,7 @@ the type yourself, instead you can <a href="#parse">parse</a> it.</p>
                     defn
                 </div>
                 <p class="sig">
-                    (λ [(Ref Cookie a)] Bool)
+                    (Fn [(Ref Cookie a)] Bool)
                 </p>
                 <pre class="args">
                     (expired? c)
@@ -93,7 +93,7 @@ the type yourself, instead you can <a href="#parse">parse</a> it.</p>
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [(Ref Cookie a)] (Ref (Maybe Datetime) a))
+                    (Fn [(Ref Cookie a)] (Ref (Maybe Datetime) a))
                 </p>
                 <span>
                     
@@ -113,7 +113,7 @@ the type yourself, instead you can <a href="#parse">parse</a> it.</p>
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [(Ref Cookie a)] (Ref Bool a))
+                    (Fn [(Ref Cookie a)] (Ref Bool a))
                 </p>
                 <span>
                     
@@ -133,7 +133,7 @@ the type yourself, instead you can <a href="#parse">parse</a> it.</p>
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [String, String, String, (Maybe Datetime), (Maybe String), Bool, Bool, SameSite] Cookie)
+                    (Fn [String, String, String, (Maybe Datetime), (Maybe String), Bool, Bool, SameSite] Cookie)
                 </p>
                 <span>
                     
@@ -153,7 +153,7 @@ the type yourself, instead you can <a href="#parse">parse</a> it.</p>
                     defn
                 </div>
                 <p class="sig">
-                    (λ [(Ref Cookie a)] String)
+                    (Fn [(Ref Cookie a)] String)
                 </p>
                 <pre class="args">
                     (kv c)
@@ -173,7 +173,7 @@ the type yourself, instead you can <a href="#parse">parse</a> it.</p>
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [(Ref Cookie a)] (Ref String a))
+                    (Fn [(Ref Cookie a)] (Ref String a))
                 </p>
                 <span>
                     
@@ -193,7 +193,7 @@ the type yourself, instead you can <a href="#parse">parse</a> it.</p>
                     defn
                 </div>
                 <p class="sig">
-                    (λ [(Ref String a)] (Result Cookie String))
+                    (Fn [(Ref String a)] (Result Cookie String))
                 </p>
                 <pre class="args">
                     (parse s)
@@ -213,7 +213,7 @@ the type yourself, instead you can <a href="#parse">parse</a> it.</p>
                     defn
                 </div>
                 <p class="sig">
-                    (λ [(Ref String a)] (Result (Array Cookie) String))
+                    (Fn [(Ref String a)] (Result (Array Cookie) String))
                 </p>
                 <pre class="args">
                     (parse-many s)
@@ -233,7 +233,7 @@ the type yourself, instead you can <a href="#parse">parse</a> it.</p>
                     defn
                 </div>
                 <p class="sig">
-                    (λ [(Ref String a)] (Result Cookie String))
+                    (Fn [(Ref String a)] (Result Cookie String))
                 </p>
                 <pre class="args">
                     (parse-set s)
@@ -253,7 +253,7 @@ the type yourself, instead you can <a href="#parse">parse</a> it.</p>
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [(Ref Cookie a)] (Ref String a))
+                    (Fn [(Ref Cookie a)] (Ref String a))
                 </p>
                 <span>
                     
@@ -273,7 +273,7 @@ the type yourself, instead you can <a href="#parse">parse</a> it.</p>
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [(Ref Cookie a)] (Ref SameSite a))
+                    (Fn [(Ref Cookie a)] (Ref SameSite a))
                 </p>
                 <span>
                     
@@ -293,7 +293,7 @@ the type yourself, instead you can <a href="#parse">parse</a> it.</p>
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [(Ref Cookie a)] (Ref Bool a))
+                    (Fn [(Ref Cookie a)] (Ref Bool a))
                 </p>
                 <span>
                     
@@ -313,7 +313,7 @@ the type yourself, instead you can <a href="#parse">parse</a> it.</p>
                     defn
                 </div>
                 <p class="sig">
-                    (λ [(Ref Cookie a)] String)
+                    (Fn [(Ref Cookie a)] String)
                 </p>
                 <pre class="args">
                     (set c)
@@ -333,7 +333,7 @@ the type yourself, instead you can <a href="#parse">parse</a> it.</p>
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [Cookie, (Maybe String)] Cookie)
+                    (Fn [Cookie, (Maybe String)] Cookie)
                 </p>
                 <span>
                     
@@ -353,7 +353,7 @@ the type yourself, instead you can <a href="#parse">parse</a> it.</p>
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [(Ref Cookie a), (Maybe String)] ())
+                    (Fn [(Ref Cookie a), (Maybe String)] ())
                 </p>
                 <span>
                     
@@ -373,7 +373,7 @@ the type yourself, instead you can <a href="#parse">parse</a> it.</p>
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [Cookie, (Maybe Datetime)] Cookie)
+                    (Fn [Cookie, (Maybe Datetime)] Cookie)
                 </p>
                 <span>
                     
@@ -393,7 +393,7 @@ the type yourself, instead you can <a href="#parse">parse</a> it.</p>
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [(Ref Cookie a), (Maybe Datetime)] ())
+                    (Fn [(Ref Cookie a), (Maybe Datetime)] ())
                 </p>
                 <span>
                     
@@ -413,7 +413,7 @@ the type yourself, instead you can <a href="#parse">parse</a> it.</p>
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [Cookie, Bool] Cookie)
+                    (Fn [Cookie, Bool] Cookie)
                 </p>
                 <span>
                     
@@ -433,7 +433,7 @@ the type yourself, instead you can <a href="#parse">parse</a> it.</p>
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [(Ref Cookie a), Bool] ())
+                    (Fn [(Ref Cookie a), Bool] ())
                 </p>
                 <span>
                     
@@ -453,7 +453,7 @@ the type yourself, instead you can <a href="#parse">parse</a> it.</p>
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [Cookie, String] Cookie)
+                    (Fn [Cookie, String] Cookie)
                 </p>
                 <span>
                     
@@ -473,7 +473,7 @@ the type yourself, instead you can <a href="#parse">parse</a> it.</p>
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [(Ref Cookie a), String] ())
+                    (Fn [(Ref Cookie a), String] ())
                 </p>
                 <span>
                     
@@ -493,7 +493,7 @@ the type yourself, instead you can <a href="#parse">parse</a> it.</p>
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [Cookie, String] Cookie)
+                    (Fn [Cookie, String] Cookie)
                 </p>
                 <span>
                     
@@ -513,7 +513,7 @@ the type yourself, instead you can <a href="#parse">parse</a> it.</p>
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [(Ref Cookie a), String] ())
+                    (Fn [(Ref Cookie a), String] ())
                 </p>
                 <span>
                     
@@ -533,7 +533,7 @@ the type yourself, instead you can <a href="#parse">parse</a> it.</p>
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [Cookie, SameSite] Cookie)
+                    (Fn [Cookie, SameSite] Cookie)
                 </p>
                 <span>
                     
@@ -553,7 +553,7 @@ the type yourself, instead you can <a href="#parse">parse</a> it.</p>
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [(Ref Cookie a), SameSite] ())
+                    (Fn [(Ref Cookie a), SameSite] ())
                 </p>
                 <span>
                     
@@ -573,7 +573,7 @@ the type yourself, instead you can <a href="#parse">parse</a> it.</p>
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [Cookie, Bool] Cookie)
+                    (Fn [Cookie, Bool] Cookie)
                 </p>
                 <span>
                     
@@ -593,7 +593,7 @@ the type yourself, instead you can <a href="#parse">parse</a> it.</p>
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [(Ref Cookie a), Bool] ())
+                    (Fn [(Ref Cookie a), Bool] ())
                 </p>
                 <span>
                     
@@ -613,7 +613,7 @@ the type yourself, instead you can <a href="#parse">parse</a> it.</p>
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [Cookie, String] Cookie)
+                    (Fn [Cookie, String] Cookie)
                 </p>
                 <span>
                     
@@ -633,7 +633,7 @@ the type yourself, instead you can <a href="#parse">parse</a> it.</p>
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [(Ref Cookie a), String] ())
+                    (Fn [(Ref Cookie a), String] ())
                 </p>
                 <span>
                     
@@ -653,7 +653,7 @@ the type yourself, instead you can <a href="#parse">parse</a> it.</p>
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [(Ref Cookie a)] String)
+                    (Fn [(Ref Cookie a)] String)
                 </p>
                 <span>
                     
@@ -673,7 +673,7 @@ the type yourself, instead you can <a href="#parse">parse</a> it.</p>
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [Cookie, (Ref (λ [(Maybe String)] (Maybe String) a) b)] Cookie)
+                    (Fn [Cookie, (Ref (Fn [(Maybe String)] (Maybe String) a) b)] Cookie)
                 </p>
                 <span>
                     
@@ -693,7 +693,7 @@ the type yourself, instead you can <a href="#parse">parse</a> it.</p>
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [Cookie, (Ref (λ [(Maybe Datetime)] (Maybe Datetime) a) b)] Cookie)
+                    (Fn [Cookie, (Ref (Fn [(Maybe Datetime)] (Maybe Datetime) a) b)] Cookie)
                 </p>
                 <span>
                     
@@ -713,7 +713,7 @@ the type yourself, instead you can <a href="#parse">parse</a> it.</p>
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [Cookie, (Ref (λ [Bool] Bool a) b)] Cookie)
+                    (Fn [Cookie, (Ref (Fn [Bool] Bool a) b)] Cookie)
                 </p>
                 <span>
                     
@@ -733,7 +733,7 @@ the type yourself, instead you can <a href="#parse">parse</a> it.</p>
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [Cookie, (Ref (λ [String] String a) b)] Cookie)
+                    (Fn [Cookie, (Ref (Fn [String] String a) b)] Cookie)
                 </p>
                 <span>
                     
@@ -753,7 +753,7 @@ the type yourself, instead you can <a href="#parse">parse</a> it.</p>
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [Cookie, (Ref (λ [String] String a) b)] Cookie)
+                    (Fn [Cookie, (Ref (Fn [String] String a) b)] Cookie)
                 </p>
                 <span>
                     
@@ -773,7 +773,7 @@ the type yourself, instead you can <a href="#parse">parse</a> it.</p>
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [Cookie, (Ref (λ [SameSite] SameSite a) b)] Cookie)
+                    (Fn [Cookie, (Ref (Fn [SameSite] SameSite a) b)] Cookie)
                 </p>
                 <span>
                     
@@ -793,7 +793,7 @@ the type yourself, instead you can <a href="#parse">parse</a> it.</p>
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [Cookie, (Ref (λ [Bool] Bool a) b)] Cookie)
+                    (Fn [Cookie, (Ref (Fn [Bool] Bool a) b)] Cookie)
                 </p>
                 <span>
                     
@@ -813,7 +813,7 @@ the type yourself, instead you can <a href="#parse">parse</a> it.</p>
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [Cookie, (Ref (λ [String] String a) b)] Cookie)
+                    (Fn [Cookie, (Ref (Fn [String] String a) b)] Cookie)
                 </p>
                 <span>
                     
@@ -833,7 +833,7 @@ the type yourself, instead you can <a href="#parse">parse</a> it.</p>
                     instantiate
                 </div>
                 <p class="sig">
-                    (λ [(Ref Cookie a)] (Ref String a))
+                    (Fn [(Ref Cookie a)] (Ref String a))
                 </p>
                 <span>
                     
