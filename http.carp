@@ -1,5 +1,5 @@
-(load "git@github.com:carpentry-org/uri@0.0.10")
-(load "git@github.com:carpentry-org/time@0.0.8")
+(load "git@github.com:carpentry-org/uri@0.0.11")
+(load "git@github.com:carpentry-org/time@0.1.0")
 
 (deftype SameSite
   (Lax [])
@@ -21,8 +21,8 @@ the type yourself, instead you can [parse](#parse) it.")
                  expires (Maybe Datetime),
                  domain (Maybe String),
                  secure Bool,
-                 http-only Bool,
-                 same-site SameSite])
+                 httponly Bool,
+                 samesite SameSite])
 
 (defmodule Cookie
   (doc expired? "checks if a cookie is expired now.")
@@ -68,8 +68,8 @@ the type yourself, instead you can [parse](#parse) it.")
         (Maybe.Nothing) ()
         (Maybe.Just d) (set! s (fmt "%s; Domain=%s" &s &d)))
       (when @(secure c) (set! s (fmt "%s; Secure" &s)))
-      (when @(http-only c) (set! s (fmt "%s; HttpOnly" &s)))
-      (match @(same-site c)
+      (when @(httponly c) (set! s (fmt "%s; HttpOnly" &s)))
+      (match @(samesite c)
         (SameSite.Lax)    (set! s (fmt "%s; SameSite=Lax" &s))
         (SameSite.Strict) (set! s (fmt "%s; SameSite=Strict" &s))
         (SameSite.None)   (set! s (fmt "%s; SameSite=None" &s)))
@@ -86,7 +86,7 @@ the type yourself, instead you can [parse](#parse) it.")
               l<2 (< (Array.length splt) 2)]
           (cond
             (= prop "Secure") (Result.Success (set-secure c true))
-            (= prop "HttpOnly") (Result.Success (set-http-only c true))
+            (= prop "HttpOnly") (Result.Success (set-httponly c true))
             (starts-with? prop "Path")
               (if l<2
                 (Result.Error @"malformed path property in set-cookie, no value")
@@ -116,9 +116,9 @@ the type yourself, instead you can [parse](#parse) it.")
                 (Result.Error @"malformed samesite property in set-cookie, no value")
                 (let [s (join "=" &(Array.suffix splt 1))]
                   (case &s
-                    "Lax"    (Result.Success (set-same-site c (SameSite.Lax)))
-                    "Strict" (Result.Success (set-same-site c (SameSite.Strict)))
-                    "None"   (Result.Success (set-same-site c (SameSite.None)))
+                    "Lax"    (Result.Success (set-samesite c (SameSite.Lax)))
+                    "Strict" (Result.Success (set-samesite c (SameSite.Strict)))
+                    "None"   (Result.Success (set-samesite c (SameSite.None)))
                     (Result.Error
                       (fmt "malformed samesite property in set-cookie, unknown value: %s" &s)))))
             (Result.Error (fmt "Unknown set-cookie property: %s" prop))))))
