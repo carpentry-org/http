@@ -37,13 +37,13 @@
                     </h1>
                     <p>is a collection of modules for building and
 parsing HTTP requests.</p>
-<pre><code class="language-clojure">(load &quot;git@github.com:carpentry-org/http@0.0.4&quot;)
+<pre><code class="language-clojure">(load &quot;git@github.com:carpentry-org/http@0.0.5&quot;)
 
-(def txt &quot;POST / HTTP/1.1\r
-Host: https://carpentry.dev\r
-User-Agent: carp\r
-Accept: */*\r
-\r
+(def txt &quot;POST / HTTP/1.1
+Host: https://carpentry.dev
+User-Agent: carp
+Accept: */*
+
 hi!&quot;)
 
 (defn main []

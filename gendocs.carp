@@ -8,7 +8,7 @@
 parsing HTTP requests.
 
 ```clojure
-(load \"git@github.com:carpentry-org/http@0.0.4\")
+(load \"git@github.com:carpentry-org/http@0.0.5\")
 
 (def txt \"POST / HTTP/1.1\r
 Host: https://carpentry.dev\r

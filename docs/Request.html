@@ -35,736 +35,756 @@
                     </ul>
                 </div>
             </div>
-            <h1>
-                Request
-            </h1>
-            <div class="module-description">
-                <p>is a request data type. It holds the <code>verb</code> of the request, the
-<code>version</code>, the <code>uri</code>, the <code>cookies</code>, the <code>headers</code>, and the <code>body</code>.</p>
-
-            </div>
-            <div class="binder">
-                <a class="anchor" href="#body">
-                    <h3 id="body">
-                        body
-                    </h3>
-                </a>
-                <div class="description">
-                    instantiate
-                </div>
-                <p class="sig">
-                    (Fn [(Ref Request a)] (Ref String a))
-                </p>
-                <span>
+            <div class="module">
+                <h1>
+                    Request
+                </h1>
+                <div class="module-description">
                     
-                </span>
-                <p class="doc">
-                    <p>gets the <code>body</code> property of a <code>Request</code>.</p>
-
-                </p>
-            </div>
-            <div class="binder">
-                <a class="anchor" href="#cookies">
-                    <h3 id="cookies">
-                        cookies
-                    </h3>
-                </a>
-                <div class="description">
-                    instantiate
                 </div>
-                <p class="sig">
-                    (Fn [(Ref Request a)] (Ref (Array Cookie) a))
-                </p>
-                <span>
-                    
-                </span>
-                <p class="doc">
-                    <p>gets the <code>cookies</code> property of a <code>Request</code>.</p>
+                <div class="binder">
+                    <a class="anchor" href="#body">
+                        <h3 id="body">
+                            body
+                        </h3>
+                    </a>
+                    <div class="description">
+                        instantiate
+                    </div>
+                    <p class="sig">
+                        (Fn [(Ref Request a)] (Ref String a))
+                    </p>
+                    <span>
+                        
+                    </span>
+                    <p class="doc">
+                        <p>gets the <code>body</code> property of a <code>Request</code>.</p>
 
-                </p>
-            </div>
-            <div class="binder">
-                <a class="anchor" href="#copy">
-                    <h3 id="copy">
-                        copy
-                    </h3>
-                </a>
-                <div class="description">
-                    instantiate
+                    </p>
                 </div>
-                <p class="sig">
-                    (Fn [(Ref Request a)] Request)
-                </p>
-                <span>
-                    
-                </span>
-                <p class="doc">
-                    <p>copies a <code>Request</code>.</p>
+                <div class="binder">
+                    <a class="anchor" href="#cookies">
+                        <h3 id="cookies">
+                            cookies
+                        </h3>
+                    </a>
+                    <div class="description">
+                        instantiate
+                    </div>
+                    <p class="sig">
+                        (Fn [(Ref Request a)] (Ref (Array Cookie) a))
+                    </p>
+                    <span>
+                        
+                    </span>
+                    <p class="doc">
+                        <p>gets the <code>cookies</code> property of a <code>Request</code>.</p>
 
-                </p>
-            </div>
-            <div class="binder">
-                <a class="anchor" href="#del">
-                    <h3 id="del">
-                        del
-                    </h3>
-                </a>
-                <div class="description">
-                    defn
+                    </p>
                 </div>
-                <p class="sig">
-                    (Fn [URI, (Array Cookie), (Map String (Array String)), String] Request)
-                </p>
-                <pre class="args">
-                    (del uri cookies headers body)
-                </pre>
-                <p class="doc">
-                    <p>builds a HTTP DELETE request (version <code>1.1</code>).</p>
+                <div class="binder">
+                    <a class="anchor" href="#copy">
+                        <h3 id="copy">
+                            copy
+                        </h3>
+                    </a>
+                    <div class="description">
+                        instantiate
+                    </div>
+                    <p class="sig">
+                        (Fn [(Ref Request a)] Request)
+                    </p>
+                    <span>
+                        
+                    </span>
+                    <p class="doc">
+                        <p>copies a <code>Request</code>.</p>
 
-                </p>
-            </div>
-            <div class="binder">
-                <a class="anchor" href="#get">
-                    <h3 id="get">
-                        get
-                    </h3>
-                </a>
-                <div class="description">
-                    defn
+                    </p>
                 </div>
-                <p class="sig">
-                    (Fn [URI, (Array Cookie), (Map String (Array String)), String] Request)
-                </p>
-                <pre class="args">
-                    (get uri cookies headers body)
-                </pre>
-                <p class="doc">
-                    <p>builds a HTTP GET request (version <code>1.1</code>).</p>
+                <div class="binder">
+                    <a class="anchor" href="#del">
+                        <h3 id="del">
+                            del
+                        </h3>
+                    </a>
+                    <div class="description">
+                        defn
+                    </div>
+                    <p class="sig">
+                        (Fn [URI, (Array Cookie), (Map String (Array String)), String] Request)
+                    </p>
+                    <pre class="args">
+                        (del uri cookies headers body)
+                    </pre>
+                    <p class="doc">
+                        <p>builds a HTTP DELETE request (version <code>1.1</code>).</p>
 
-                </p>
-            </div>
-            <div class="binder">
-                <a class="anchor" href="#headers">
-                    <h3 id="headers">
-                        headers
-                    </h3>
-                </a>
-                <div class="description">
-                    instantiate
+                    </p>
                 </div>
-                <p class="sig">
-                    (Fn [(Ref Request a)] (Ref (Map String (Array String)) a))
-                </p>
-                <span>
-                    
-                </span>
-                <p class="doc">
-                    <p>gets the <code>headers</code> property of a <code>Request</code>.</p>
+                <div class="binder">
+                    <a class="anchor" href="#delete">
+                        <h3 id="delete">
+                            delete
+                        </h3>
+                    </a>
+                    <div class="description">
+                        instantiate
+                    </div>
+                    <p class="sig">
+                        (Fn [Request] ())
+                    </p>
+                    <span>
+                        
+                    </span>
+                    <p class="doc">
+                        <p>deletes a <code>Request</code>. Should usually not be called manually.</p>
 
-                </p>
-            </div>
-            <div class="binder">
-                <a class="anchor" href="#ignore-body?">
-                    <h3 id="ignore-body?">
-                        ignore-body?
-                    </h3>
-                </a>
-                <div class="description">
-                    defn
+                    </p>
                 </div>
-                <p class="sig">
-                    (Fn [(Ref Request a)] Bool)
-                </p>
-                <pre class="args">
-                    (ignore-body? r)
-                </pre>
-                <p class="doc">
-                    <p>checks whether the body of the request should be ignored.</p>
+                <div class="binder">
+                    <a class="anchor" href="#get">
+                        <h3 id="get">
+                            get
+                        </h3>
+                    </a>
+                    <div class="description">
+                        defn
+                    </div>
+                    <p class="sig">
+                        (Fn [URI, (Array Cookie), (Map String (Array String)), String] Request)
+                    </p>
+                    <pre class="args">
+                        (get uri cookies headers body)
+                    </pre>
+                    <p class="doc">
+                        <p>builds a HTTP GET request (version <code>1.1</code>).</p>
 
-                </p>
-            </div>
-            <div class="binder">
-                <a class="anchor" href="#init">
-                    <h3 id="init">
-                        init
-                    </h3>
-                </a>
-                <div class="description">
-                    instantiate
+                    </p>
                 </div>
-                <p class="sig">
-                    (Fn [String, String, URI, (Array Cookie), (Map String (Array String)), String] Request)
-                </p>
-                <span>
-                    
-                </span>
-                <p class="doc">
-                    <p>creates a <code>Request</code>.</p>
+                <div class="binder">
+                    <a class="anchor" href="#headers">
+                        <h3 id="headers">
+                            headers
+                        </h3>
+                    </a>
+                    <div class="description">
+                        instantiate
+                    </div>
+                    <p class="sig">
+                        (Fn [(Ref Request a)] (Ref (Map String (Array String)) a))
+                    </p>
+                    <span>
+                        
+                    </span>
+                    <p class="doc">
+                        <p>gets the <code>headers</code> property of a <code>Request</code>.</p>
 
-                </p>
-            </div>
-            <div class="binder">
-                <a class="anchor" href="#parse">
-                    <h3 id="parse">
-                        parse
-                    </h3>
-                </a>
-                <div class="description">
-                    defn
+                    </p>
                 </div>
-                <p class="sig">
-                    (Fn [(Ref String a)] (Result Request String))
-                </p>
-                <pre class="args">
-                    (parse txt)
-                </pre>
-                <p class="doc">
-                    <p>parses a HTTP request from a string <code>txt</code>.</p>
+                <div class="binder">
+                    <a class="anchor" href="#ignore-body?">
+                        <h3 id="ignore-body?">
+                            ignore-body?
+                        </h3>
+                    </a>
+                    <div class="description">
+                        defn
+                    </div>
+                    <p class="sig">
+                        (Fn [(Ref Request a)] Bool)
+                    </p>
+                    <pre class="args">
+                        (ignore-body? r)
+                    </pre>
+                    <p class="doc">
+                        <p>checks whether the body of the request should be ignored.</p>
+
+                    </p>
+                </div>
+                <div class="binder">
+                    <a class="anchor" href="#init">
+                        <h3 id="init">
+                            init
+                        </h3>
+                    </a>
+                    <div class="description">
+                        instantiate
+                    </div>
+                    <p class="sig">
+                        (Fn [String, String, URI, (Array Cookie), (Map String (Array String)), String] Request)
+                    </p>
+                    <span>
+                        
+                    </span>
+                    <p class="doc">
+                        <p>creates a <code>Request</code>.</p>
+
+                    </p>
+                </div>
+                <div class="binder">
+                    <a class="anchor" href="#parse">
+                        <h3 id="parse">
+                            parse
+                        </h3>
+                    </a>
+                    <div class="description">
+                        defn
+                    </div>
+                    <p class="sig">
+                        (Fn [(Ref String a)] (Result Request String))
+                    </p>
+                    <pre class="args">
+                        (parse txt)
+                    </pre>
+                    <p class="doc">
+                        <p>parses a HTTP request from a string <code>txt</code>.</p>
 <p>Returns an <code>(Error String)</code> holding the error message if it fails, otherwise
 it will return a <code>(Success Request)</code>.</p>
 
-                </p>
-            </div>
-            <div class="binder">
-                <a class="anchor" href="#patch">
-                    <h3 id="patch">
-                        patch
-                    </h3>
-                </a>
-                <div class="description">
-                    defn
+                    </p>
                 </div>
-                <p class="sig">
-                    (Fn [URI, (Array Cookie), (Map String (Array String)), String] Request)
-                </p>
-                <pre class="args">
-                    (patch uri cookies headers body)
-                </pre>
-                <p class="doc">
-                    <p>builds a HTTP PATCH request (version <code>1.1</code>).</p>
+                <div class="binder">
+                    <a class="anchor" href="#patch">
+                        <h3 id="patch">
+                            patch
+                        </h3>
+                    </a>
+                    <div class="description">
+                        defn
+                    </div>
+                    <p class="sig">
+                        (Fn [URI, (Array Cookie), (Map String (Array String)), String] Request)
+                    </p>
+                    <pre class="args">
+                        (patch uri cookies headers body)
+                    </pre>
+                    <p class="doc">
+                        <p>builds a HTTP PATCH request (version <code>1.1</code>).</p>
 
-                </p>
-            </div>
-            <div class="binder">
-                <a class="anchor" href="#post">
-                    <h3 id="post">
-                        post
-                    </h3>
-                </a>
-                <div class="description">
-                    defn
+                    </p>
                 </div>
-                <p class="sig">
-                    (Fn [URI, (Array Cookie), (Map String (Array String)), String] Request)
-                </p>
-                <pre class="args">
-                    (post uri cookies headers body)
-                </pre>
-                <p class="doc">
-                    <p>builds a HTTP POST request (version <code>1.1</code>).</p>
+                <div class="binder">
+                    <a class="anchor" href="#post">
+                        <h3 id="post">
+                            post
+                        </h3>
+                    </a>
+                    <div class="description">
+                        defn
+                    </div>
+                    <p class="sig">
+                        (Fn [URI, (Array Cookie), (Map String (Array String)), String] Request)
+                    </p>
+                    <pre class="args">
+                        (post uri cookies headers body)
+                    </pre>
+                    <p class="doc">
+                        <p>builds a HTTP POST request (version <code>1.1</code>).</p>
 
-                </p>
-            </div>
-            <div class="binder">
-                <a class="anchor" href="#prn">
-                    <h3 id="prn">
-                        prn
-                    </h3>
-                </a>
-                <div class="description">
-                    instantiate
+                    </p>
                 </div>
-                <p class="sig">
-                    (Fn [(Ref Request a)] String)
-                </p>
-                <span>
-                    
-                </span>
-                <p class="doc">
-                    <p>converts a <code>Request</code> to a string.</p>
+                <div class="binder">
+                    <a class="anchor" href="#prn">
+                        <h3 id="prn">
+                            prn
+                        </h3>
+                    </a>
+                    <div class="description">
+                        instantiate
+                    </div>
+                    <p class="sig">
+                        (Fn [(Ref Request a)] String)
+                    </p>
+                    <span>
+                        
+                    </span>
+                    <p class="doc">
+                        <p>converts a <code>Request</code> to a string.</p>
 
-                </p>
-            </div>
-            <div class="binder">
-                <a class="anchor" href="#put">
-                    <h3 id="put">
-                        put
-                    </h3>
-                </a>
-                <div class="description">
-                    defn
+                    </p>
                 </div>
-                <p class="sig">
-                    (Fn [URI, (Array Cookie), (Map String (Array String)), String] Request)
-                </p>
-                <pre class="args">
-                    (put uri cookies headers body)
-                </pre>
-                <p class="doc">
-                    <p>builds a HTTP PUT request (version <code>1.1</code>).</p>
+                <div class="binder">
+                    <a class="anchor" href="#put">
+                        <h3 id="put">
+                            put
+                        </h3>
+                    </a>
+                    <div class="description">
+                        defn
+                    </div>
+                    <p class="sig">
+                        (Fn [URI, (Array Cookie), (Map String (Array String)), String] Request)
+                    </p>
+                    <pre class="args">
+                        (put uri cookies headers body)
+                    </pre>
+                    <p class="doc">
+                        <p>builds a HTTP PUT request (version <code>1.1</code>).</p>
 
-                </p>
-            </div>
-            <div class="binder">
-                <a class="anchor" href="#request">
-                    <h3 id="request">
-                        request
-                    </h3>
-                </a>
-                <div class="description">
-                    defn
+                    </p>
                 </div>
-                <p class="sig">
-                    (Fn [String, URI, (Array Cookie), (Map String (Array String)), String] Request)
-                </p>
-                <pre class="args">
-                    (request verb uri cookies headers body)
-                </pre>
-                <p class="doc">
-                    <p>builds a HTTP <code>1.1</code> request.</p>
+                <div class="binder">
+                    <a class="anchor" href="#request">
+                        <h3 id="request">
+                            request
+                        </h3>
+                    </a>
+                    <div class="description">
+                        defn
+                    </div>
+                    <p class="sig">
+                        (Fn [String, URI, (Array Cookie), (Map String (Array String)), String] Request)
+                    </p>
+                    <pre class="args">
+                        (request verb uri cookies headers body)
+                    </pre>
+                    <p class="doc">
+                        <p>builds a HTTP <code>1.1</code> request.</p>
 
-                </p>
-            </div>
-            <div class="binder">
-                <a class="anchor" href="#set-body">
-                    <h3 id="set-body">
-                        set-body
-                    </h3>
-                </a>
-                <div class="description">
-                    instantiate
+                    </p>
                 </div>
-                <p class="sig">
-                    (Fn [Request, String] Request)
-                </p>
-                <span>
-                    
-                </span>
-                <p class="doc">
-                    <p>sets the <code>body</code> property of a <code>Request</code>.</p>
+                <div class="binder">
+                    <a class="anchor" href="#set-body">
+                        <h3 id="set-body">
+                            set-body
+                        </h3>
+                    </a>
+                    <div class="description">
+                        instantiate
+                    </div>
+                    <p class="sig">
+                        (Fn [Request, String] Request)
+                    </p>
+                    <span>
+                        
+                    </span>
+                    <p class="doc">
+                        <p>sets the <code>body</code> property of a <code>Request</code>.</p>
 
-                </p>
-            </div>
-            <div class="binder">
-                <a class="anchor" href="#set-body!">
-                    <h3 id="set-body!">
-                        set-body!
-                    </h3>
-                </a>
-                <div class="description">
-                    instantiate
+                    </p>
                 </div>
-                <p class="sig">
-                    (Fn [(Ref Request a), String] ())
-                </p>
-                <span>
-                    
-                </span>
-                <p class="doc">
-                    <p>sets the <code>body</code> property of a <code>Request</code> in place.</p>
+                <div class="binder">
+                    <a class="anchor" href="#set-body!">
+                        <h3 id="set-body!">
+                            set-body!
+                        </h3>
+                    </a>
+                    <div class="description">
+                        instantiate
+                    </div>
+                    <p class="sig">
+                        (Fn [(Ref Request a), String] ())
+                    </p>
+                    <span>
+                        
+                    </span>
+                    <p class="doc">
+                        <p>sets the <code>body</code> property of a <code>Request</code> in place.</p>
 
-                </p>
-            </div>
-            <div class="binder">
-                <a class="anchor" href="#set-cookies">
-                    <h3 id="set-cookies">
-                        set-cookies
-                    </h3>
-                </a>
-                <div class="description">
-                    instantiate
+                    </p>
                 </div>
-                <p class="sig">
-                    (Fn [Request, (Array Cookie)] Request)
-                </p>
-                <span>
-                    
-                </span>
-                <p class="doc">
-                    <p>sets the <code>cookies</code> property of a <code>Request</code>.</p>
+                <div class="binder">
+                    <a class="anchor" href="#set-cookies">
+                        <h3 id="set-cookies">
+                            set-cookies
+                        </h3>
+                    </a>
+                    <div class="description">
+                        instantiate
+                    </div>
+                    <p class="sig">
+                        (Fn [Request, (Array Cookie)] Request)
+                    </p>
+                    <span>
+                        
+                    </span>
+                    <p class="doc">
+                        <p>sets the <code>cookies</code> property of a <code>Request</code>.</p>
 
-                </p>
-            </div>
-            <div class="binder">
-                <a class="anchor" href="#set-cookies!">
-                    <h3 id="set-cookies!">
-                        set-cookies!
-                    </h3>
-                </a>
-                <div class="description">
-                    instantiate
+                    </p>
                 </div>
-                <p class="sig">
-                    (Fn [(Ref Request a), (Array Cookie)] ())
-                </p>
-                <span>
-                    
-                </span>
-                <p class="doc">
-                    <p>sets the <code>cookies</code> property of a <code>Request</code> in place.</p>
+                <div class="binder">
+                    <a class="anchor" href="#set-cookies!">
+                        <h3 id="set-cookies!">
+                            set-cookies!
+                        </h3>
+                    </a>
+                    <div class="description">
+                        instantiate
+                    </div>
+                    <p class="sig">
+                        (Fn [(Ref Request a), (Array Cookie)] ())
+                    </p>
+                    <span>
+                        
+                    </span>
+                    <p class="doc">
+                        <p>sets the <code>cookies</code> property of a <code>Request</code> in place.</p>
 
-                </p>
-            </div>
-            <div class="binder">
-                <a class="anchor" href="#set-headers">
-                    <h3 id="set-headers">
-                        set-headers
-                    </h3>
-                </a>
-                <div class="description">
-                    instantiate
+                    </p>
                 </div>
-                <p class="sig">
-                    (Fn [Request, (Map String (Array String))] Request)
-                </p>
-                <span>
-                    
-                </span>
-                <p class="doc">
-                    <p>sets the <code>headers</code> property of a <code>Request</code>.</p>
+                <div class="binder">
+                    <a class="anchor" href="#set-headers">
+                        <h3 id="set-headers">
+                            set-headers
+                        </h3>
+                    </a>
+                    <div class="description">
+                        instantiate
+                    </div>
+                    <p class="sig">
+                        (Fn [Request, (Map String (Array String))] Request)
+                    </p>
+                    <span>
+                        
+                    </span>
+                    <p class="doc">
+                        <p>sets the <code>headers</code> property of a <code>Request</code>.</p>
 
-                </p>
-            </div>
-            <div class="binder">
-                <a class="anchor" href="#set-headers!">
-                    <h3 id="set-headers!">
-                        set-headers!
-                    </h3>
-                </a>
-                <div class="description">
-                    instantiate
+                    </p>
                 </div>
-                <p class="sig">
-                    (Fn [(Ref Request a), (Map String (Array String))] ())
-                </p>
-                <span>
-                    
-                </span>
-                <p class="doc">
-                    <p>sets the <code>headers</code> property of a <code>Request</code> in place.</p>
+                <div class="binder">
+                    <a class="anchor" href="#set-headers!">
+                        <h3 id="set-headers!">
+                            set-headers!
+                        </h3>
+                    </a>
+                    <div class="description">
+                        instantiate
+                    </div>
+                    <p class="sig">
+                        (Fn [(Ref Request a), (Map String (Array String))] ())
+                    </p>
+                    <span>
+                        
+                    </span>
+                    <p class="doc">
+                        <p>sets the <code>headers</code> property of a <code>Request</code> in place.</p>
 
-                </p>
-            </div>
-            <div class="binder">
-                <a class="anchor" href="#set-uri">
-                    <h3 id="set-uri">
-                        set-uri
-                    </h3>
-                </a>
-                <div class="description">
-                    instantiate
+                    </p>
                 </div>
-                <p class="sig">
-                    (Fn [Request, URI] Request)
-                </p>
-                <span>
-                    
-                </span>
-                <p class="doc">
-                    <p>sets the <code>uri</code> property of a <code>Request</code>.</p>
+                <div class="binder">
+                    <a class="anchor" href="#set-uri">
+                        <h3 id="set-uri">
+                            set-uri
+                        </h3>
+                    </a>
+                    <div class="description">
+                        instantiate
+                    </div>
+                    <p class="sig">
+                        (Fn [Request, URI] Request)
+                    </p>
+                    <span>
+                        
+                    </span>
+                    <p class="doc">
+                        <p>sets the <code>uri</code> property of a <code>Request</code>.</p>
 
-                </p>
-            </div>
-            <div class="binder">
-                <a class="anchor" href="#set-uri!">
-                    <h3 id="set-uri!">
-                        set-uri!
-                    </h3>
-                </a>
-                <div class="description">
-                    instantiate
+                    </p>
                 </div>
-                <p class="sig">
-                    (Fn [(Ref Request a), URI] ())
-                </p>
-                <span>
-                    
-                </span>
-                <p class="doc">
-                    <p>sets the <code>uri</code> property of a <code>Request</code> in place.</p>
+                <div class="binder">
+                    <a class="anchor" href="#set-uri!">
+                        <h3 id="set-uri!">
+                            set-uri!
+                        </h3>
+                    </a>
+                    <div class="description">
+                        instantiate
+                    </div>
+                    <p class="sig">
+                        (Fn [(Ref Request a), URI] ())
+                    </p>
+                    <span>
+                        
+                    </span>
+                    <p class="doc">
+                        <p>sets the <code>uri</code> property of a <code>Request</code> in place.</p>
 
-                </p>
-            </div>
-            <div class="binder">
-                <a class="anchor" href="#set-verb">
-                    <h3 id="set-verb">
-                        set-verb
-                    </h3>
-                </a>
-                <div class="description">
-                    instantiate
+                    </p>
                 </div>
-                <p class="sig">
-                    (Fn [Request, String] Request)
-                </p>
-                <span>
-                    
-                </span>
-                <p class="doc">
-                    <p>sets the <code>verb</code> property of a <code>Request</code>.</p>
+                <div class="binder">
+                    <a class="anchor" href="#set-verb">
+                        <h3 id="set-verb">
+                            set-verb
+                        </h3>
+                    </a>
+                    <div class="description">
+                        instantiate
+                    </div>
+                    <p class="sig">
+                        (Fn [Request, String] Request)
+                    </p>
+                    <span>
+                        
+                    </span>
+                    <p class="doc">
+                        <p>sets the <code>verb</code> property of a <code>Request</code>.</p>
 
-                </p>
-            </div>
-            <div class="binder">
-                <a class="anchor" href="#set-verb!">
-                    <h3 id="set-verb!">
-                        set-verb!
-                    </h3>
-                </a>
-                <div class="description">
-                    instantiate
+                    </p>
                 </div>
-                <p class="sig">
-                    (Fn [(Ref Request a), String] ())
-                </p>
-                <span>
-                    
-                </span>
-                <p class="doc">
-                    <p>sets the <code>verb</code> property of a <code>Request</code> in place.</p>
+                <div class="binder">
+                    <a class="anchor" href="#set-verb!">
+                        <h3 id="set-verb!">
+                            set-verb!
+                        </h3>
+                    </a>
+                    <div class="description">
+                        instantiate
+                    </div>
+                    <p class="sig">
+                        (Fn [(Ref Request a), String] ())
+                    </p>
+                    <span>
+                        
+                    </span>
+                    <p class="doc">
+                        <p>sets the <code>verb</code> property of a <code>Request</code> in place.</p>
 
-                </p>
-            </div>
-            <div class="binder">
-                <a class="anchor" href="#set-version">
-                    <h3 id="set-version">
-                        set-version
-                    </h3>
-                </a>
-                <div class="description">
-                    instantiate
+                    </p>
                 </div>
-                <p class="sig">
-                    (Fn [Request, String] Request)
-                </p>
-                <span>
-                    
-                </span>
-                <p class="doc">
-                    <p>sets the <code>version</code> property of a <code>Request</code>.</p>
+                <div class="binder">
+                    <a class="anchor" href="#set-version">
+                        <h3 id="set-version">
+                            set-version
+                        </h3>
+                    </a>
+                    <div class="description">
+                        instantiate
+                    </div>
+                    <p class="sig">
+                        (Fn [Request, String] Request)
+                    </p>
+                    <span>
+                        
+                    </span>
+                    <p class="doc">
+                        <p>sets the <code>version</code> property of a <code>Request</code>.</p>
 
-                </p>
-            </div>
-            <div class="binder">
-                <a class="anchor" href="#set-version!">
-                    <h3 id="set-version!">
-                        set-version!
-                    </h3>
-                </a>
-                <div class="description">
-                    instantiate
+                    </p>
                 </div>
-                <p class="sig">
-                    (Fn [(Ref Request a), String] ())
-                </p>
-                <span>
-                    
-                </span>
-                <p class="doc">
-                    <p>sets the <code>version</code> property of a <code>Request</code> in place.</p>
+                <div class="binder">
+                    <a class="anchor" href="#set-version!">
+                        <h3 id="set-version!">
+                            set-version!
+                        </h3>
+                    </a>
+                    <div class="description">
+                        instantiate
+                    </div>
+                    <p class="sig">
+                        (Fn [(Ref Request a), String] ())
+                    </p>
+                    <span>
+                        
+                    </span>
+                    <p class="doc">
+                        <p>sets the <code>version</code> property of a <code>Request</code> in place.</p>
 
-                </p>
-            </div>
-            <div class="binder">
-                <a class="anchor" href="#str">
-                    <h3 id="str">
-                        str
-                    </h3>
-                </a>
-                <div class="description">
-                    defn
+                    </p>
                 </div>
-                <p class="sig">
-                    (Fn [(Ref Request a)] String)
-                </p>
-                <pre class="args">
-                    (str r)
-                </pre>
-                <p class="doc">
-                    <p>stringifies the request. It should be stringified exactly as it
+                <div class="binder">
+                    <a class="anchor" href="#str">
+                        <h3 id="str">
+                            str
+                        </h3>
+                    </a>
+                    <div class="description">
+                        defn
+                    </div>
+                    <p class="sig">
+                        (Fn [(Ref Request a)] String)
+                    </p>
+                    <pre class="args">
+                        (str r)
+                    </pre>
+                    <p class="doc">
+                        <p>stringifies the request. It should be stringified exactly as it
 looks on the wire.</p>
 
-                </p>
-            </div>
-            <div class="binder">
-                <a class="anchor" href="#update-body">
-                    <h3 id="update-body">
-                        update-body
-                    </h3>
-                </a>
-                <div class="description">
-                    instantiate
+                    </p>
                 </div>
-                <p class="sig">
-                    (Fn [Request, (Ref (Fn [String] String a) b)] Request)
-                </p>
-                <span>
-                    
-                </span>
-                <p class="doc">
-                    <p>updates the <code>body</code> property of a <code>Request</code> using a function <code>f</code>.</p>
+                <div class="binder">
+                    <a class="anchor" href="#update-body">
+                        <h3 id="update-body">
+                            update-body
+                        </h3>
+                    </a>
+                    <div class="description">
+                        instantiate
+                    </div>
+                    <p class="sig">
+                        (Fn [Request, (Ref (Fn [String] String a) b)] Request)
+                    </p>
+                    <span>
+                        
+                    </span>
+                    <p class="doc">
+                        <p>updates the <code>body</code> property of a <code>Request</code> using a function <code>f</code>.</p>
 
-                </p>
-            </div>
-            <div class="binder">
-                <a class="anchor" href="#update-cookies">
-                    <h3 id="update-cookies">
-                        update-cookies
-                    </h3>
-                </a>
-                <div class="description">
-                    instantiate
+                    </p>
                 </div>
-                <p class="sig">
-                    (Fn [Request, (Ref (Fn [(Array Cookie)] (Array Cookie) a) b)] Request)
-                </p>
-                <span>
-                    
-                </span>
-                <p class="doc">
-                    <p>updates the <code>cookies</code> property of a <code>Request</code> using a function <code>f</code>.</p>
+                <div class="binder">
+                    <a class="anchor" href="#update-cookies">
+                        <h3 id="update-cookies">
+                            update-cookies
+                        </h3>
+                    </a>
+                    <div class="description">
+                        instantiate
+                    </div>
+                    <p class="sig">
+                        (Fn [Request, (Ref (Fn [(Array Cookie)] (Array Cookie) a) b)] Request)
+                    </p>
+                    <span>
+                        
+                    </span>
+                    <p class="doc">
+                        <p>updates the <code>cookies</code> property of a <code>Request</code> using a function <code>f</code>.</p>
 
-                </p>
-            </div>
-            <div class="binder">
-                <a class="anchor" href="#update-headers">
-                    <h3 id="update-headers">
-                        update-headers
-                    </h3>
-                </a>
-                <div class="description">
-                    instantiate
+                    </p>
                 </div>
-                <p class="sig">
-                    (Fn [Request, (Ref (Fn [(Map String (Array String))] (Map String (Array String)) a) b)] Request)
-                </p>
-                <span>
-                    
-                </span>
-                <p class="doc">
-                    <p>updates the <code>headers</code> property of a <code>Request</code> using a function <code>f</code>.</p>
+                <div class="binder">
+                    <a class="anchor" href="#update-headers">
+                        <h3 id="update-headers">
+                            update-headers
+                        </h3>
+                    </a>
+                    <div class="description">
+                        instantiate
+                    </div>
+                    <p class="sig">
+                        (Fn [Request, (Ref (Fn [(Map String (Array String))] (Map String (Array String)) a) b)] Request)
+                    </p>
+                    <span>
+                        
+                    </span>
+                    <p class="doc">
+                        <p>updates the <code>headers</code> property of a <code>Request</code> using a function <code>f</code>.</p>
 
-                </p>
-            </div>
-            <div class="binder">
-                <a class="anchor" href="#update-uri">
-                    <h3 id="update-uri">
-                        update-uri
-                    </h3>
-                </a>
-                <div class="description">
-                    instantiate
+                    </p>
                 </div>
-                <p class="sig">
-                    (Fn [Request, (Ref (Fn [URI] URI a) b)] Request)
-                </p>
-                <span>
-                    
-                </span>
-                <p class="doc">
-                    <p>updates the <code>uri</code> property of a <code>Request</code> using a function <code>f</code>.</p>
+                <div class="binder">
+                    <a class="anchor" href="#update-uri">
+                        <h3 id="update-uri">
+                            update-uri
+                        </h3>
+                    </a>
+                    <div class="description">
+                        instantiate
+                    </div>
+                    <p class="sig">
+                        (Fn [Request, (Ref (Fn [URI] URI a) b)] Request)
+                    </p>
+                    <span>
+                        
+                    </span>
+                    <p class="doc">
+                        <p>updates the <code>uri</code> property of a <code>Request</code> using a function <code>f</code>.</p>
 
-                </p>
-            </div>
-            <div class="binder">
-                <a class="anchor" href="#update-verb">
-                    <h3 id="update-verb">
-                        update-verb
-                    </h3>
-                </a>
-                <div class="description">
-                    instantiate
+                    </p>
                 </div>
-                <p class="sig">
-                    (Fn [Request, (Ref (Fn [String] String a) b)] Request)
-                </p>
-                <span>
-                    
-                </span>
-                <p class="doc">
-                    <p>updates the <code>verb</code> property of a <code>Request</code> using a function <code>f</code>.</p>
+                <div class="binder">
+                    <a class="anchor" href="#update-verb">
+                        <h3 id="update-verb">
+                            update-verb
+                        </h3>
+                    </a>
+                    <div class="description">
+                        instantiate
+                    </div>
+                    <p class="sig">
+                        (Fn [Request, (Ref (Fn [String] String a) b)] Request)
+                    </p>
+                    <span>
+                        
+                    </span>
+                    <p class="doc">
+                        <p>updates the <code>verb</code> property of a <code>Request</code> using a function <code>f</code>.</p>
 
-                </p>
-            </div>
-            <div class="binder">
-                <a class="anchor" href="#update-version">
-                    <h3 id="update-version">
-                        update-version
-                    </h3>
-                </a>
-                <div class="description">
-                    instantiate
+                    </p>
                 </div>
-                <p class="sig">
-                    (Fn [Request, (Ref (Fn [String] String a) b)] Request)
-                </p>
-                <span>
-                    
-                </span>
-                <p class="doc">
-                    <p>updates the <code>version</code> property of a <code>Request</code> using a function <code>f</code>.</p>
+                <div class="binder">
+                    <a class="anchor" href="#update-version">
+                        <h3 id="update-version">
+                            update-version
+                        </h3>
+                    </a>
+                    <div class="description">
+                        instantiate
+                    </div>
+                    <p class="sig">
+                        (Fn [Request, (Ref (Fn [String] String a) b)] Request)
+                    </p>
+                    <span>
+                        
+                    </span>
+                    <p class="doc">
+                        <p>updates the <code>version</code> property of a <code>Request</code> using a function <code>f</code>.</p>
 
-                </p>
-            </div>
-            <div class="binder">
-                <a class="anchor" href="#uri">
-                    <h3 id="uri">
-                        uri
-                    </h3>
-                </a>
-                <div class="description">
-                    instantiate
+                    </p>
                 </div>
-                <p class="sig">
-                    (Fn [(Ref Request a)] (Ref URI a))
-                </p>
-                <span>
-                    
-                </span>
-                <p class="doc">
-                    <p>gets the <code>uri</code> property of a <code>Request</code>.</p>
+                <div class="binder">
+                    <a class="anchor" href="#uri">
+                        <h3 id="uri">
+                            uri
+                        </h3>
+                    </a>
+                    <div class="description">
+                        instantiate
+                    </div>
+                    <p class="sig">
+                        (Fn [(Ref Request a)] (Ref URI a))
+                    </p>
+                    <span>
+                        
+                    </span>
+                    <p class="doc">
+                        <p>gets the <code>uri</code> property of a <code>Request</code>.</p>
 
-                </p>
-            </div>
-            <div class="binder">
-                <a class="anchor" href="#verb">
-                    <h3 id="verb">
-                        verb
-                    </h3>
-                </a>
-                <div class="description">
-                    instantiate
+                    </p>
                 </div>
-                <p class="sig">
-                    (Fn [(Ref Request a)] (Ref String a))
-                </p>
-                <span>
-                    
-                </span>
-                <p class="doc">
-                    <p>gets the <code>verb</code> property of a <code>Request</code>.</p>
+                <div class="binder">
+                    <a class="anchor" href="#verb">
+                        <h3 id="verb">
+                            verb
+                        </h3>
+                    </a>
+                    <div class="description">
+                        instantiate
+                    </div>
+                    <p class="sig">
+                        (Fn [(Ref Request a)] (Ref String a))
+                    </p>
+                    <span>
+                        
+                    </span>
+                    <p class="doc">
+                        <p>gets the <code>verb</code> property of a <code>Request</code>.</p>
 
-                </p>
-            </div>
-            <div class="binder">
-                <a class="anchor" href="#version">
-                    <h3 id="version">
-                        version
-                    </h3>
-                </a>
-                <div class="description">
-                    instantiate
+                    </p>
                 </div>
-                <p class="sig">
-                    (Fn [(Ref Request a)] (Ref String a))
-                </p>
-                <span>
-                    
-                </span>
-                <p class="doc">
-                    <p>gets the <code>version</code> property of a <code>Request</code>.</p>
+                <div class="binder">
+                    <a class="anchor" href="#version">
+                        <h3 id="version">
+                            version
+                        </h3>
+                    </a>
+                    <div class="description">
+                        instantiate
+                    </div>
+                    <p class="sig">
+                        (Fn [(Ref Request a)] (Ref String a))
+                    </p>
+                    <span>
+                        
+                    </span>
+                    <p class="doc">
+                        <p>gets the <code>version</code> property of a <code>Request</code>.</p>
 
-                </p>
+                    </p>
+                </div>
             </div>
         </div>
     </body>
