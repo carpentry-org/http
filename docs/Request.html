@@ -9,7 +9,7 @@
     <body>
         <div class="content">
             <div class="logo">
-                <a href="">
+                <a href="https://github.com/carpentry-org/http">
                     <img src="">
                 </a>
                 <div class="title">
@@ -32,6 +32,16 @@
                                 Cookie
                             </a>
                         </li>
+                        <li>
+                            <a href="Status.html">
+                                Status
+                            </a>
+                        </li>
+                        <li>
+                            <a href="Form.html">
+                                Form
+                            </a>
+                        </li>
                     </ul>
                 </div>
             </div>
@@ -40,7 +50,9 @@
                     Request
                 </h1>
                 <div class="module-description">
-                    
+                    <p>is a request data type. It holds the <code>verb</code> of the request, the
+<code>version</code>, the <code>uri</code>, the <code>cookies</code>, the <code>headers</code>, and the <code>body</code>.</p>
+
                 </div>
                 <div class="binder">
                     <a class="anchor" href="#body">
@@ -143,6 +155,27 @@
                     </p>
                 </div>
                 <div class="binder">
+                    <a class="anchor" href="#form-data">
+                        <h3 id="form-data">
+                            form-data
+                        </h3>
+                    </a>
+                    <div class="description">
+                        defn
+                    </div>
+                    <p class="sig">
+                        (Fn [(Ref Request a)] (Result (Map String String) b))
+                    </p>
+                    <pre class="args">
+                        (form-data r)
+                    </pre>
+                    <p class="doc">
+                        <p>parses the request body as URL-encoded form data.
+Returns <code>(Result (Map String String) String)</code>.</p>
+
+                    </p>
+                </div>
+                <div class="binder">
                     <a class="anchor" href="#get">
                         <h3 id="get">
                             get
@@ -159,6 +192,27 @@
                     </pre>
                     <p class="doc">
                         <p>builds a HTTP GET request (version <code>1.1</code>).</p>
+
+                    </p>
+                </div>
+                <div class="binder">
+                    <a class="anchor" href="#header">
+                        <h3 id="header">
+                            header
+                        </h3>
+                    </a>
+                    <div class="description">
+                        defn
+                    </div>
+                    <p class="sig">
+                        (Fn [(Ref Request a), (Ref String b)] (Maybe String))
+                    </p>
+                    <pre class="args">
+                        (header r name)
+                    </pre>
+                    <p class="doc">
+                        <p>gets the first value of a header by name (case-insensitive).
+Returns <code>(Maybe String)</code>.</p>
 
                     </p>
                 </div>
@@ -600,8 +654,7 @@ it will return a <code>(Success Request)</code>.</p>
                         (str r)
                     </pre>
                     <p class="doc">
-                        <p>stringifies the request. It should be stringified exactly as it
-looks on the wire.</p>
+                        <p>stringifies the request as it looks on the wire.</p>
 
                     </p>
                 </div>

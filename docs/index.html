@@ -1,0 +1,70 @@
+<!DOCTYPE HTML>
+
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+        <link rel="stylesheet" href="../style.css">
+    </head>
+    <body>
+        <div class="content">
+            <a href="https://github.com/carpentry-org/http">
+                <div class="logo">
+                    <img src="" alt="Logo">
+                    <div class="index">
+                        <ul>
+                            <li>
+                                <a href="Request.html">
+                                    Request
+                                </a>
+                            </li>
+                            <li>
+                                <a href="Response.html">
+                                    Response
+                                </a>
+                            </li>
+                            <li>
+                                <a href="Cookie.html">
+                                    Cookie
+                                </a>
+                            </li>
+                            <li>
+                                <a href="Status.html">
+                                    Status
+                                </a>
+                            </li>
+                            <li>
+                                <a href="Form.html">
+                                    Form
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+                <div>
+                    <h1>
+                        http
+                    </h1>
+                    <p>An HTTP request/response parser and serializer
+for Carp.</p>
+<p>Parse requests with <a href="./Request.html#parse"><code>Request.parse</code></a>, responses with
+<a href="./Response.html#parse"><code>Response.parse</code></a>. Build requests with
+<a href="./Request.html#get"><code>Request.get</code></a>, <a href="./Request.html#post"><code>Request.post</code></a>, etc.</p>
+<p>Status codes are available as constants in the <a href="./Status.html"><code>Status</code></a> module.
+Form bodies can be parsed with <a href="./Form.html#parse"><code>Form.parse</code></a>.</p>
+<h3>Parsing</h3>
+<pre><code>(match (Request.parse &quot;GET / HTTP/1.1\r\nHost: example.com\r\n\r\n&quot;)
+  (Result.Success req) (println* (Request.verb &amp;req))
+  (Result.Error e) (IO.errorln &amp;e))
+</code></pre>
+<h3>Status codes</h3>
+<pre><code>Status.ok           ; =&gt; 200
+Status.not-found    ; =&gt; 404
+(Status.reason 200) ; =&gt; &quot;OK&quot;
+</code></pre>
+
+                </div>
+            </a>
+        </div>
+    </body>
+</html>

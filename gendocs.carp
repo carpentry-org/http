@@ -1,28 +1,34 @@
+(load "Test.carp")
 (load "http.carp")
 
 (Project.config "title" "http")
 (Project.config "docs-directory" "./docs/")
 (Project.config "docs-logo" "")
+(Project.config "docs-url" "https://github.com/carpentry-org/http")
 (Project.config "docs-styling" "../style.css")
-(Project.config "docs-prelude" "is a collection of modules for building and
-parsing HTTP requests.
+(Project.config "docs-prelude" "An HTTP request/response parser and serializer
+for Carp.
 
-```clojure
-(load \"git@github.com:carpentry-org/http@0.0.5\")
+Parse requests with [`Request.parse`](./Request.html#parse), responses with
+[`Response.parse`](./Response.html#parse). Build requests with
+[`Request.get`](./Request.html#get), [`Request.post`](./Request.html#post), etc.
 
-(def txt \"POST / HTTP/1.1\r
-Host: https://carpentry.dev\r
-User-Agent: carp\r
-Accept: */*\r
-\r
-hi!\")
+Status codes are available as constants in the [`Status`](./Status.html) module.
+Form bodies can be parsed with [`Form.parse`](./Form.html#parse).
 
-(defn main []
-  (let [x (Request.parse txt)]
-    (match x
-      (Result.Success r) (println* &r)
+### Parsing
 ```
-")
+(match (Request.parse \"GET / HTTP/1.1\\r\\nHost: example.com\\r\\n\\r\\n\")
+  (Result.Success req) (println* (Request.verb &req))
+  (Result.Error e) (IO.errorln &e))
+```
 
-(save-docs Request Response Cookie)
+### Status codes
+```
+Status.ok           ; => 200
+Status.not-found    ; => 404
+(Status.reason 200) ; => \"OK\"
+```")
+
+(save-docs Request Response Cookie Status Form)
 (quit)

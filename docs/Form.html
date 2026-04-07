@@ -1,0 +1,84 @@
+<!DOCTYPE HTML>
+
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+        <link rel="stylesheet" href="../style.css">
+    </head>
+    <body>
+        <div class="content">
+            <div class="logo">
+                <a href="https://github.com/carpentry-org/http">
+                    <img src="">
+                </a>
+                <div class="title">
+                    http
+                </div>
+                <div class="index">
+                    <ul>
+                        <li>
+                            <a href="Request.html">
+                                Request
+                            </a>
+                        </li>
+                        <li>
+                            <a href="Response.html">
+                                Response
+                            </a>
+                        </li>
+                        <li>
+                            <a href="Cookie.html">
+                                Cookie
+                            </a>
+                        </li>
+                        <li>
+                            <a href="Status.html">
+                                Status
+                            </a>
+                        </li>
+                        <li>
+                            <a href="Form.html">
+                                Form
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            <div class="module">
+                <h1>
+                    Form
+                </h1>
+                <div class="module-description">
+                    <p>provides URL-encoded form body parsing.</p>
+<pre><code>(match (Form.parse &quot;name=carp&amp;version=1&quot;)
+  (Result.Success m) (println* &amp;(Map.get &amp;m &quot;name&quot;))
+  (Result.Error e) (IO.errorln &amp;e))
+</code></pre>
+
+                </div>
+                <div class="binder">
+                    <a class="anchor" href="#parse">
+                        <h3 id="parse">
+                            parse
+                        </h3>
+                    </a>
+                    <div class="description">
+                        defn
+                    </div>
+                    <p class="sig">
+                        (Fn [(Ref String a)] (Result (Map String String) b))
+                    </p>
+                    <pre class="args">
+                        (parse s)
+                    </pre>
+                    <p class="doc">
+                        <p>parses a URL-encoded form body into a <code>(Map String String)</code>.
+Keys and values are percent-decoded.</p>
+
+                    </p>
+                </div>
+            </div>
+        </div>
+    </body>
+</html>

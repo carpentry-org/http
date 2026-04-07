@@ -9,7 +9,7 @@
     <body>
         <div class="content">
             <div class="logo">
-                <a href="">
+                <a href="https://github.com/carpentry-org/http">
                     <img src="">
                 </a>
                 <div class="title">
@@ -32,6 +32,16 @@
                                 Cookie
                             </a>
                         </li>
+                        <li>
+                            <a href="Status.html">
+                                Status
+                            </a>
+                        </li>
+                        <li>
+                            <a href="Form.html">
+                                Form
+                            </a>
+                        </li>
                     </ul>
                 </div>
             </div>
@@ -40,7 +50,9 @@
                     Response
                 </h1>
                 <div class="module-description">
-                    
+                    <p>is a response data type. It holds the <code>code</code> of the request, the
+<code>version</code>, the <code>message</code>, the <code>cookies</code>, the <code>headers</code>, and the <code>body</code>.</p>
+
                 </div>
                 <div class="binder">
                     <a class="anchor" href="#body">
@@ -159,6 +171,27 @@
                     </span>
                     <p class="doc">
                         <p>deletes a <code>Response</code>. Should usually not be called manually.</p>
+
+                    </p>
+                </div>
+                <div class="binder">
+                    <a class="anchor" href="#header">
+                        <h3 id="header">
+                            header
+                        </h3>
+                    </a>
+                    <div class="description">
+                        defn
+                    </div>
+                    <p class="sig">
+                        (Fn [(Ref Response a), (Ref String b)] (Maybe String))
+                    </p>
+                    <pre class="args">
+                        (header r name)
+                    </pre>
+                    <p class="doc">
+                        <p>gets the first value of a header by name (case-insensitive).
+Returns <code>(Maybe String)</code>.</p>
 
                     </p>
                 </div>
@@ -560,8 +593,7 @@ it will return a <code>(Success Response)</code>.</p>
                         (str r)
                     </pre>
                     <p class="doc">
-                        <p>stringifies the request. It should be stringified exactly as it
-looks on the wire.</p>
+                        <p>stringifies the response as it looks on the wire.</p>
 
                     </p>
                 </div>

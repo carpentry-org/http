@@ -1,0 +1,246 @@
+(load "Test.carp")
+(load "../http.carp")
+(use Test)
+
+; ---------------------------------------------------------------------------
+; Test data
+; ---------------------------------------------------------------------------
+
+(def simple-get @"GET / HTTP/1.1\r\nHost: localhost\r\n\r\n")
+(def post-with-body @"POST /submit HTTP/1.1\r\nHost: localhost\r\nContent-Type: application/json\r\nContent-Length: 13\r\n\r\n{\"key\":\"val\"}")
+(def multi-header @"GET / HTTP/1.1\r\nHost: localhost\r\nAccept: text/html\r\nAccept: application/json\r\n\r\n")
+(def with-cookies @"GET / HTTP/1.1\r\nHost: localhost\r\nCookie: a=1;b=2\r\n\r\n")
+
+; ---------------------------------------------------------------------------
+; Helper to extract from Result
+; ---------------------------------------------------------------------------
+
+(defn parse-verb [s]
+  (match (Request.parse s)
+    (Result.Success r) @(Request.verb &r)
+    _ @""))
+
+(defn parse-version [s]
+  (match (Request.parse s)
+    (Result.Success r) @(Request.version &r)
+    _ @""))
+
+(defn parse-body [s]
+  (match (Request.parse s)
+    (Result.Success r) @(Request.body &r)
+    _ @""))
+
+(defn resp-code [s]
+  (match (Response.parse s)
+    (Result.Success r) @(Response.code &r)
+    _ -1))
+
+(defn resp-body [s]
+  (match (Response.parse s)
+    (Result.Success r) @(Response.body &r)
+    _ @""))
+
+; ---------------------------------------------------------------------------
+; Tests
+; ---------------------------------------------------------------------------
+
+(deftest test
+  ; -- Request.parse basics --
+  (assert-true test
+    (match (Request.parse &simple-get)
+      (Result.Success _) true
+      _ false)
+    "parse simple GET succeeds")
+
+  (assert-equal test
+    &(parse-verb &simple-get)
+    "GET"
+    "parse extracts verb")
+
+  (assert-equal test
+    &(parse-version &simple-get)
+    "HTTP/1.1"
+    "parse extracts version")
+
+  ; -- Request body --
+  (assert-equal test
+    &(parse-body &post-with-body)
+    "{\"key\":\"val\"}"
+    "parse extracts body")
+
+  (assert-equal test
+    &(parse-verb &post-with-body)
+    "POST"
+    "parse POST verb")
+
+  ; -- Multiple headers with same name --
+  (assert-equal test
+    2
+    (match (Request.parse &multi-header)
+      (Result.Success r)
+        (Array.length &(Map.get-with-default (Request.headers &r) "Accept" &[]))
+      _ 0)
+    "multiple Accept headers collected")
+
+  ; -- Cookies --
+  (assert-equal test
+    2
+    (match (Request.parse &with-cookies)
+      (Result.Success r) (Array.length (Request.cookies &r))
+      _ 0)
+    "cookies parsed from Cookie header")
+
+  ; -- Malformed requests --
+  (assert-true test
+    (match (Request.parse "")
+      (Result.Error _) true
+      _ false)
+    "empty string returns error")
+
+  (assert-true test
+    (match (Request.parse "garbage")
+      (Result.Error _) true
+      _ false)
+    "garbage returns error")
+
+  ; ---------------------------------------------------------------------------
+  ; Response parsing
+  ; ---------------------------------------------------------------------------
+
+  (assert-equal test
+    200
+    (resp-code "HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\nhi")
+    "parse 200 response code")
+
+  (assert-equal test
+    &(resp-body "HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\nhi")
+    "hi"
+    "parse response body")
+
+  (assert-equal test
+    404
+    (resp-code "HTTP/1.1 404 Not Found\r\n\r\n")
+    "parse 404 response")
+
+  (assert-true test
+    (Response.ok? &(Response.init 200 @"OK" @"HTTP/1.1" [] {} @""))
+    "ok? true for 200")
+
+  (assert-true test
+    (Response.client-error? &(Response.init 404 @"Not Found" @"HTTP/1.1" [] {} @""))
+    "client-error? true for 404")
+
+  (assert-true test
+    (Response.server-error? &(Response.init 500 @"ISE" @"HTTP/1.1" [] {} @""))
+    "server-error? true for 500")
+
+  ; ---------------------------------------------------------------------------
+  ; Request roundtrip
+  ; ---------------------------------------------------------------------------
+
+  (assert-equal test
+    &(let [req (Request.get (URI.zero) [] {} @"")]
+      (match (Request.parse &(Request.str &req))
+        (Result.Success r) @(Request.verb &r)
+        _ @""))
+    "GET"
+    "request roundtrip preserves verb")
+
+  ; ---------------------------------------------------------------------------
+  ; Cookie parsing
+  ; ---------------------------------------------------------------------------
+
+  (assert-true test
+    (match (Cookie.parse "name=value")
+      (Result.Success c) (and (= (Cookie.name &c) "name")
+                               (= (Cookie.value &c) "value"))
+      _ false)
+    "parse simple cookie")
+
+  (assert-true test
+    (match (Cookie.parse "bad")
+      (Result.Error _) true
+      _ false)
+    "malformed cookie returns error")
+
+  ; ---------------------------------------------------------------------------
+  ; Status module
+  ; ---------------------------------------------------------------------------
+
+  (assert-equal test
+    200
+    Status.ok
+    "Status.ok is 200")
+
+  (assert-equal test
+    404
+    Status.not-found
+    "Status.not-found is 404")
+
+  (assert-equal test
+    &(Status.reason 404)
+    "Not Found"
+    "Status.reason for 404")
+
+  (assert-equal test
+    &(Status.reason 200)
+    "OK"
+    "Status.reason for 200")
+
+  (assert-equal test
+    &(Status.reason 999)
+    "Unknown"
+    "Status.reason for unknown code")
+
+  ; ---------------------------------------------------------------------------
+  ; Case-insensitive header lookup
+  ; ---------------------------------------------------------------------------
+
+  (assert-true test
+    (match (Request.parse "GET / HTTP/1.1\r\nContent-Type: text/html\r\n\r\n")
+      (Result.Success r)
+        (match (Request.header &r "content-type")
+          (Maybe.Just v) (= &v "text/html")
+          _ false)
+      _ false)
+    "header lookup is case-insensitive")
+
+  (assert-true test
+    (match (Request.parse "GET / HTTP/1.1\r\nHost: example.com\r\n\r\n")
+      (Result.Success r)
+        (Maybe.nothing? &(Request.header &r "X-Missing"))
+      _ false)
+    "header returns Nothing for missing key")
+
+  ; ---------------------------------------------------------------------------
+  ; Form parsing
+  ; ---------------------------------------------------------------------------
+
+  (assert-equal test
+    "carp"
+    &(match (the (Result (Map String String) String) (Form.parse "name=carp&version=1"))
+      (Result.Success m) (Map.get &m "name")
+      _ @"")
+    "Form.parse extracts key")
+
+  (assert-equal test
+    "1"
+    &(match (the (Result (Map String String) String) (Form.parse "name=carp&version=1"))
+      (Result.Success m) (Map.get &m "version")
+      _ @"")
+    "Form.parse extracts second key")
+
+  (assert-equal test
+    "hello world"
+    &(match (the (Result (Map String String) String) (Form.parse "msg=hello%20world"))
+      (Result.Success m) (Map.get &m "msg")
+      _ @"")
+    "Form.parse decodes percent-encoded space")
+
+  (assert-equal test
+    ""
+    &(match (the (Result (Map String String) String) (Form.parse "flag"))
+      (Result.Success m) (Map.get &m "flag")
+      _ @"FAIL")
+    "Form.parse handles key without value")
+)
