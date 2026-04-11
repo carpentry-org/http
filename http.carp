@@ -56,14 +56,15 @@ the type yourself, instead you can [parse](#parse) it.")
 
   (doc parse "parses a cookie.")
   (defn parse [s]
-    (let [splt (split-by s &[\=])]
-      (if (= (Array.length &splt) 2)
+    (let [eq (String.index-of s \=)]
+      (if (< eq 0)
+        (Result.Error @"cookie malformed: expected key=value pair")
         (Result.Success
           (init
-            (trim (Array.unsafe-first &splt))
-            (trim (Array.unsafe-nth &splt 1)) @"/"
-            (Maybe.Nothing) (Maybe.Nothing) false false (zero)))
-        (Result.Error @"cookie malformed: expected key=value pair"))))
+            (trim &(String.byte-slice s 0 eq))
+            (trim &(String.byte-slice s (Int.inc eq) (String.length s)))
+            @"/"
+            (Maybe.Nothing) (Maybe.Nothing) false false (zero))))))
 
   (doc parse-many "parses multiple cookies.")
   (defn parse-many [s]
@@ -122,9 +123,12 @@ the type yourself, instead you can [parse](#parse) it.")
             (starts-with? prop "Expires")
               (if l<2
                 (Result.Error @"malformed expires property in set-cookie, no value")
-                ; TODO: parse date once Datetime.strptime is available in time@0.1.0
-                ; The format is "%a, %d %b %Y %H:%M:%S GMT"
-                (Result.Error @"TODO: parse date (Datetime.strptime not yet published)"))
+                (let [val (join "=" &(Array.suffix splt 1))]
+                  (match (Datetime.strptime &val "%a, %d %b %Y %H:%M:%S GMT")
+                    (Result.Error e)
+                      (Result.Error (fmt "malformed expires date in set-cookie: %s" &e))
+                    (Result.Success dt)
+                      (Result.Success (set-expires c (Maybe.Just dt))))))
             (starts-with? prop "Max-Age")
               (if l<2
                 (Result.Error @"malformed max-age property in set-cookie, no value")
@@ -276,10 +280,11 @@ it will return a `(Success Request)`.")
                                     (if (= colon -1)
                                       (do (set! failed @line) (break))
                                       (let [k &(String.byte-slice line 0 colon)
+                                            lk &(String.ascii-to-lower k)
                                             v &(String.trim &(String.byte-slice line (Int.inc colon)
                                                               (String.length line)))]
                                         (do
-                                          (if (= k "Cookie")
+                                          (if (= lk "cookie")
                                             (match (Cookie.parse-many v)
                                               (Result.Error err)
                                                 (do (set! failed err) (break))
@@ -410,10 +415,11 @@ it will return a `(Success Response)`.")
                                     (if (= colon -1)
                                       (do (set! failed @line) (break))
                                       (let [k &(String.byte-slice line 0 colon)
+                                            lk &(String.ascii-to-lower k)
                                             v &(String.trim &(String.byte-slice line (Int.inc colon)
                                                               (String.length line)))]
                                         (do
-                                          (if (= k "Set-Cookie")
+                                          (if (= lk "set-cookie")
                                             (match (Cookie.parse-set v)
                                               (Result.Error err)
                                                 (do (set! failed err) (break))
