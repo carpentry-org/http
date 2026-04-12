@@ -3,16 +3,6 @@
 (load "git@github.com:carpentry-org/strbuf@0.1.0")
 
 (defmodule String
-  (doc byte-slice "Return part of a string from byte index `a` to byte index `b`.
-Unlike `slice`, indices are byte positions, not character positions.
-This is O(b-a) rather than O(n) like `slice`.")
-  (defn byte-slice [s a b]
-    (let-do [len (- b a)
-             bytes (the (Array Byte) (Array.allocate len))]
-      (for [i 0 len]
-        (Array.aset-uninitialized! &bytes i (Char.to-byte (char-at s (+ a i)))))
-      (from-bytes &bytes)))
-
   (doc find-crlf "finds the byte position of the next \\r\\n starting from `start`.
 Returns -1 if not found.")
   (defn find-crlf [s start len]
