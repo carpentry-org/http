@@ -7,38 +7,31 @@
 ; ---------------------------------------------------------------------------
 
 (def simple-get @"GET / HTTP/1.1\r\nHost: localhost\r\n\r\n")
-(def post-with-body @"POST /submit HTTP/1.1\r\nHost: localhost\r\nContent-Type: application/json\r\nContent-Length: 13\r\n\r\n{\"key\":\"val\"}")
-(def multi-header @"GET / HTTP/1.1\r\nHost: localhost\r\nAccept: text/html\r\nAccept: application/json\r\n\r\n")
-(def with-cookies @"GET / HTTP/1.1\r\nHost: localhost\r\nCookie: a=1;b=2\r\n\r\n")
+(def post-with-body
+  @"POST /submit HTTP/1.1\r\nHost: localhost\r\nContent-Type: application/json\r\nContent-Length: 13\r\n\r\n{\"key\":\"val\"}")
+(def multi-header
+  @"GET / HTTP/1.1\r\nHost: localhost\r\nAccept: text/html\r\nAccept: application/json\r\n\r\n")
+(def with-cookies
+  @"GET / HTTP/1.1\r\nHost: localhost\r\nCookie: a=1;b=2\r\n\r\n")
 
 ; ---------------------------------------------------------------------------
 ; Helper to extract from Result
 ; ---------------------------------------------------------------------------
 
 (defn parse-verb [s]
-  (match (Request.parse s)
-    (Result.Success r) @(Request.verb &r)
-    _ @""))
+  (match (Request.parse s) (Result.Success r) @(Request.verb &r) _ @""))
 
 (defn parse-version [s]
-  (match (Request.parse s)
-    (Result.Success r) @(Request.version &r)
-    _ @""))
+  (match (Request.parse s) (Result.Success r) @(Request.version &r) _ @""))
 
 (defn parse-body [s]
-  (match (Request.parse s)
-    (Result.Success r) @(Request.body &r)
-    _ @""))
+  (match (Request.parse s) (Result.Success r) @(Request.body &r) _ @""))
 
 (defn resp-code [s]
-  (match (Response.parse s)
-    (Result.Success r) @(Response.code &r)
-    _ -1))
+  (match (Response.parse s) (Result.Success r) @(Response.code &r) _ -1))
 
 (defn resp-body [s]
-  (match (Response.parse s)
-    (Result.Success r) @(Response.body &r)
-    _ @""))
+  (match (Response.parse s) (Result.Success r) @(Response.body &r) _ @""))
 
 ; ---------------------------------------------------------------------------
 ; Tests
@@ -47,15 +40,10 @@
 (deftest test
   ; -- Request.parse basics --
   (assert-true test
-    (match (Request.parse &simple-get)
-      (Result.Success _) true
-      _ false)
+    (match (Request.parse &simple-get) (Result.Success _) true _ false)
     "parse simple GET succeeds")
 
-  (assert-equal test
-    &(parse-verb &simple-get)
-    "GET"
-    "parse extracts verb")
+  (assert-equal test &(parse-verb &simple-get) "GET" "parse extracts verb")
 
   (assert-equal test
     &(parse-version &simple-get)
@@ -68,10 +56,7 @@
     "{\"key\":\"val\"}"
     "parse extracts body")
 
-  (assert-equal test
-    &(parse-verb &post-with-body)
-    "POST"
-    "parse POST verb")
+  (assert-equal test &(parse-verb &post-with-body) "POST" "parse POST verb")
 
   ; -- Multiple headers with same name --
   (assert-equal test
@@ -92,15 +77,11 @@
 
   ; -- Malformed requests --
   (assert-true test
-    (match (Request.parse "")
-      (Result.Error _) true
-      _ false)
+    (match (Request.parse "") (Result.Error _) true _ false)
     "empty string returns error")
 
   (assert-true test
-    (match (Request.parse "garbage")
-      (Result.Error _) true
-      _ false)
+    (match (Request.parse "garbage") (Result.Error _) true _ false)
     "garbage returns error")
 
   ; ---------------------------------------------------------------------------
@@ -127,7 +108,8 @@
     "ok? true for 200")
 
   (assert-true test
-    (Response.client-error? &(Response.init 404 @"Not Found" @"HTTP/1.1" [] {} @""))
+    (Response.client-error?
+      &(Response.init 404 @"Not Found" @"HTTP/1.1" [] {} @""))
     "client-error? true for 404")
 
   (assert-true test
@@ -152,15 +134,13 @@
 
   (assert-true test
     (match (Cookie.parse "name=value")
-      (Result.Success c) (and (= (Cookie.name &c) "name")
-                               (= (Cookie.value &c) "value"))
+      (Result.Success c)
+        (and (= (Cookie.name &c) "name") (= (Cookie.value &c) "value"))
       _ false)
     "parse simple cookie")
 
   (assert-true test
-    (match (Cookie.parse "bad")
-      (Result.Error _) true
-      _ false)
+    (match (Cookie.parse "bad") (Result.Error _) true _ false)
     "malformed cookie returns error")
 
   ; -- Set-Cookie with Expires --
@@ -168,9 +148,10 @@
     (match (Cookie.parse-set "id=abc; Expires=Wed, 09 Jun 2021 10:18:14 GMT")
       (Result.Success c)
         (match @(Cookie.expires &c)
-          (Maybe.Just d) (and (= 2021 @(Datetime.year &d))
-                              (and (= 6 @(Datetime.month &d))
-                                   (= 9 @(Datetime.day &d))))
+          (Maybe.Just d)
+            (and
+              (= 2021 @(Datetime.year &d))
+              (and (= 6 @(Datetime.month &d)) (= 9 @(Datetime.day &d))))
           (Maybe.Nothing) false)
       _ false)
     "parse-set extracts Expires date")
@@ -184,8 +165,8 @@
   ; -- Cookie value containing '=' (e.g. base64 padding) --
   (assert-true test
     (match (Cookie.parse "session=YWJjZA==")
-      (Result.Success c) (and (= (Cookie.name &c) "session")
-                               (= (Cookie.value &c) "YWJjZA=="))
+      (Result.Success c)
+        (and (= (Cookie.name &c) "session") (= (Cookie.value &c) "YWJjZA=="))
       _ false)
     "parse handles '=' in cookie value")
 
@@ -208,25 +189,13 @@
   ; Status module
   ; ---------------------------------------------------------------------------
 
-  (assert-equal test
-    200
-    Status.ok
-    "Status.ok is 200")
+  (assert-equal test 200 Status.ok "Status.ok is 200")
 
-  (assert-equal test
-    404
-    Status.not-found
-    "Status.not-found is 404")
+  (assert-equal test 404 Status.not-found "Status.not-found is 404")
 
-  (assert-equal test
-    &(Status.reason 404)
-    "Not Found"
-    "Status.reason for 404")
+  (assert-equal test &(Status.reason 404) "Not Found" "Status.reason for 404")
 
-  (assert-equal test
-    &(Status.reason 200)
-    "OK"
-    "Status.reason for 200")
+  (assert-equal test &(Status.reason 200) "OK" "Status.reason for 200")
 
   (assert-equal test
     &(Status.reason 999)
@@ -248,8 +217,7 @@
 
   (assert-true test
     (match (Request.parse "GET / HTTP/1.1\r\nHost: example.com\r\n\r\n")
-      (Result.Success r)
-        (Maybe.nothing? &(Request.header &r "X-Missing"))
+      (Result.Success r) (Maybe.nothing? &(Request.header &r "X-Missing"))
       _ false)
     "header returns Nothing for missing key")
 
@@ -259,21 +227,27 @@
 
   (assert-equal test
     "carp"
-    &(match (the (Result (Map String String) String) (Form.parse "name=carp&version=1"))
+    &(match (the
+        (Result (Map String String) String)
+        (Form.parse "name=carp&version=1"))
       (Result.Success m) (Map.get &m "name")
       _ @"")
     "Form.parse extracts key")
 
   (assert-equal test
     "1"
-    &(match (the (Result (Map String String) String) (Form.parse "name=carp&version=1"))
+    &(match (the
+        (Result (Map String String) String)
+        (Form.parse "name=carp&version=1"))
       (Result.Success m) (Map.get &m "version")
       _ @"")
     "Form.parse extracts second key")
 
   (assert-equal test
     "hello world"
-    &(match (the (Result (Map String String) String) (Form.parse "msg=hello%20world"))
+    &(match (the
+        (Result (Map String String) String)
+        (Form.parse "msg=hello%20world"))
       (Result.Success m) (Map.get &m "msg")
       _ @"")
     "Form.parse decodes percent-encoded space")
@@ -283,5 +257,4 @@
     &(match (the (Result (Map String String) String) (Form.parse "flag"))
       (Result.Success m) (Map.get &m "flag")
       _ @"FAIL")
-    "Form.parse handles key without value")
-)
+    "Form.parse handles key without value"))

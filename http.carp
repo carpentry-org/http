@@ -3,39 +3,35 @@
 (load "git@github.com:carpentry-org/strbuf@0.1.0")
 
 (defmodule String
-  (doc find-crlf "finds the byte position of the next \\r\\n starting from `start`.
+  (doc find-crlf
+    "finds the byte position of the next \\r\\n starting from `start`.
 Returns -1 if not found.")
   (defn find-crlf [s start len]
     (let-do [result -1]
       (for [i start (Int.dec len)]
-        (when (and (= (char-at s i) \return)
-                   (= (char-at s (Int.inc i)) \newline))
-          (do (set! result i) (break))))
-      result))
-)
+        (when-do (and
+            (= (char-at s i) \return)
+            (= (char-at s (Int.inc i)) \newline))
+          (set! result i)
+          (break)))
+      result)))
 
-(deftype SameSite
-  (Lax [])
-  (Strict [])
-  (None [])
-)
+(deftype SameSite (Lax []) (Strict []) (None []))
 
-(defmodule SameSite
-  (defn zero [] (Lax))
-  (implements zero SameSite.zero)
-)
+(defmodule SameSite (defn zero [] (Lax)) (implements zero SameSite.zero))
 
 (doc Cookie "is a simple cookie data type. You usually shouldn’t need to build
 the type yourself, instead you can [parse](#parse) it.")
 
-(deftype Cookie [name String,
-                 value String,
-                 path String,
-                 expires (Maybe Datetime),
-                 domain (Maybe String),
-                 secure Bool,
-                 httponly Bool,
-                 samesite SameSite])
+(deftype Cookie
+  [name String
+   value String
+   path String
+   expires (Maybe Datetime)
+   domain (Maybe String)
+   secure Bool
+   httponly Bool
+   samesite SameSite])
 
 (defmodule Cookie
   (doc expired? "checks if a cookie is expired now.")
@@ -54,19 +50,24 @@ the type yourself, instead you can [parse](#parse) it.")
             (trim &(String.byte-slice s 0 eq))
             (trim &(String.byte-slice s (Int.inc eq) (String.length s)))
             @"/"
-            (Maybe.Nothing) (Maybe.Nothing) false false (zero))))))
+            (Maybe.Nothing)
+            (Maybe.Nothing)
+            false
+            false
+            (zero))))))
 
   (doc parse-many "parses multiple cookies.")
   (defn parse-many [s]
-      (Array.reduce
-        &(fn [a s]
-          (match a
-            (Result.Error err) (Result.Error err)
-            (Result.Success arr)
-              (match (parse s)
-                (Result.Error err) (Result.Error err)
-                (Result.Success c) (Result.Success (Array.push-back arr c)))))
-        (Result.Success []) &(split-by s &[\;])))
+    (Array.reduce
+      &(fn [a s]
+        (match a
+          (Result.Error err) (Result.Error err)
+          (Result.Success arr)
+            (match (parse s)
+              (Result.Error err) (Result.Error err)
+              (Result.Success c) (Result.Success (Array.push-back arr c)))))
+      (Result.Success [])
+      &(split-by s &[\;])))
 
   (doc kv "makes a `name=value` pair from a cookie.")
   (defn kv [c] (fmt "%s=%s" (name c) (value c)))
@@ -77,16 +78,21 @@ the type yourself, instead you can [parse](#parse) it.")
       (match @(expires c)
         (Maybe.Nothing) ()
         (Maybe.Just xp)
-          (set! s (fmt "%s; Expires=%s" &s &(Datetime.strftime &xp "%a, %d %b %Y %H:%M:%S GMT"))))
+          (set!
+            s
+            (fmt
+              "%s; Expires=%s"
+              &s
+              &(Datetime.strftime &xp "%a, %d %b %Y %H:%M:%S GMT"))))
       (match @(domain c)
         (Maybe.Nothing) ()
         (Maybe.Just d) (set! s (fmt "%s; Domain=%s" &s &d)))
       (when @(secure c) (set! s (fmt "%s; Secure" &s)))
       (when @(httponly c) (set! s (fmt "%s; HttpOnly" &s)))
       (match @(samesite c)
-        (SameSite.Lax)    (set! s (fmt "%s; SameSite=Lax" &s))
+        (SameSite.Lax) (set! s (fmt "%s; SameSite=Lax" &s))
         (SameSite.Strict) (set! s (fmt "%s; SameSite=Strict" &s))
-        (SameSite.None)   (set! s (fmt "%s; SameSite=None" &s)))
+        (SameSite.None) (set! s (fmt "%s; SameSite=None" &s)))
       s))
 
   (private parse-set-prop)
@@ -107,56 +113,70 @@ the type yourself, instead you can [parse](#parse) it.")
                 (Result.Success (set-path c (join "=" &(Array.suffix splt 1)))))
             (starts-with? prop "Domain")
               (if l<2
-                (Result.Error @"malformed domain property in set-cookie, no value")
+                (Result.Error
+                  @"malformed domain property in set-cookie, no value")
                 (Result.Success
                   (set-domain c (Maybe.Just (join "=" &(Array.suffix splt 1))))))
             (starts-with? prop "Expires")
               (if l<2
-                (Result.Error @"malformed expires property in set-cookie, no value")
+                (Result.Error
+                  @"malformed expires property in set-cookie, no value")
                 (let [val (join "=" &(Array.suffix splt 1))]
                   (match (Datetime.strptime &val "%a, %d %b %Y %H:%M:%S GMT")
                     (Result.Error e)
-                      (Result.Error (fmt "malformed expires date in set-cookie: %s" &e))
+                      (Result.Error
+                        (fmt "malformed expires date in set-cookie: %s" &e))
                     (Result.Success dt)
                       (Result.Success (set-expires c (Maybe.Just dt))))))
             (starts-with? prop "Max-Age")
               (if l<2
-                (Result.Error @"malformed max-age property in set-cookie, no value")
+                (Result.Error
+                  @"malformed max-age property in set-cookie, no value")
                 (let [mi (Int.from-string &(join "=" &(Array.suffix splt 1)))]
                   (match mi
                     (Maybe.Nothing)
                       (Result.Error @"malformed max-age value in set-cookie")
                     (Maybe.Just i)
                       (Result.Success
-                        (set-expires c
+                        (set-expires
+                          c
                           (Maybe.Just (Datetime.add-seconds &(Datetime.now) i)))))))
             (starts-with? prop "SameSite")
               (if l<2
-                (Result.Error @"malformed samesite property in set-cookie, no value")
+                (Result.Error
+                  @"malformed samesite property in set-cookie, no value")
                 (let [s (join "=" &(Array.suffix splt 1))]
-                  (case &s
-                    "Lax"    (Result.Success (set-samesite c (SameSite.Lax)))
-                    "Strict" (Result.Success (set-samesite c (SameSite.Strict)))
-                    "None"   (Result.Success (set-samesite c (SameSite.None)))
+                  (case
+                    &s
+                    "Lax"
+                    (Result.Success (set-samesite c (SameSite.Lax)))
+                    "Strict"
+                    (Result.Success (set-samesite c (SameSite.Strict)))
+                    "None"
+                    (Result.Success (set-samesite c (SameSite.None)))
                     (Result.Error
-                      (fmt "malformed samesite property in set-cookie, unknown value: %s" &s)))))
+                      (fmt
+                        "malformed samesite property in set-cookie, unknown value: %s"
+                        &s)))))
             (Result.Error (fmt "Unknown set-cookie property: %s" prop))))))
 
   (doc parse-set "parses a `Set-Cookie` form.")
   (defn parse-set [s]
     (let [splt (split-by s &[\;])]
-      (Array.reduce &parse-set-prop (parse (Array.unsafe-first &splt))
-                    &(Array.suffix &splt 1))))
-)
+      (Array.reduce
+        &parse-set-prop
+        (parse (Array.unsafe-first &splt))
+        &(Array.suffix &splt 1)))))
 
 (doc Request "is a request data type. It holds the `verb` of the request, the
 `version`, the `uri`, the `cookies`, the `headers`, and the `body`.")
-(deftype Request [verb String,
-                  version String,
-                  uri URI,
-                  cookies (Array Cookie),
-                  headers (Map String (Array String)),
-                  body String])
+(deftype Request
+  [verb String
+   version String
+   uri URI
+   cookies (Array Cookie)
+   headers (Map String (Array String))
+   body String])
 
 (defmodule Request
   (doc ignore-body? "checks whether the body of the request should be ignored.")
@@ -164,35 +184,37 @@ the type yourself, instead you can [parse](#parse) it.")
 
   (doc str "stringifies the request as it looks on the wire.")
   (defn str [r]
-    (let [sb (StringBuf.create)]
-      (do
-        (StringBuf.append-str &sb (verb r))
-        (StringBuf.append-char &sb \space)
-        (StringBuf.append-str &sb &(URI.str (uri r)))
-        (StringBuf.append-char &sb \space)
-        (StringBuf.append-str &sb (version r))
-        ; Headers
-        (let [ks &(Map.keys (headers r))]
-          (for [ki 0 (Array.length ks)]
-            (let [k (Array.unsafe-nth ks ki)
-                  vs &(Map.get-with-default (headers r) k &[])]
-              (for [vi 0 (Array.length vs)]
-                (do (StringBuf.append-crlf &sb)
-                    (StringBuf.append-str &sb k)
-                    (StringBuf.append-str &sb ": ")
-                    (StringBuf.append-str &sb (Array.unsafe-nth vs vi)))))))
-        ; Cookies
-        (when (not (empty? (cookies r)))
-          (do (StringBuf.append-crlf &sb)
-              (StringBuf.append-str &sb "Cookie: ")
-              (for [i 0 (Array.length (cookies r))]
-                (do (when (> i 0) (StringBuf.append-char &sb \;))
-                    (StringBuf.append-str &sb &(Cookie.kv (Array.unsafe-nth (cookies r) i)))))))
+    (let-do [sb (StringBuf.create)]
+      (StringBuf.append-str &sb (verb r))
+      (StringBuf.append-char &sb \space)
+      (StringBuf.append-str &sb &(URI.str (uri r)))
+      (StringBuf.append-char &sb \space)
+      (StringBuf.append-str &sb (version r))
+      ; Headers
+      (let [ks &(Map.keys (headers r))]
+        (for [ki 0 (Array.length ks)]
+          (let [k (Array.unsafe-nth ks ki)
+                vs &(Map.get-with-default (headers r) k &[])]
+            (for [vi 0 (Array.length vs)]
+              (do
+                (StringBuf.append-crlf &sb)
+                (StringBuf.append-str &sb k)
+                (StringBuf.append-str &sb ": ")
+                (StringBuf.append-str &sb (Array.unsafe-nth vs vi)))))))
+      ; Cookies
+      (unless-do (empty? (cookies r))
         (StringBuf.append-crlf &sb)
-        (StringBuf.append-crlf &sb)
-        (StringBuf.append-str &sb (body r))
-        (let [s (StringBuf.to-string &sb)]
-          (do (StringBuf.delete sb) s)))))
+        (StringBuf.append-str &sb "Cookie: ")
+        (for [i 0 (Array.length (cookies r))]
+          (do
+            (when (> i 0) (StringBuf.append-char &sb \;))
+            (StringBuf.append-str
+              &sb
+              &(Cookie.kv (Array.unsafe-nth (cookies r) i))))))
+      (StringBuf.append-crlf &sb)
+      (StringBuf.append-crlf &sb)
+      (StringBuf.append-str &sb (body r))
+      (let-do [s (StringBuf.to-string &sb)] (StringBuf.delete sb) s)))
   (implements str Request.str)
 
   (doc request "builds a HTTP `1.1` request.")
@@ -200,16 +222,14 @@ the type yourself, instead you can [parse](#parse) it.")
     (init verb @"HTTP/1.1" uri cookies headers body))
 
   (doc get "builds a HTTP GET request (version `1.1`).")
-  (defn get [uri cookies headers body]
-    (request @"GET" uri cookies headers body))
+  (defn get [uri cookies headers body] (request @"GET" uri cookies headers body))
 
   (doc post "builds a HTTP POST request (version `1.1`).")
   (defn post [uri cookies headers body]
     (request @"POST" uri cookies headers body))
 
   (doc put "builds a HTTP PUT request (version `1.1`).")
-  (defn put [uri cookies headers body]
-    (request @"PUT" uri cookies headers body))
+  (defn put [uri cookies headers body] (request @"PUT" uri cookies headers body))
 
   (doc del "builds a HTTP DELETE request (version `1.1`).")
   (defn del [uri cookies headers body]
@@ -232,63 +252,96 @@ it will return a `(Success Request)`.")
           ; Parse request line: VERB SP URI SP VERSION
           (let [sp1 (String.index-of first-line \space)]
             (if (= sp1 -1)
-              (Result.Error (fmt "Malformed request: found first line '%s'" first-line))
+              (Result.Error
+                (fmt "Malformed request: found first line '%s'" first-line))
               (let [rest-start (Int.inc sp1)
-                    sp2-search (String.index-of-from first-line \space rest-start)]
+                    sp2-search (String.index-of-from
+                      first-line
+                      \space
+                      rest-start)]
                 (if (= sp2-search -1)
-                  (Result.Error (fmt "Malformed request: found first line '%s'" first-line))
+                  (Result.Error
+                    (fmt "Malformed request: found first line '%s'" first-line))
                   (let [verb &(String.byte-slice first-line 0 sp1)
-                        uri-str &(String.byte-slice first-line rest-start sp2-search)
-                        version &(String.byte-slice first-line (Int.inc sp2-search)
-                                    (String.length first-line))]
+                        uri-str &(String.byte-slice
+                          first-line
+                          rest-start
+                          sp2-search)
+                        version &(String.byte-slice
+                          first-line
+                          (Int.inc sp2-search)
+                          (String.length first-line))]
                     (match (URI.parse uri-str)
                       (Result.Error err)
                         (Result.Error
-                          (fmt "Malformed request: uri decoding error: '%s'" &err))
+                          (fmt
+                            "Malformed request: uri decoding error: '%s'"
+                            &err))
                       (Result.Success uri)
-                        (let-do [pos (+ first-eol 2)  ; skip past first \r\n
-                                 headers (the (Map String (Array String)) {})
-                                 cookies (the (Array Cookie) [])
-                                 body @""
-                                 failed @""]
+                        (let-do [
+                            pos
+                            (+ first-eol 2)
+                            ; skip past first \r\n
+                            headers
+                            (the (Map String (Array String)) {})
+                            cookies
+                            (the (Array Cookie) [])
+                            body
+                            @""
+                            failed
+                            @""]
                           ; Parse headers
                           (while (< pos len)
                             (let [eol (String.find-crlf txt pos len)]
                               (if (= eol -1)
-                                (do (set! body (String.byte-slice txt pos len))
-                                    (break))
+                                (do
+                                  (set! body (String.byte-slice txt pos len))
+                                  (break))
                                 (if (= eol pos)
                                   ; Empty line = end of headers, rest is body
                                   (do
                                     (let [body-start (+ pos 2)]
                                       (when (< body-start len)
-                                        (set! body (String.byte-slice txt body-start len))))
+                                        (set!
+                                          body
+                                          (String.byte-slice txt body-start len))))
                                     (break))
                                   ; Parse header line
                                   (let [line &(String.byte-slice txt pos eol)
                                         colon (String.index-of line \:)]
                                     (if (= colon -1)
                                       (do (set! failed @line) (break))
-                                      (let [k &(String.byte-slice line 0 colon)
-                                            lk &(String.ascii-to-lower k)
-                                            v &(String.trim &(String.byte-slice line (Int.inc colon)
-                                                              (String.length line)))]
-                                        (do
-                                          (if (= lk "cookie")
-                                            (match (Cookie.parse-many v)
-                                              (Result.Error err)
-                                                (do (set! failed err) (break))
-                                              (Result.Success arr)
-                                                (set! cookies (Array.concat &[cookies arr])))
-                                            (set! headers
-                                              (Map.update-with-default
-                                                headers k
-                                                &(fn [h] (Array.push-back h @v))
-                                                [])))
-                                          (set! pos (+ eol 2))))))))))
+                                      (let-do [k &(String.byte-slice
+                                                 line
+                                                 0
+                                                 colon)
+                                               lk &(String.ascii-to-lower k)
+                                               v &(String.trim
+                                                 &(String.byte-slice
+                                                   line
+                                                   (Int.inc colon)
+                                                   (String.length line)))]
+                                        (if (= lk "cookie")
+                                          (match (Cookie.parse-many v)
+                                            (Result.Error err)
+                                              (do (set! failed err) (break))
+                                            (Result.Success arr)
+                                              (set!
+                                                cookies
+                                                (Array.concat &[cookies arr])))
+                                          (set!
+                                            headers
+                                            (Map.update-with-default
+                                              headers
+                                              k
+                                              &(fn [h] (Array.push-back h @v))
+                                              [])))
+                                        (set! pos (+ eol 2)))))))))
                           (if (/= &failed "")
                             (Result.Error
-                              (fmt "Malformed request: found header '%s'" &failed))
+                              (fmt
+                                "Malformed request: found header '%s'"
+                                &failed))
                             (Result.Success
                               (init @verb @version uri cookies headers body))))))))))))))
 
@@ -304,49 +357,50 @@ Returns `(Maybe String)`.")
               (Maybe.Just @(Array.unsafe-first v))
               acc)))
         (the (Maybe String) (Maybe.Nothing))
-        (headers r))))
-
-)
+        (headers r)))))
 
 (doc Response "is a response data type. It holds the `code` of the request, the
 `version`, the `message`, the `cookies`, the `headers`, and the `body`.")
-(deftype Response [code Int,
-                   message String,
-                   version String,
-                   cookies (Array Cookie),
-                   headers (Map String (Array String)),
-                   body String])
+(deftype Response
+  [code Int
+   message String
+   version String
+   cookies (Array Cookie)
+   headers (Map String (Array String))
+   body String])
 
 (defmodule Response
   (doc str "stringifies the response as it looks on the wire.")
   (defn str [r]
-    (let [sb (StringBuf.create)]
-      (do
-        (StringBuf.append-str &sb (version r))
-        (StringBuf.append-char &sb \space)
-        (StringBuf.append-int &sb @(code r))
-        (StringBuf.append-char &sb \space)
-        (StringBuf.append-str &sb (message r))
-        ; Headers
-        (let [ks &(Map.keys (headers r))]
-          (for [ki 0 (Array.length ks)]
-            (let [k (Array.unsafe-nth ks ki)
-                  vs &(Map.get-with-default (headers r) k &[])]
-              (for [vi 0 (Array.length vs)]
-                (do (StringBuf.append-crlf &sb)
-                    (StringBuf.append-str &sb k)
-                    (StringBuf.append-str &sb ": ")
-                    (StringBuf.append-str &sb (Array.unsafe-nth vs vi)))))))
-        ; Set-Cookie headers
-        (for [i 0 (Array.length (cookies r))]
-          (do (StringBuf.append-crlf &sb)
-              (StringBuf.append-str &sb "Set-Cookie: ")
-              (StringBuf.append-str &sb &(Cookie.set (Array.unsafe-nth (cookies r) i)))))
-        (StringBuf.append-crlf &sb)
-        (StringBuf.append-crlf &sb)
-        (StringBuf.append-str &sb (body r))
-        (let [s (StringBuf.to-string &sb)]
-          (do (StringBuf.delete sb) s)))))
+    (let-do [sb (StringBuf.create)]
+      (StringBuf.append-str &sb (version r))
+      (StringBuf.append-char &sb \space)
+      (StringBuf.append-int &sb @(code r))
+      (StringBuf.append-char &sb \space)
+      (StringBuf.append-str &sb (message r))
+      ; Headers
+      (let [ks &(Map.keys (headers r))]
+        (for [ki 0 (Array.length ks)]
+          (let [k (Array.unsafe-nth ks ki)
+                vs &(Map.get-with-default (headers r) k &[])]
+            (for [vi 0 (Array.length vs)]
+              (do
+                (StringBuf.append-crlf &sb)
+                (StringBuf.append-str &sb k)
+                (StringBuf.append-str &sb ": ")
+                (StringBuf.append-str &sb (Array.unsafe-nth vs vi)))))))
+      ; Set-Cookie headers
+      (for [i 0 (Array.length (cookies r))]
+        (do
+          (StringBuf.append-crlf &sb)
+          (StringBuf.append-str &sb "Set-Cookie: ")
+          (StringBuf.append-str
+            &sb
+            &(Cookie.set (Array.unsafe-nth (cookies r) i)))))
+      (StringBuf.append-crlf &sb)
+      (StringBuf.append-crlf &sb)
+      (StringBuf.append-str &sb (body r))
+      (let-do [s (StringBuf.to-string &sb)] (StringBuf.delete sb) s)))
   (implements str Response.str)
 
   (doc ok? "checks whether the status code is less than 400.")
@@ -371,18 +425,27 @@ it will return a `(Success Response)`.")
           ; Parse status line: VERSION SP CODE SP MESSAGE...
           (let [sp1 (String.index-of first-line \space)]
             (if (= sp1 -1)
-              (Result.Error (fmt "Malformed response: found first line '%s'" first-line))
+              (Result.Error
+                (fmt "Malformed response: found first line '%s'" first-line))
               (let [sp2 (String.index-of-from first-line \space (Int.inc sp1))]
                 (if (= sp2 -1)
-                  (Result.Error (fmt "Malformed response: found first line '%s'" first-line))
+                  (Result.Error
+                    (fmt "Malformed response: found first line '%s'" first-line))
                   (let [version &(String.byte-slice first-line 0 sp1)
-                        code-str &(String.byte-slice first-line (Int.inc sp1) sp2)
-                        message &(String.byte-slice first-line (Int.inc sp2)
-                                    (String.length first-line))]
+                        code-str &(String.byte-slice
+                          first-line
+                          (Int.inc sp1)
+                          sp2)
+                        message &(String.byte-slice
+                          first-line
+                          (Int.inc sp2)
+                          (String.length first-line))]
                     (match (Int.from-string code-str)
                       (Maybe.Nothing)
                         (Result.Error
-                          (fmt "Malformed response: status code decoding error: '%s'" code-str))
+                          (fmt
+                            "Malformed response: status code decoding error: '%s'"
+                            code-str))
                       (Maybe.Just status-code)
                         (let-do [pos (+ first-eol 2)
                                  headers (the (Map String (Array String)) {})
@@ -392,40 +455,58 @@ it will return a `(Success Response)`.")
                           (while (< pos len)
                             (let [eol (String.find-crlf txt pos len)]
                               (if (= eol -1)
-                                (do (set! body (String.byte-slice txt pos len))
-                                    (break))
+                                (do
+                                  (set! body (String.byte-slice txt pos len))
+                                  (break))
                                 (if (= eol pos)
                                   (do
                                     (let [body-start (+ pos 2)]
                                       (when (< body-start len)
-                                        (set! body (String.byte-slice txt body-start len))))
+                                        (set!
+                                          body
+                                          (String.byte-slice txt body-start len))))
                                     (break))
                                   (let [line &(String.byte-slice txt pos eol)
                                         colon (String.index-of line \:)]
                                     (if (= colon -1)
                                       (do (set! failed @line) (break))
-                                      (let [k &(String.byte-slice line 0 colon)
-                                            lk &(String.ascii-to-lower k)
-                                            v &(String.trim &(String.byte-slice line (Int.inc colon)
-                                                              (String.length line)))]
-                                        (do
-                                          (if (= lk "set-cookie")
-                                            (match (Cookie.parse-set v)
-                                              (Result.Error err)
-                                                (do (set! failed err) (break))
-                                              (Result.Success c)
-                                                (Array.push-back! &cookies c))
-                                            (set! headers
-                                              (Map.update-with-default
-                                                headers k
-                                                &(fn [h] (Array.push-back h @v))
-                                                [])))
-                                          (set! pos (+ eol 2))))))))))
+                                      (let-do [k &(String.byte-slice
+                                                 line
+                                                 0
+                                                 colon)
+                                               lk &(String.ascii-to-lower k)
+                                               v &(String.trim
+                                                 &(String.byte-slice
+                                                   line
+                                                   (Int.inc colon)
+                                                   (String.length line)))]
+                                        (if (= lk "set-cookie")
+                                          (match (Cookie.parse-set v)
+                                            (Result.Error err)
+                                              (do (set! failed err) (break))
+                                            (Result.Success c)
+                                              (Array.push-back! &cookies c))
+                                          (set!
+                                            headers
+                                            (Map.update-with-default
+                                              headers
+                                              k
+                                              &(fn [h] (Array.push-back h @v))
+                                              [])))
+                                        (set! pos (+ eol 2)))))))))
                           (if (/= &failed "")
                             (Result.Error
-                              (fmt "Malformed response: found header '%s'" &failed))
+                              (fmt
+                                "Malformed response: found header '%s'"
+                                &failed))
                             (Result.Success
-                              (init status-code @message @version cookies headers body))))))))))))))
+                              (init
+                                status-code
+                                @message
+                                @version
+                                cookies
+                                headers
+                                body))))))))))))))
 
   (doc header "gets the first value of a header by name (case-insensitive).
 Returns `(Maybe String)`.")
@@ -439,8 +520,7 @@ Returns `(Maybe String)`.")
               (Maybe.Just @(Array.unsafe-first v))
               acc)))
         (the (Maybe String) (Maybe.Nothing))
-        (headers r))))
-)
+        (headers r)))))
 
 (doc Status "provides HTTP status code constants and reason phrases.")
 (defmodule Status
@@ -466,28 +546,47 @@ Returns `(Maybe String)`.")
 
   (doc reason "returns the standard reason phrase for a status code.")
   (defn reason [code]
-    (case code
-      200 @"OK"
-      201 @"Created"
-      204 @"No Content"
-      301 @"Moved Permanently"
-      302 @"Found"
-      304 @"Not Modified"
-      400 @"Bad Request"
-      401 @"Unauthorized"
-      403 @"Forbidden"
-      404 @"Not Found"
-      405 @"Method Not Allowed"
-      409 @"Conflict"
-      410 @"Gone"
-      422 @"Unprocessable Entity"
-      429 @"Too Many Requests"
-      500 @"Internal Server Error"
-      501 @"Not Implemented"
-      502 @"Bad Gateway"
-      503 @"Service Unavailable"
-      @"Unknown"))
-)
+    (case
+      code
+      200
+      @"OK"
+      201
+      @"Created"
+      204
+      @"No Content"
+      301
+      @"Moved Permanently"
+      302
+      @"Found"
+      304
+      @"Not Modified"
+      400
+      @"Bad Request"
+      401
+      @"Unauthorized"
+      403
+      @"Forbidden"
+      404
+      @"Not Found"
+      405
+      @"Method Not Allowed"
+      409
+      @"Conflict"
+      410
+      @"Gone"
+      422
+      @"Unprocessable Entity"
+      429
+      @"Too Many Requests"
+      500
+      @"Internal Server Error"
+      501
+      @"Not Implemented"
+      502
+      @"Bad Gateway"
+      503
+      @"Service Unavailable"
+      @"Unknown")))
 
 (doc Form "provides URL-encoded form body parsing.
 
@@ -506,17 +605,14 @@ Keys and values are percent-decoded.")
         (let [pair (Array.unsafe-nth pairs i)
               eq (String.index-of pair \=)]
           (if (= eq -1)
-            (let [k (URI.unescape pair)]
-              (Map.put! &m &k ""))
+            (let [k (URI.unescape pair)] (Map.put! &m &k ""))
             (let [k (URI.unescape &(String.byte-slice pair 0 eq))
-                  v (URI.unescape &(String.byte-slice pair (Int.inc eq) (String.length pair)))]
+                  v (URI.unescape
+                    &(String.byte-slice pair (Int.inc eq) (String.length pair)))]
               (Map.put! &m &k &v)))))
-      (Result.Success m)))
-)
+      (Result.Success m))))
 
 (defmodule Request
   (doc form-data "parses the request body as URL-encoded form data.
 Returns `(Result (Map String String) String)`.")
-  (defn form-data [r]
-    (Form.parse (body r)))
-)
+  (defn form-data [r] (Form.parse (body r))))
