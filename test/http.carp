@@ -108,8 +108,12 @@
     "ok? true for 200")
 
   (assert-true test
-    (Response.client-error?
-      &(Response.init 404 @"Not Found" @"HTTP/1.1" [] {} @""))
+    (Response.client-error? &(Response.init 404
+        @"Not Found"
+        @"HTTP/1.1"
+        []
+        {}
+        @""))
     "client-error? true for 404")
 
   (assert-true test
@@ -149,9 +153,8 @@
       (Result.Success c)
         (match @(Cookie.expires &c)
           (Maybe.Just d)
-            (and
-              (= 2021 @(Datetime.year &d))
-              (and (= 6 @(Datetime.month &d)) (= 9 @(Datetime.day &d))))
+            (and (= 2021 @(Datetime.year &d))
+                 (and (= 6 @(Datetime.month &d)) (= 9 @(Datetime.day &d))))
           (Maybe.Nothing) false)
       _ false)
     "parse-set extracts Expires date")
@@ -227,27 +230,24 @@
 
   (assert-equal test
     "carp"
-    &(match (the
-        (Result (Map String String) String)
-        (Form.parse "name=carp&version=1"))
+    &(match (the (Result (Map String String) String)
+                 (Form.parse "name=carp&version=1"))
       (Result.Success m) (Map.get &m "name")
       _ @"")
     "Form.parse extracts key")
 
   (assert-equal test
     "1"
-    &(match (the
-        (Result (Map String String) String)
-        (Form.parse "name=carp&version=1"))
+    &(match (the (Result (Map String String) String)
+                 (Form.parse "name=carp&version=1"))
       (Result.Success m) (Map.get &m "version")
       _ @"")
     "Form.parse extracts second key")
 
   (assert-equal test
     "hello world"
-    &(match (the
-        (Result (Map String String) String)
-        (Form.parse "msg=hello%20world"))
+    &(match (the (Result (Map String String) String)
+                 (Form.parse "msg=hello%20world"))
       (Result.Success m) (Map.get &m "msg")
       _ @"")
     "Form.parse decodes percent-encoded space")
