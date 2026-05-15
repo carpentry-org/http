@@ -108,12 +108,8 @@
     "ok? true for 200")
 
   (assert-true test
-    (Response.client-error? &(Response.init 404
-        @"Not Found"
-        @"HTTP/1.1"
-        []
-        {}
-        @""))
+    (Response.client-error?
+      &(Response.init 404 @"Not Found" @"HTTP/1.1" [] {} @""))
     "client-error? true for 404")
 
   (assert-true test
