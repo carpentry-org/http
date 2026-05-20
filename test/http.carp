@@ -161,6 +161,26 @@
       _ false)
     "parse-set rejects malformed Expires date")
 
+  ; -- Unknown Set-Cookie attributes are silently ignored (RFC 6265) --
+  (assert-true test
+    (match (Cookie.parse-set "id=abc; Partitioned")
+      (Result.Success c) (= (Cookie.name &c) "id")
+      _ false)
+    "parse-set ignores unknown attribute Partitioned")
+
+  (assert-true test
+    (match (Cookie.parse-set "id=abc; Priority=High")
+      (Result.Success c) (= (Cookie.value &c) "abc")
+      _ false)
+    "parse-set ignores unknown attribute Priority=High")
+
+  (assert-true test
+    (match (Cookie.parse-set
+        "id=abc; Path=/; Partitioned; Secure; Priority=High")
+      (Result.Success c) (and (= (Cookie.path &c) "/") @(Cookie.secure &c))
+      _ false)
+    "parse-set handles mix of known and unknown attributes")
+
   ; -- Cookie value containing '=' (e.g. base64 padding) --
   (assert-true test
     (match (Cookie.parse "session=YWJjZA==")
