@@ -158,7 +158,7 @@ the type yourself, instead you can [parse](#parse) it.")
                           (fmt
                             "malformed samesite property in set-cookie, unknown value: %s"
                             &s)))))
-            (Result.Error (fmt "Unknown set-cookie property: %s" prop))))))
+            (Result.Success c)))))
 
   (doc parse-set "parses a `Set-Cookie` form.")
   (defn parse-set [s]
