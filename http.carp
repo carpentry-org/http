@@ -173,11 +173,11 @@ the type yourself, instead you can [parse](#parse) it.")
   (let [lower-name &(String.ascii-to-lower name)]
     (Map.kv-reduce
       &(fn [acc k v]
-        (if (Maybe.just? &acc)
-          acc
-          (if (= &(String.ascii-to-lower k) lower-name)
+        (cond
+          (Maybe.just? &acc) acc
+          (= &(String.ascii-to-lower k) lower-name)
             (Maybe.Just @(Array.unsafe-first v))
-            acc)))
+          acc))
       (the (Maybe String) (Maybe.Nothing))
       hdrs)))
 
