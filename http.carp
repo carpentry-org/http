@@ -282,48 +282,47 @@ it will return a `(Success Request)`.")
                           ; Parse headers
                           (while (< pos len)
                             (let [eol (String.find-crlf txt pos len)]
-                              (if (= eol -1)
+                              (cond
+                                (= eol -1)
                                 (do
                                   (set! body (String.byte-slice txt pos len))
                                   (break))
-                                (if (= eol pos)
-                                  ; Empty line = end of headers, rest is body
-                                  (do
-                                    (let [body-start (+ pos 2)]
-                                      (when (< body-start len)
-                                        (set! body
-                                              (String.byte-slice txt
-                                                                 body-start
-                                                                 len))))
-                                    (break))
-                                  ; Parse header line
-                                  (let [line &(String.byte-slice txt pos eol)
-                                        colon (String.index-of line \:)]
-                                    (if (= colon -1)
-                                      (do (set! failed @line) (break))
-                                      (let-do [k &(String.byte-slice line
-                                                                     0
-                                                                     colon)
-                                               lk &(String.ascii-to-lower k)
-                                               v &(String.trim
-                                                 &(String.byte-slice line
-                                                                     (Int.inc colon)
-                                                                     (String.length line)))]
-                                        (if (= lk "cookie")
-                                          (match (Cookie.parse-many v)
-                                            (Result.Error err)
-                                              (do (set! failed err) (break))
-                                            (Result.Success arr)
-                                              (set! cookies
-                                                    (Array.concat &[cookies arr])))
-                                          (set! headers
-                                                (Map.update-with-default headers
-                                                                         k
-                                                                         &(fn [h]
-                                                                           (Array.push-back h
-                                                                                            @v))
-                                                                         [])))
-                                        (set! pos (+ eol 2)))))))))
+                                (= eol pos)
+                                ; Empty line = end of headers, rest is body
+                                (do
+                                  (let [body-start (+ pos 2)]
+                                    (when (< body-start len)
+                                      (set! body
+                                            (String.byte-slice txt
+                                                               body-start
+                                                               len))))
+                                  (break))
+                                ; Parse header line
+                                (let [line &(String.byte-slice txt pos eol)
+                                      colon (String.index-of line \:)]
+                                  (if (= colon -1)
+                                    (do (set! failed @line) (break))
+                                    (let-do [k &(String.byte-slice line 0 colon)
+                                             lk &(String.ascii-to-lower k)
+                                             v &(String.trim
+                                               &(String.byte-slice line
+                                                                   (Int.inc colon)
+                                                                   (String.length line)))]
+                                      (if (= lk "cookie")
+                                        (match (Cookie.parse-many v)
+                                          (Result.Error err)
+                                            (do (set! failed err) (break))
+                                          (Result.Success arr)
+                                            (set! cookies
+                                                  (Array.concat &[cookies arr])))
+                                        (set! headers
+                                              (Map.update-with-default headers
+                                                                       k
+                                                                       &(fn [h]
+                                                                         (Array.push-back h
+                                                                                          @v))
+                                                                       [])))
+                                      (set! pos (+ eol 2))))))))
                           (if (/= &failed "")
                             (Result.Error
                               (fmt "Malformed request: found header '%s'"
@@ -337,11 +336,11 @@ Returns `(Maybe String)`.")
     (let [lower-name &(String.ascii-to-lower name)]
       (Map.kv-reduce
         &(fn [acc k v]
-          (if (Maybe.just? &acc)
-            acc
-            (if (= &(String.ascii-to-lower k) lower-name)
+          (cond
+            (Maybe.just? &acc) acc
+            (= &(String.ascii-to-lower k) lower-name)
               (Maybe.Just @(Array.unsafe-first v))
-              acc)))
+            acc))
         (the (Maybe String) (Maybe.Nothing))
         (headers r)))))
 
@@ -437,11 +436,12 @@ it will return a `(Success Response)`.")
                                  failed @""]
                           (while (< pos len)
                             (let [eol (String.find-crlf txt pos len)]
-                              (if (= eol -1)
-                                (do
-                                  (set! body (String.byte-slice txt pos len))
-                                  (break))
-                                (if (= eol pos)
+                              (cond
+                                (= eol -1)
+                                  (do
+                                    (set! body (String.byte-slice txt pos len))
+                                    (break))
+                                (= eol pos)
                                   (do
                                     (let [body-start (+ pos 2)]
                                       (when (< body-start len)
@@ -450,32 +450,30 @@ it will return a `(Success Response)`.")
                                                                  body-start
                                                                  len))))
                                     (break))
-                                  (let [line &(String.byte-slice txt pos eol)
-                                        colon (String.index-of line \:)]
-                                    (if (= colon -1)
-                                      (do (set! failed @line) (break))
-                                      (let-do [k &(String.byte-slice line
-                                                                     0
-                                                                     colon)
-                                               lk &(String.ascii-to-lower k)
-                                               v &(String.trim
-                                                 &(String.byte-slice line
-                                                                     (Int.inc colon)
-                                                                     (String.length line)))]
-                                        (if (= lk "set-cookie")
-                                          (match (Cookie.parse-set v)
-                                            (Result.Error err)
-                                              (do (set! failed err) (break))
-                                            (Result.Success c)
-                                              (Array.push-back! &cookies c))
-                                          (set! headers
-                                                (Map.update-with-default headers
-                                                                         k
-                                                                         &(fn [h]
-                                                                           (Array.push-back h
-                                                                                            @v))
-                                                                         [])))
-                                        (set! pos (+ eol 2)))))))))
+                                (let [line &(String.byte-slice txt pos eol)
+                                      colon (String.index-of line \:)]
+                                  (if (= colon -1)
+                                    (do (set! failed @line) (break))
+                                    (let-do [k &(String.byte-slice line 0 colon)
+                                             lk &(String.ascii-to-lower k)
+                                             v &(String.trim
+                                               &(String.byte-slice line
+                                                                   (Int.inc colon)
+                                                                   (String.length line)))]
+                                      (if (= lk "set-cookie")
+                                        (match (Cookie.parse-set v)
+                                          (Result.Error err)
+                                            (do (set! failed err) (break))
+                                          (Result.Success c)
+                                            (Array.push-back! &cookies c))
+                                        (set! headers
+                                              (Map.update-with-default headers
+                                                                       k
+                                                                       &(fn [h]
+                                                                         (Array.push-back h
+                                                                                          @v))
+                                                                       [])))
+                                      (set! pos (+ eol 2))))))))
                           (if (/= &failed "")
                             (Result.Error
                               (fmt "Malformed response: found header '%s'"
@@ -494,11 +492,11 @@ Returns `(Maybe String)`.")
     (let [lower-name &(String.ascii-to-lower name)]
       (Map.kv-reduce
         &(fn [acc k v]
-          (if (Maybe.just? &acc)
-            acc
-            (if (= &(String.ascii-to-lower k) lower-name)
+          (cond
+            (Maybe.just? &acc) acc
+            (= &(String.ascii-to-lower k) lower-name)
               (Maybe.Just @(Array.unsafe-first v))
-              acc)))
+            acc))
         (the (Maybe String) (Maybe.Nothing))
         (headers r)))))
 

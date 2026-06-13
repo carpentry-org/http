@@ -273,4 +273,58 @@
     &(match (the (Result (Map String String) String) (Form.parse "flag"))
       (Result.Success m) (Map.get &m "flag")
       _ @"FAIL")
-    "Form.parse handles key without value"))
+    "Form.parse handles key without value")
+
+  ; ---------------------------------------------------------------------------
+  ; Request.ignore-body?
+  ; ---------------------------------------------------------------------------
+
+  (assert-true test
+    (Request.ignore-body? &(Request.request @"HEAD" (URI.zero) [] {} @""))
+    "ignore-body? true for HEAD")
+
+  (assert-false test
+    (Request.ignore-body? &(Request.request @"GET" (URI.zero) [] {} @""))
+    "ignore-body? false for GET")
+
+  (assert-false test
+    (Request.ignore-body? &(Request.request @"POST" (URI.zero) [] {} @"body"))
+    "ignore-body? false for POST")
+
+  ; ---------------------------------------------------------------------------
+  ; Request.form-data
+  ; ---------------------------------------------------------------------------
+
+  (assert-equal test
+    "bar"
+    &(match (the (Result (Map String String) String)
+                 (Request.form-data
+                   &(Request.post (URI.zero) [] {} @"foo=bar&baz=qux")))
+      (Result.Success m) (Map.get &m "foo")
+      _ @"")
+    "form-data extracts key from POST body")
+
+  (assert-equal test
+    "qux"
+    &(match (the (Result (Map String String) String)
+                 (Request.form-data
+                   &(Request.post (URI.zero) [] {} @"foo=bar&baz=qux")))
+      (Result.Success m) (Map.get &m "baz")
+      _ @"")
+    "form-data extracts second key from POST body")
+
+  (assert-equal test
+    "hello world"
+    &(match (the (Result (Map String String) String)
+                 (Request.form-data
+                   &(Request.post (URI.zero) [] {} @"msg=hello%20world")))
+      (Result.Success m) (Map.get &m "msg")
+      _ @"")
+    "form-data decodes percent-encoded values")
+
+  (assert-true test
+    (match (the (Result (Map String String) String)
+                (Request.form-data &(Request.get (URI.zero) [] {} @"")))
+      (Result.Success m) (= 0 (Map.length &m))
+      _ false)
+    "form-data on empty body returns empty map"))
