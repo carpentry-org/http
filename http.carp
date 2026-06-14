@@ -167,6 +167,20 @@ the type yourself, instead you can [parse](#parse) it.")
                     (parse (Array.unsafe-first &splt))
                     &(Array.suffix &splt 1)))))
 
+(private header-lookup)
+(hidden header-lookup)
+(defn header-lookup [hdrs name]
+  (let [lower-name &(String.ascii-to-lower name)]
+    (Map.kv-reduce
+      &(fn [acc k v]
+        (cond
+          (Maybe.just? &acc) acc
+          (= &(String.ascii-to-lower k) lower-name)
+            (Maybe.Just @(Array.unsafe-first v))
+          acc))
+      (the (Maybe String) (Maybe.Nothing))
+      hdrs)))
+
 (doc Request "is a request data type. It holds the `verb` of the request, the
 `version`, the `uri`, the `cookies`, the `headers`, and the `body`.")
 (deftype Request
@@ -332,17 +346,7 @@ it will return a `(Success Request)`.")
 
   (doc header "gets the first value of a header by name (case-insensitive).
 Returns `(Maybe String)`.")
-  (defn header [r name]
-    (let [lower-name &(String.ascii-to-lower name)]
-      (Map.kv-reduce
-        &(fn [acc k v]
-          (cond
-            (Maybe.just? &acc) acc
-            (= &(String.ascii-to-lower k) lower-name)
-              (Maybe.Just @(Array.unsafe-first v))
-            acc))
-        (the (Maybe String) (Maybe.Nothing))
-        (headers r)))))
+  (defn header [r name] (header-lookup (headers r) name)))
 
 (doc Response "is a response data type. It holds the `code` of the request, the
 `version`, the `message`, the `cookies`, the `headers`, and the `body`.")
@@ -488,17 +492,7 @@ it will return a `(Success Response)`.")
 
   (doc header "gets the first value of a header by name (case-insensitive).
 Returns `(Maybe String)`.")
-  (defn header [r name]
-    (let [lower-name &(String.ascii-to-lower name)]
-      (Map.kv-reduce
-        &(fn [acc k v]
-          (cond
-            (Maybe.just? &acc) acc
-            (= &(String.ascii-to-lower k) lower-name)
-              (Maybe.Just @(Array.unsafe-first v))
-            acc))
-        (the (Maybe String) (Maybe.Nothing))
-        (headers r)))))
+  (defn header [r name] (header-lookup (headers r) name)))
 
 (doc Status "provides HTTP status code constants and reason phrases.")
 (defmodule Status
