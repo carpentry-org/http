@@ -567,8 +567,14 @@ Returns `(Maybe String)`.")
   (Result.Error e) (IO.errorln &e))
 ```")
 (defmodule Form
+  (private form-unescape)
+  (hidden form-unescape)
+  (defn form-unescape [s]
+    (URI.unescape &(String.join " " &(String.split-by s &[\+]))))
+
   (doc parse "parses a URL-encoded form body into a `(Map String String)`.
-Keys and values are percent-decoded.")
+Keys and values are percent-decoded. The `+` character is decoded as space
+per the `application/x-www-form-urlencoded` specification.")
   (defn parse [s]
     (let-do [m (the (Map String String) {})
              pairs &(String.split-by s &[\&])]
@@ -576,9 +582,9 @@ Keys and values are percent-decoded.")
         (let [pair (Array.unsafe-nth pairs i)
               eq (String.index-of pair \=)]
           (if (= eq -1)
-            (let [k (URI.unescape pair)] (Map.put! &m &k ""))
-            (let [k (URI.unescape &(String.byte-slice pair 0 eq))
-                  v (URI.unescape
+            (let [k (form-unescape pair)] (Map.put! &m &k ""))
+            (let [k (form-unescape &(String.byte-slice pair 0 eq))
+                  v (form-unescape
                     &(String.byte-slice pair (Int.inc eq) (String.length pair)))]
               (Map.put! &m &k &v)))))
       (Result.Success m))))

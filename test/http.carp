@@ -275,6 +275,35 @@
       _ @"FAIL")
     "Form.parse handles key without value")
 
+  (assert-equal test
+    "hello world"
+    &(match (the (Result (Map String String) String)
+                 (Form.parse "msg=hello+world"))
+      (Result.Success m) (Map.get &m "msg")
+      _ @"")
+    "Form.parse decodes + as space")
+
+  (assert-equal test
+    "a b c"
+    &(match (the (Result (Map String String) String) (Form.parse "x=a+b+c"))
+      (Result.Success m) (Map.get &m "x")
+      _ @"")
+    "Form.parse decodes multiple + as spaces")
+
+  (assert-equal test
+    "+"
+    &(match (the (Result (Map String String) String) (Form.parse "x=%2B"))
+      (Result.Success m) (Map.get &m "x")
+      _ @"")
+    "Form.parse decodes %2B as literal +")
+
+  (assert-equal test
+    "a b"
+    &(match (the (Result (Map String String) String) (Form.parse "key+name=a+b"))
+      (Result.Success m) (Map.get &m "key name")
+      _ @"")
+    "Form.parse decodes + in keys too")
+
   ; ---------------------------------------------------------------------------
   ; Request.ignore-body?
   ; ---------------------------------------------------------------------------
