@@ -203,7 +203,6 @@ the type yourself, instead you can [parse](#parse) it.")
       (StringBuf.append-str &sb &(URI.str (uri r)))
       (StringBuf.append-char &sb \space)
       (StringBuf.append-str &sb (version r))
-      ; Headers
       (let [ks &(Map.keys (headers r))]
         (for [ki 0 (Array.length ks)]
           (let [k (Array.unsafe-nth ks ki)
@@ -214,7 +213,6 @@ the type yourself, instead you can [parse](#parse) it.")
                 (StringBuf.append-str &sb k)
                 (StringBuf.append-str &sb ": ")
                 (StringBuf.append-str &sb (Array.unsafe-nth vs vi)))))))
-      ; Cookies
       (unless-do (empty? (cookies r))
         (StringBuf.append-crlf &sb)
         (StringBuf.append-str &sb "Cookie: ")
@@ -288,12 +286,10 @@ it will return a `(Success Request)`.")
                             &err))
                       (Result.Success uri)
                         (let-do [pos (+ first-eol 2)
-                                 ; skip past first \r\n
                                  headers (the (Map String (Array String)) {})
                                  cookies (the (Array Cookie) [])
                                  body @""
                                  failed @""]
-                          ; Parse headers
                           (while (< pos len)
                             (let [eol (String.find-crlf txt pos len)]
                               (cond
@@ -311,7 +307,6 @@ it will return a `(Success Request)`.")
                                                                body-start
                                                                len))))
                                   (break))
-                                ; Parse header line
                                 (let [line &(String.byte-slice txt pos eol)
                                       colon (String.index-of line \:)]
                                   (if (= colon -1)
@@ -367,7 +362,6 @@ Returns `(Maybe String)`.")
       (StringBuf.append-int &sb @(code r))
       (StringBuf.append-char &sb \space)
       (StringBuf.append-str &sb (message r))
-      ; Headers
       (let [ks &(Map.keys (headers r))]
         (for [ki 0 (Array.length ks)]
           (let [k (Array.unsafe-nth ks ki)
@@ -378,7 +372,6 @@ Returns `(Maybe String)`.")
                 (StringBuf.append-str &sb k)
                 (StringBuf.append-str &sb ": ")
                 (StringBuf.append-str &sb (Array.unsafe-nth vs vi)))))))
-      ; Set-Cookie headers
       (for [i 0 (Array.length (cookies r))]
         (do
           (StringBuf.append-crlf &sb)
