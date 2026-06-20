@@ -303,4 +303,115 @@
                 (Request.form-data &(Request.get (URI.zero) [] {} @"")))
       (Result.Success m) (= 0 (Map.length &m))
       _ false)
-    "form-data on empty body returns empty map"))
+    "form-data on empty body returns empty map")
+
+  (assert-equal test
+    "name=carp"
+    &(let-do [m (the (Map String String) {})]
+      (Map.put! &m "name" "carp")
+      (Form.encode &m))
+    "encode single pair")
+
+  (assert-equal test
+    "msg=hello+world"
+    &(let-do [m (the (Map String String) {})]
+      (Map.put! &m "msg" "hello world")
+      (Form.encode &m))
+    "encode space as +")
+
+  (assert-equal test
+    "x=%26"
+    &(let-do [m (the (Map String String) {})]
+      (Map.put! &m "x" "&")
+      (Form.encode &m))
+    "encode & as %26")
+
+  (assert-equal test
+    "k=a%2bb"
+    &(let-do [m (the (Map String String) {})]
+      (Map.put! &m "k" "a+b")
+      (Form.encode &m))
+    "encode literal + as %2b")
+
+  (assert-equal test
+    "key+name=val"
+    &(let-do [m (the (Map String String) {})]
+      (Map.put! &m "key name" "val")
+      (Form.encode &m))
+    "encode space in key as +")
+
+  (assert-true test
+    (let-do [m (the (Map String String) {})]
+      (Map.put! &m "a" "1")
+      (match (the (Result (Map String String) String)
+                  (Form.parse &(Form.encode &m)))
+        (Result.Success parsed) (= &parsed &m)
+        _ false))
+    "encode/parse roundtrip single pair")
+
+  (assert-equal test
+    2
+    (match (the
+        (Result (Array (Pair String String)) String)
+        (Form.parse-pairs "name=carp&version=1"))
+      (Result.Success ps) (Array.length &ps)
+      _ 0)
+    "parse-pairs returns correct count")
+
+  (assert-true test
+    (match (the
+        (Result (Array (Pair String String)) String)
+        (Form.parse-pairs "name=carp&version=1"))
+      (Result.Success ps)
+        (and
+          (= (Pair.a (Array.unsafe-nth &ps 0)) "name")
+          (= (Pair.b (Array.unsafe-nth &ps 0)) "carp"))
+      _ false)
+    "parse-pairs first pair is correct")
+
+  (assert-true test
+    (match (the
+        (Result (Array (Pair String String)) String)
+        (Form.parse-pairs "name=carp&version=1"))
+      (Result.Success ps)
+        (and
+          (= (Pair.a (Array.unsafe-nth &ps 1)) "version")
+          (= (Pair.b (Array.unsafe-nth &ps 1)) "1"))
+      _ false)
+    "parse-pairs second pair is correct")
+
+  (assert-equal test
+    3
+    (match (the
+        (Result (Array (Pair String String)) String)
+        (Form.parse-pairs "x=1&x=2&x=3"))
+      (Result.Success ps) (Array.length &ps)
+      _ 0)
+    "parse-pairs preserves duplicate keys")
+
+  (assert-true test
+    (match (the
+        (Result (Array (Pair String String)) String)
+        (Form.parse-pairs "msg=hello+world"))
+      (Result.Success ps) (= (Pair.b (Array.unsafe-nth &ps 0)) "hello world")
+      _ false)
+    "parse-pairs decodes + as space")
+
+  (assert-true test
+    (match (the
+        (Result (Array (Pair String String)) String)
+        (Form.parse-pairs "flag"))
+      (Result.Success ps)
+        (and
+          (= (Pair.a (Array.unsafe-nth &ps 0)) "flag")
+          (= (Pair.b (Array.unsafe-nth &ps 0)) ""))
+      _ false)
+    "parse-pairs handles key without value")
+
+  (assert-true test
+    (match (the
+        (Result (Array (Pair String String)) String)
+        (Form.parse-pairs "x=%26%3D"))
+      (Result.Success ps) (= (Pair.b (Array.unsafe-nth &ps 0)) "&=")
+      _ false)
+    "parse-pairs decodes percent-encoded values"))
