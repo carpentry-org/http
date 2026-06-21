@@ -2,10 +2,6 @@
 (load "../http.carp")
 (use Test)
 
-; ---------------------------------------------------------------------------
-; Test data
-; ---------------------------------------------------------------------------
-
 (def simple-get @"GET / HTTP/1.1\r\nHost: localhost\r\n\r\n")
 (def post-with-body
   @"POST /submit HTTP/1.1\r\nHost: localhost\r\nContent-Type: application/json\r\nContent-Length: 13\r\n\r\n{\"key\":\"val\"}")
@@ -13,10 +9,6 @@
   @"GET / HTTP/1.1\r\nHost: localhost\r\nAccept: text/html\r\nAccept: application/json\r\n\r\n")
 (def with-cookies
   @"GET / HTTP/1.1\r\nHost: localhost\r\nCookie: a=1;b=2\r\n\r\n")
-
-; ---------------------------------------------------------------------------
-; Helper to extract from Result
-; ---------------------------------------------------------------------------
 
 (defn parse-verb [s]
   (match (Request.parse s) (Result.Success r) @(Request.verb &r) _ @""))
@@ -33,12 +25,7 @@
 (defn resp-body [s]
   (match (Response.parse s) (Result.Success r) @(Response.body &r) _ @""))
 
-; ---------------------------------------------------------------------------
-; Tests
-; ---------------------------------------------------------------------------
-
 (deftest test
-  ; -- Request.parse basics --
   (assert-true test
     (match (Request.parse &simple-get) (Result.Success _) true _ false)
     "parse simple GET succeeds")
@@ -50,7 +37,6 @@
     "HTTP/1.1"
     "parse extracts version")
 
-  ; -- Request body --
   (assert-equal test
     &(parse-body &post-with-body)
     "{\"key\":\"val\"}"
@@ -58,7 +44,6 @@
 
   (assert-equal test &(parse-verb &post-with-body) "POST" "parse POST verb")
 
-  ; -- Multiple headers with same name --
   (assert-equal test
     2
     (match (Request.parse &multi-header)
@@ -67,7 +52,6 @@
       _ 0)
     "multiple Accept headers collected")
 
-  ; -- Cookies --
   (assert-equal test
     2
     (match (Request.parse &with-cookies)
@@ -75,7 +59,6 @@
       _ 0)
     "cookies parsed from Cookie header")
 
-  ; -- Malformed requests --
   (assert-true test
     (match (Request.parse "") (Result.Error _) true _ false)
     "empty string returns error")
@@ -83,10 +66,6 @@
   (assert-true test
     (match (Request.parse "garbage") (Result.Error _) true _ false)
     "garbage returns error")
-
-  ; ---------------------------------------------------------------------------
-  ; Response parsing
-  ; ---------------------------------------------------------------------------
 
   (assert-equal test
     200
@@ -116,10 +95,6 @@
     (Response.server-error? &(Response.init 500 @"ISE" @"HTTP/1.1" [] {} @""))
     "server-error? true for 500")
 
-  ; ---------------------------------------------------------------------------
-  ; Request roundtrip
-  ; ---------------------------------------------------------------------------
-
   (assert-equal test
     &(let [req (Request.get (URI.zero) [] {} @"")]
       (match (Request.parse &(Request.str &req))
@@ -127,10 +102,6 @@
         _ @""))
     "GET"
     "request roundtrip preserves verb")
-
-  ; ---------------------------------------------------------------------------
-  ; Cookie parsing
-  ; ---------------------------------------------------------------------------
 
   (assert-true test
     (match (Cookie.parse "name=value")
@@ -143,7 +114,6 @@
     (match (Cookie.parse "bad") (Result.Error _) true _ false)
     "malformed cookie returns error")
 
-  ; -- Set-Cookie with Expires --
   (assert-true test
     (match (Cookie.parse-set "id=abc; Expires=Wed, 09 Jun 2021 10:18:14 GMT")
       (Result.Success c)
@@ -161,7 +131,6 @@
       _ false)
     "parse-set rejects malformed Expires date")
 
-  ; -- Unknown Set-Cookie attributes are silently ignored (RFC 6265) --
   (assert-true test
     (match (Cookie.parse-set "id=abc; Partitioned")
       (Result.Success c) (= (Cookie.name &c) "id")
@@ -181,7 +150,6 @@
       _ false)
     "parse-set handles mix of known and unknown attributes")
 
-  ; -- Cookie value containing '=' (e.g. base64 padding) --
   (assert-true test
     (match (Cookie.parse "session=YWJjZA==")
       (Result.Success c)
@@ -189,7 +157,6 @@
       _ false)
     "parse handles '=' in cookie value")
 
-  ; -- Case-insensitive Cookie / Set-Cookie header matching --
   (assert-equal test
     2
     (match (Request.parse "GET / HTTP/1.1\r\ncookie: a=1;b=2\r\n\r\n")
@@ -204,10 +171,6 @@
       _ 0)
     "lowercase 'set-cookie:' header is recognized")
 
-  ; ---------------------------------------------------------------------------
-  ; Status module
-  ; ---------------------------------------------------------------------------
-
   (assert-equal test 200 Status.ok "Status.ok is 200")
 
   (assert-equal test 404 Status.not-found "Status.not-found is 404")
@@ -220,10 +183,6 @@
     &(Status.reason 999)
     "Unknown"
     "Status.reason for unknown code")
-
-  ; ---------------------------------------------------------------------------
-  ; Case-insensitive header lookup
-  ; ---------------------------------------------------------------------------
 
   (assert-true test
     (match (Request.parse "GET / HTTP/1.1\r\nContent-Type: text/html\r\n\r\n")
@@ -239,10 +198,6 @@
       (Result.Success r) (Maybe.nothing? &(Request.header &r "X-Missing"))
       _ false)
     "header returns Nothing for missing key")
-
-  ; ---------------------------------------------------------------------------
-  ; Form parsing
-  ; ---------------------------------------------------------------------------
 
   (assert-equal test
     "carp"
@@ -304,10 +259,6 @@
       _ @"")
     "Form.parse decodes + in keys too")
 
-  ; ---------------------------------------------------------------------------
-  ; Request.ignore-body?
-  ; ---------------------------------------------------------------------------
-
   (assert-true test
     (Request.ignore-body? &(Request.request @"HEAD" (URI.zero) [] {} @""))
     "ignore-body? true for HEAD")
@@ -319,10 +270,6 @@
   (assert-false test
     (Request.ignore-body? &(Request.request @"POST" (URI.zero) [] {} @"body"))
     "ignore-body? false for POST")
-
-  ; ---------------------------------------------------------------------------
-  ; Request.form-data
-  ; ---------------------------------------------------------------------------
 
   (assert-equal test
     "bar"
