@@ -552,7 +552,7 @@ Returns `(Maybe String)`.")
           @"Service Unavailable"
           @"Unknown")))
 
-(doc Form "provides URL-encoded form body parsing.
+(doc Form "provides URL-encoded form body parsing and serialization.
 
 ```
 (match (Form.parse \"name=carp&version=1\")
@@ -580,7 +580,45 @@ per the `application/x-www-form-urlencoded` specification.")
                   v (form-unescape
                     &(String.byte-slice pair (Int.inc eq) (String.length pair)))]
               (Map.put! &m &k &v)))))
-      (Result.Success m))))
+      (Result.Success m)))
+
+  (private form-escape)
+  (hidden form-escape)
+  (defn form-escape [s]
+    (let-do [parts &(String.split-by s &[\space])
+             escaped []]
+      (for [i 0 (Array.length parts)]
+        (Array.push-back! &escaped (URI.escape (Array.unsafe-nth parts i))))
+      (String.join "+" &escaped)))
+
+  (doc encode "encodes a `(Map String String)` as a URL-encoded form body.
+Spaces become `+` and other special characters are percent-encoded.
+This is the inverse of `parse`.")
+  (defn encode [m]
+    (Map.kv-reduce
+      &(fn [acc k v]
+        (let [pair (String.concat &[(form-escape k) @"=" (form-escape v)])]
+          (if (String.empty? &acc) pair (String.concat &[acc @"&" pair]))))
+      @""
+      m))
+
+  (doc parse-pairs "parses a URL-encoded form body into an
+`(Array (Pair String String))`. Unlike `parse`, this preserves the order
+of pairs and allows duplicate keys. Keys and values are percent-decoded.
+The `+` character is decoded as space.")
+  (defn parse-pairs [s]
+    (let-do [result (the (Array (Pair String String)) [])
+             parts &(String.split-by s &[\&])]
+      (for [i 0 (Array.length parts)]
+        (let [part (Array.unsafe-nth parts i)
+              eq (String.index-of part \=)]
+          (if (= eq -1)
+            (Array.push-back! &result (Pair.init (form-unescape part) @""))
+            (let [k (form-unescape &(String.byte-slice part 0 eq))
+                  v (form-unescape
+                    &(String.byte-slice part (Int.inc eq) (String.length part)))]
+              (Array.push-back! &result (Pair.init k v))))))
+      (Result.Success result))))
 
 (defmodule Request
   (doc form-data "parses the request body as URL-encoded form data.
