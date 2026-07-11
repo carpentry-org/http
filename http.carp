@@ -181,6 +181,16 @@ the type yourself, instead you can [parse](#parse) it.")
       (the (Maybe String) (Maybe.Nothing))
       hdrs)))
 
+(private transfer-encoding-chunked?)
+(hidden transfer-encoding-chunked?)
+(defn transfer-encoding-chunked? [hdrs]
+  (match (header-lookup hdrs "transfer-encoding")
+    (Maybe.Just v)
+      (Array.any?
+        &(fn [tok] (= &(String.trim tok) "chunked"))
+        &(String.split-by &(String.ascii-to-lower &v) &[\,]))
+    (Maybe.Nothing) false))
+
 (doc Request "is a request data type. It holds the `verb` of the request, the
 `version`, the `uri`, the `cookies`, the `headers`, and the `body`.")
 (deftype Request
@@ -341,7 +351,12 @@ it will return a `(Success Request)`.")
 
   (doc header "gets the first value of a header by name (case-insensitive).
 Returns `(Maybe String)`.")
-  (defn header [r name] (header-lookup (headers r) name)))
+  (defn header [r name] (header-lookup (headers r) name))
+
+  (doc chunked? "checks whether the request body is chunked transfer-encoded,
+i.e. its `Transfer-Encoding` header lists `chunked` (case-insensitively). Decode
+such a body with `TransferEncoding.dechunk`.")
+  (defn chunked? [r] (transfer-encoding-chunked? (headers r))))
 
 (doc Response "is a response data type. It holds the `code` of the request, the
 `version`, the `message`, the `cookies`, the `headers`, and the `body`.")
@@ -485,7 +500,97 @@ it will return a `(Success Response)`.")
 
   (doc header "gets the first value of a header by name (case-insensitive).
 Returns `(Maybe String)`.")
-  (defn header [r name] (header-lookup (headers r) name)))
+  (defn header [r name] (header-lookup (headers r) name))
+
+  (doc chunked? "checks whether the response body is chunked transfer-encoded,
+i.e. its `Transfer-Encoding` header lists `chunked` (case-insensitively). Decode
+such a body with `TransferEncoding.dechunk`.")
+  (defn chunked? [r] (transfer-encoding-chunked? (headers r))))
+
+(doc TransferEncoding "provides decoding for HTTP transfer codings.
+
+Use `Request.chunked?`/`Response.chunked?` to detect a chunked body, then
+[dechunk](#dechunk) to decode it.")
+(defmodule TransferEncoding
+  (private hex-nibble)
+  (hidden hex-nibble)
+  (defn hex-nibble [c]
+    (cond
+      (and (>= c \0) (<= c \9)) (- (Char.to-int c) 48)
+      (and (>= c \a) (<= c \f)) (+ 10 (- (Char.to-int c) 97))
+      (and (>= c \A) (<= c \F)) (+ 10 (- (Char.to-int c) 65))
+      -1))
+
+  (private parse-hex)
+  (hidden parse-hex)
+  (defn parse-hex [s]
+    (let-do [len (String.length s)
+             acc 0
+             ok (> len 0)]
+      (for [i 0 len]
+        (let [d (hex-nibble (String.char-at s i))]
+          (if (< d 0) (do (set! ok false) (break)) (set! acc (+ (* acc 16) d)))))
+      (if ok (Maybe.Just acc) (Maybe.Nothing))))
+
+  (private crlf-at?)
+  (hidden crlf-at?)
+  (defn crlf-at? [s i]
+    (and (= (String.char-at s i) \return)
+         (= (String.char-at s (Int.inc i)) \newline)))
+
+  (doc dechunk "decodes a chunked transfer-encoded `body` per RFC 7230 §4.1.
+
+Each chunk is a hexadecimal size line — any chunk extension after a `;` is
+ignored — followed by that many bytes of data and a CRLF, repeating until a
+zero-size chunk. Optional trailer headers after the final chunk are ignored.
+Returns the decoded body, or an `(Error String)` on malformed framing such as a
+bad hex size or a truncated chunk.")
+  (defn dechunk [body]
+    (let-do [len (String.length body)
+             pos 0
+             sb (StringBuf.create)
+             err @""
+             terminated false]
+      (while (and (String.empty? &err) (not terminated) (< pos len))
+        (let [eol (String.find-crlf body pos len)]
+          (if (= eol -1)
+            (set! err @"malformed chunked body: unterminated chunk size line")
+            (let [size-line &(String.byte-slice body pos eol)
+                  semi (String.index-of size-line \;)
+                  hex &(String.trim
+                    &(if (= semi -1)
+                      @size-line
+                      (String.byte-slice size-line 0 semi)))]
+              (match (parse-hex hex)
+                (Maybe.Nothing)
+                  (set! err
+                        (fmt
+                          "malformed chunked body: invalid chunk size '%s'"
+                          hex))
+                (Maybe.Just size)
+                  (if (= size 0)
+                    (set! terminated true)
+                    (let [data-start (+ eol 2)
+                          avail (- len data-start)
+                          data-end (+ data-start size)]
+                      (cond
+                        (or (< avail 2) (> size (- avail 2)))
+                          (set! err
+                                @"malformed chunked body: truncated chunk data")
+                        (not (crlf-at? body data-end))
+                          (set! err
+                                @"malformed chunked body: chunk data missing CRLF")
+                        (do
+                          (StringBuf.append-str &sb
+                                                &(String.byte-slice body
+                                                                    data-start
+                                                                    data-end))
+                          (set! pos (+ data-end 2)))))))))))
+      (when (and (String.empty? &err) (not terminated))
+        (set! err @"malformed chunked body: missing terminating zero-size chunk"))
+      (let-do [decoded (StringBuf.to-string &sb)]
+        (StringBuf.delete sb)
+        (if (String.empty? &err) (Result.Success decoded) (Result.Error err))))))
 
 (doc Status "provides HTTP status code constants and reason phrases.")
 (defmodule Status

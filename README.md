@@ -43,6 +43,23 @@ An HTTP request/response parser and serializer for Carp.
   (Maybe.Nothing) (println* "no content-type"))
 ```
 
+### Chunked transfer decoding
+
+When a message uses `Transfer-Encoding: chunked`, the parsed body holds the raw
+chunk framing. Detect it with `chunked?` and decode it with
+`TransferEncoding.dechunk`:
+
+```clojure
+(match (Response.parse resp)
+  (Result.Success r)
+    (if (Response.chunked? &r)
+      (match (TransferEncoding.dechunk (Response.body &r))
+        (Result.Success body) (println* &body)
+        (Result.Error e) (IO.errorln &e))
+      (println* (Response.body &r)))
+  (Result.Error e) (IO.errorln &e))
+```
+
 ### Form body parsing
 
 ```clojure
@@ -73,6 +90,7 @@ Status.not-found    ; => 404
 | `MediaType` | `Content-Type` / media-type parser (type, subtype, parameters) |
 | `Multipart` | `multipart/form-data` body decoder |
 | `FormPart` | a single decoded multipart part (name, filename, content-type, body) |
+| `TransferEncoding` | Chunked transfer-encoding decoder |
 
 ## Testing
 
