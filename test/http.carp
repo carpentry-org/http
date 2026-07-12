@@ -44,6 +44,30 @@
 (def mp-two
   @"--b\r\nContent-Disposition: form-data; name=\"a\"\r\n\r\n1\r\n--b\r\nContent-Disposition: form-data; name=\"c\"\r\n\r\n2\r\n--b--\r\n")
 
+; ---- content negotiation (Accept) test helpers ----
+(defn pick [accept offers]
+  (match (Accept.negotiate accept offers)
+    (Maybe.Just m) m
+    (Maybe.Nothing) @"NONE"))
+
+(defn range-mime [s i]
+  (let [rs (Accept.parse s)]
+    (fmt "%s/%s"
+         (MediaRange.type (Array.unsafe-nth &rs i))
+         (MediaRange.subtype (Array.unsafe-nth &rs i)))))
+
+(defn req-pick [accept offers]
+  (let [r (Request.get (URI.zero) [] {@"Accept" [@accept]} @"")]
+    (match (Request.negotiate &r offers)
+      (Maybe.Just m) m
+      (Maybe.Nothing) @"NONE")))
+
+(defn req-pick-noaccept [offers]
+  (let [r (Request.get (URI.zero) [] (the (Map String (Array String)) {}) @"")]
+    (match (Request.negotiate &r offers)
+      (Maybe.Just m) m
+      (Maybe.Nothing) @"NONE")))
+
 (deftest test
   (assert-true test
     (match (Request.parse &simple-get) (Result.Success _) true _ false)
@@ -608,4 +632,73 @@
       (match (Request.multipart-data &r)
         (Result.Error _) true
         (Result.Success _) false))
-    "Request.multipart-data errors when the boundary parameter is absent"))
+    "Request.multipart-data errors when the boundary parameter is absent")
+
+  ; ---- content negotiation via the Accept header (RFC 7231 §5.3.2) ----
+  (assert-equal test
+    "text/html"
+    &(pick "text/html" &[@"text/html"])
+    "a range with no q defaults to weight 1")
+  (assert-equal test
+    "application/json"
+    &(pick
+      "text/html;q=0.8, application/json;q=0.9"
+      &[@"text/html" @"application/json"])
+    "the higher-weighted media type wins")
+  (assert-equal test
+    "image/png"
+    &(pick "*/*;q=0.9, text/html;q=0.1" &[@"text/html" @"image/png"])
+    "a specific range overrides */* for the type it names")
+  (assert-equal test
+    "image/png"
+    &(pick "*/*, image/gif;q=0" &[@"image/gif" @"image/png"])
+    "q=0 marks a type unacceptable even under */*")
+  (assert-equal test
+    "text/plain"
+    &(pick "text/*" &[@"text/plain" @"application/json"])
+    "a type/* range matches only that type")
+  (assert-equal test
+    "NONE"
+    &(pick "application/json" &[@"text/html"])
+    "no matching range means no acceptable offer")
+  (assert-equal test
+    "text/html"
+    &(pick "" &[@"text/html" @"application/json"])
+    "an empty Accept accepts anything and yields the first offer")
+  (assert-equal test
+    "application/json"
+    &(pick "text/html, application/json" &[@"application/json" @"text/html"])
+    "equal weights are broken by offer order")
+  (assert-equal test
+    "text/html"
+    &(pick
+      "  text/html ,  application/json ; q=0.9 "
+      &[@"application/json" @"text/html"])
+    "whitespace around ranges and parameters is tolerated")
+  (assert-equal test
+    "text/html"
+    &(pick "text/html;q=bogus, image/png;q=0.5" &[@"text/html" @"image/png"])
+    "an unparseable q falls back to weight 1")
+  (assert-true test
+    (= 3
+       (Array.length
+         &(Accept.parse "text/html, application/xml;q=0.9, */*;q=0.8")))
+    "parse yields one entry per range")
+  (assert-equal test
+    "application/xml"
+    &(range-mime "text/html, application/xml;q=0.9" 1)
+    "a parsed range keeps its type and subtype")
+  (assert-equal test
+    "*/*"
+    &(range-mime "text/html, */*;q=0.8" 1)
+    "a wildcard range parses to */*")
+  (assert-equal test
+    "application/json"
+    &(req-pick
+      "text/html;q=0.5, application/json;q=0.9"
+      &[@"text/html" @"application/json"])
+    "Request.negotiate honors the request's Accept header")
+  (assert-equal test
+    "text/html"
+    &(req-pick-noaccept &[@"text/html" @"application/json"])
+    "Request.negotiate with no Accept header accepts anything"))

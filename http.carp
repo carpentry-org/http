@@ -723,6 +723,118 @@ when there is no `type/subtype`.")
   (doc mime "returns the `type/subtype` string, without any parameters.")
   (defn mime [mt] (fmt "%s/%s" (type mt) (subtype mt))))
 
+(doc MediaRange "is one entry of an `Accept` header: a media range whose `type`
+and `subtype` may each be the wildcard `*`, weighted by a quality `q` between
+`0.0` and `1.0` (defaulting to `1.0`).")
+(deftype MediaRange [type String
+                     subtype String
+                     q Double])
+
+(doc Accept "parses `Accept` headers and performs server-side content
+negotiation (RFC 7231 §5.3.2).")
+(defmodule Accept
+  (hidden clamp-q)
+  (private clamp-q)
+  (defn clamp-q [d] (cond (Double.< d 0.0) 0.0 (Double.> d 1.0) 1.0 d))
+
+  (hidden quality-of)
+  (private quality-of)
+  ; the `q` parameter of a parsed range, defaulting to 1.0 when it is absent or
+  ; unparseable
+  (defn quality-of [mt]
+    (match (MediaType.param mt "q")
+      (Maybe.Nothing) 1.0
+      (Maybe.Just qs)
+        (match (Double.from-string &qs)
+          (Maybe.Nothing) 1.0
+          (Maybe.Just d) (clamp-q d))))
+
+  (hidden parse-range)
+  (private parse-range)
+  (defn parse-range [s]
+    (match (MediaType.parse s)
+      (Result.Error _) (Maybe.Nothing)
+      (Result.Success mt)
+        (Maybe.Just
+          (MediaRange.init @(MediaType.type &mt)
+                           @(MediaType.subtype &mt)
+                           (quality-of &mt)))))
+
+  (doc parse "parses an `Accept` header value into its weighted media ranges, in
+header order. Malformed ranges are skipped. Delegates to the `MediaType` parser,
+so wildcards (`*/*`, `type/*`) and parameters are handled.")
+  (defn parse [s]
+    (let-do [segs (String.split-by s &[\,])
+             ranges []]
+      (for [i 0 (Array.length &segs)]
+        (let [seg (String.trim (Array.unsafe-nth &segs i))]
+          (unless (String.empty? &seg)
+            (match (parse-range &seg)
+              (Maybe.Just r) (Array.push-back! &ranges r)
+              (Maybe.Nothing) ()))))
+      ranges))
+
+  (hidden specificity)
+  (private specificity)
+  ; how specifically range `r` matches the offer `t`/`st`: 3 = exact
+  ; type/subtype, 2 = `type/*`, 1 = `*/*`, 0 = no match — RFC 7231 precedence
+  (defn specificity [r t st]
+    (let [rt (MediaRange.type r)
+          rst (MediaRange.subtype r)]
+      (cond
+        (and (= rt t) (= rst st)) 3
+        (and (= rt t) (= rst "*")) 2
+        (and (= rt "*") (= rst "*")) 1
+        0)))
+
+  (hidden match-quality)
+  (private match-quality)
+  ; the weight of the most specific range matching offer `t`/`st`, or -1.0 when
+  ; none match; equally specific ranges resolve to the higher weight
+  (defn match-quality [ranges t st]
+    (let-do [best-spec 0
+             best-q -1.0]
+      (for [i 0 (Array.length ranges)]
+        (let [r (Array.unsafe-nth ranges i)
+              spec (specificity r t st)]
+          (when (> spec 0)
+            (cond
+              (> spec best-spec)
+                (do (set! best-spec spec) (set! best-q @(MediaRange.q r)))
+              (and (= spec best-spec) (Double.> @(MediaRange.q r) best-q))
+                (set! best-q @(MediaRange.q r))
+              ()))))
+      best-q))
+
+  (doc negotiate "selects the best media type to serve from `offers` given an
+`Accept` header value, per RFC 7231 §5.3.2, as `(Maybe String)`. Each offer's
+quality is the weight of the most specific range that matches it; a weight of
+`0` (or no matching range) makes the offer unacceptable. The highest-quality
+acceptable offer wins, ties broken by the order of `offers`. An empty `Accept`
+accepts anything and yields the first offer; `Nothing` means nothing is
+acceptable.")
+  (defn negotiate [accept offers]
+    (let [ranges (parse accept)]
+      (if (Array.empty? &ranges)
+        (if (Array.empty? offers)
+          (Maybe.Nothing)
+          (Maybe.Just @(Array.unsafe-first offers)))
+        (let-do [best-q 0.0
+                 best-idx -1]
+          (for [i 0 (Array.length offers)]
+            (match (MediaType.parse (Array.unsafe-nth offers i))
+              (Result.Error _) ()
+              (Result.Success mt)
+                (let [q (match-quality &ranges
+                                       (MediaType.type &mt)
+                                       (MediaType.subtype &mt))]
+                  (when-do (and (Double.> q 0.0) (Double.> q best-q))
+                    (set! best-q q)
+                    (set! best-idx i)))))
+          (if (= best-idx -1)
+            (Maybe.Nothing)
+            (Maybe.Just @(Array.unsafe-nth offers best-idx))))))))
+
 (doc FormPart "is a single part decoded from a `multipart/form-data` body: the
 field `name`, an optional `filename` (present for file uploads), an optional
 `content-type`, and the raw `body`.")
@@ -865,4 +977,13 @@ the boundary from the `Content-Type` header. Returns
               (match (MediaType.param &mt "boundary")
                 (Maybe.Nothing)
                   (Result.Error @"multipart: no boundary parameter")
-                (Maybe.Just b) (Multipart.parse (body r) &b)))))))
+                (Maybe.Just b) (Multipart.parse (body r) &b))))))
+
+  (doc negotiate "chooses the best response media type for this request from the
+server's `offers`, honoring the request's `Accept` header (RFC 7231 §5.3.2). A
+request with no `Accept` header accepts anything. See
+[`Accept.negotiate`](#negotiate).")
+  (defn negotiate [r offers]
+    (match (Request.header r "Accept")
+      (Maybe.Nothing) (Accept.negotiate "" offers)
+      (Maybe.Just a) (Accept.negotiate &a offers))))
