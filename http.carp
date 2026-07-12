@@ -620,7 +620,249 @@ The `+` character is decoded as space.")
               (Array.push-back! &result (Pair.init k v))))))
       (Result.Success result))))
 
+(doc MediaType "is a parsed media type — the value of a `Content-Type` header,
+such as `multipart/form-data; boundary=abc`. `type` and `subtype` are
+lower-cased; `params` maps lower-cased parameter names to their values with any
+surrounding quotes removed.")
+(deftype MediaType [type String
+                    subtype String
+                    params (Map String String)])
+
+(defmodule MediaType
+  (hidden split-params)
+  (private split-params)
+  ; splits `s` on `;`, ignoring semicolons that sit inside a quoted-string.
+  (defn split-params [s]
+    (let-do [segs (the (Array String) [])
+             start 0
+             i 0
+             in-q false
+             len (String.length s)]
+      (while (< i len)
+        (let [c (String.char-at s i)]
+          (cond
+            (= c \") (do (set! in-q (not in-q)) (set! i (Int.inc i)))
+            (and in-q (and (= c \\) (< (Int.inc i) len))) (set! i (+ i 2))
+            (and (= c \;) (not in-q))
+              (do
+                (Array.push-back! &segs (String.byte-slice s start i))
+                (set! i (Int.inc i))
+                (set! start i))
+            (set! i (Int.inc i)))))
+      (Array.push-back! &segs (String.byte-slice s start len))
+      segs))
+
+  (hidden unquote)
+  (private unquote)
+  ; strips surrounding double quotes and resolves `\x` quoted-pairs.
+  (defn unquote [v]
+    (if (and (String.starts-with? v "\"")
+             (and (String.ends-with? v "\"") (> (String.length v) 1)))
+      (let-do [inner (String.byte-slice v 1 (Int.dec (String.length v)))
+               out (the (Array Byte) [])
+               i 0
+               ilen (String.length &inner)]
+        (while (< i ilen)
+          (let [c (String.char-at &inner i)]
+            (if (and (= c \\) (< (Int.inc i) ilen))
+              (do
+                (Array.push-back! &out
+                                  (Char.to-byte (String.char-at &inner
+                                                                (Int.inc i))))
+                (set! i (+ i 2)))
+              (do (Array.push-back! &out (Char.to-byte c)) (set! i (Int.inc i))))))
+        (String.from-bytes &out))
+      @v))
+
+  (doc parse-params
+    "parses an RFC 2045 parameter list — the `; k=v; k2=\"quoted\"`
+tail shared by `Content-Type` and `Content-Disposition` — into a map from
+lower-cased parameter names to unquoted values. Any leading segment without an
+`=` (the media type or disposition itself) is ignored, so the whole header
+value may be passed.")
+  (defn parse-params [s]
+    (let-do [m (the (Map String String) {})
+             segs (split-params s)]
+      (for [i 0 (Array.length &segs)]
+        (let [seg &(String.trim (Array.unsafe-nth &segs i))
+              eq (String.index-of seg \=)]
+          (when (> eq 0)
+            (let [k (String.ascii-to-lower
+                    &(String.trim &(String.byte-slice seg 0 eq)))
+                  v (unquote
+                    &(String.trim
+                      &(String.byte-slice seg (Int.inc eq) (String.length seg))))]
+              (Map.put! &m &k &v)))))
+      m))
+
+  (doc parse "parses a `Content-Type` header value into a `MediaType`. Fails
+when there is no `type/subtype`.")
+  (defn parse [s]
+    (let [semi (String.index-of s \;)
+          type-part (String.trim
+            &(if (< semi 0) @s (String.byte-slice s 0 semi)))
+          slash (String.index-of &type-part \/)]
+      (if (< slash 0)
+        (Result.Error (fmt "malformed media type: '%s'" s))
+        (Result.Success
+          (init
+            (String.ascii-to-lower
+              &(String.trim &(String.byte-slice &type-part 0 slash)))
+            (String.ascii-to-lower
+              &(String.trim
+                &(String.byte-slice &type-part
+                                    (Int.inc slash)
+                                    (String.length &type-part))))
+            (parse-params s))))))
+
+  (doc param "looks up a parameter by name (case-insensitive), returning
+`(Maybe String)`.")
+  (defn param [mt name]
+    (Map.get-maybe (params mt) &(String.ascii-to-lower name)))
+
+  (doc mime "returns the `type/subtype` string, without any parameters.")
+  (defn mime [mt] (fmt "%s/%s" (type mt) (subtype mt))))
+
+(doc FormPart "is a single part decoded from a `multipart/form-data` body: the
+field `name`, an optional `filename` (present for file uploads), an optional
+`content-type`, and the raw `body`.")
+(deftype FormPart
+  [name String
+   filename (Maybe String)
+   content-type (Maybe String)
+   body String])
+
+(defmodule Multipart
+  (hidden at?)
+  (private at?)
+  ; does `s` contain `sub` starting at byte offset `pos`?
+  (defn at? [s pos sub]
+    (let [subl (String.length sub)
+          sl (String.length s)]
+      (if (or (< pos 0) (> (+ pos subl) sl))
+        false
+        (let-do [ok true
+                 j 0]
+          (while (and ok (< j subl))
+            (if (= (String.char-at s (+ pos j)) (String.char-at sub j))
+              (set! j (Int.inc j))
+              (set! ok false)))
+          ok))))
+
+  (hidden index-from)
+  (private index-from)
+  ; first byte offset >= `from` where `needle` occurs in `s`, or -1.
+  (defn index-from [s needle from]
+    (let-do [slen (String.length s)
+             nlen (String.length needle)
+             res -1
+             i from]
+      (while (and (< res 0) (<= (+ i nlen) slen))
+        (if (at? s i needle) (set! res i) (set! i (Int.inc i))))
+      res))
+
+  (hidden header-value)
+  (private header-value)
+  ; if `line` is `Name: value` with `name` (case-insensitive), returns Just value.
+  (defn header-value [line name]
+    (let [colon (String.index-of line \:)]
+      (cond
+        (< colon 0) (Maybe.Nothing)
+        (=
+          (String.ascii-to-lower
+            &(String.trim &(String.byte-slice line 0 colon)))
+          @name)
+          (Maybe.Just
+            (String.trim
+              &(String.byte-slice line (Int.inc colon) (String.length line))))
+        (Maybe.Nothing))))
+
+  (hidden parse-part)
+  (private parse-part)
+  ; parses one part (`headers CRLF CRLF body`) into a FormPart.
+  (defn parse-part [raw]
+    (let [sep (String.index-of-string raw "\r\n\r\n")
+          head (if (< sep 0) @raw (String.byte-slice raw 0 sep))
+          body (if (< sep 0)
+            @""
+            (String.byte-slice raw (+ sep 4) (String.length raw)))
+          lines (String.split-by &head &[\newline])]
+      (let-do [nm @""
+               fname (the (Maybe String) (Maybe.Nothing))
+               ctype (the (Maybe String) (Maybe.Nothing))]
+        (for [i 0 (Array.length &lines)]
+          (let-do [line &(String.trim (Array.unsafe-nth &lines i))]
+            (match (header-value line "content-disposition")
+              (Maybe.Just cd)
+                (let-do [ps (MediaType.parse-params &cd)]
+                  (set! nm (Map.get-with-default &ps "name" ""))
+                  (set! fname (Map.get-maybe &ps "filename")))
+              (Maybe.Nothing) ())
+            (match (header-value line "content-type")
+              (Maybe.Just ct) (set! ctype (Maybe.Just ct))
+              (Maybe.Nothing) ())))
+        (FormPart.init nm fname ctype body))))
+
+  (doc parse "decodes a `multipart/form-data` `body` with the given `boundary`
+into its `FormPart`s. Fails when the opening boundary delimiter is absent.")
+  (defn parse [body boundary]
+    (let [dash (String.append "--" boundary)
+          crlf-dash (String.append "\r\n" &dash)
+          cdlen (String.length &crlf-dash)
+          dashlen (String.length &dash)
+          len (String.length body)
+          ; the opening delimiter is `--boundary`, either at the very start or
+          ; after a preamble that ends in CRLF; every later delimiter is
+          ; `CRLF--boundary`, so searching for that avoids matching a bare
+          ; `--boundary` that happens to occur inside a part body.
+          open (if (Multipart.at? body 0 &dash)
+            dashlen
+            (let [p (String.index-of-string body &crlf-dash)]
+              (if (< p 0) -1 (+ p cdlen))))]
+      (if (< open 0)
+        (Result.Error @"multipart: boundary delimiter not found")
+        (let-do [parts (the (Array FormPart) [])
+                 pos open
+                 done false]
+          (while (not done)
+            (cond
+              (Multipart.at? body pos "--") (set! done true)
+              (>= pos len) (set! done true)
+              (do
+                (when (Multipart.at? body pos "\r\n") (set! pos (+ pos 2)))
+                (let [next (Multipart.index-from body &crlf-dash pos)]
+                  (if (< next 0)
+                    (set! done true)
+                    (do
+                      (Array.push-back! &parts
+                                        (Multipart.parse-part &(String.byte-slice body
+                                                                                  pos
+                                                                                  next)))
+                      (set! pos (+ next cdlen))))))))
+          (Result.Success parts))))))
+
 (defmodule Request
   (doc form-data "parses the request body as URL-encoded form data.
 Returns `(Result (Map String String) String)`.")
-  (defn form-data [r] (Form.parse (body r))))
+  (defn form-data [r] (Form.parse (body r)))
+
+  (doc multipart-data "parses the request body as `multipart/form-data`, taking
+the boundary from the `Content-Type` header. Returns
+`(Result (Array FormPart) String)`; fails when the request is not
+`multipart/form-data` or carries no boundary.")
+  (defn multipart-data [r]
+    (match (Request.header r "Content-Type")
+      (Maybe.Nothing) (Result.Error @"multipart: no Content-Type header")
+      (Maybe.Just ct)
+        (match (MediaType.parse &ct)
+          (Result.Error e) (Result.Error e)
+          (Result.Success mt)
+            (if (/= &(MediaType.mime &mt) "multipart/form-data")
+              (Result.Error
+                (fmt
+                  "multipart: expected multipart/form-data, got '%s'"
+                  &(MediaType.mime &mt)))
+              (match (MediaType.param &mt "boundary")
+                (Maybe.Nothing)
+                  (Result.Error @"multipart: no boundary parameter")
+                (Maybe.Just b) (Multipart.parse (body r) &b)))))))

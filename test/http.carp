@@ -25,6 +25,25 @@
 (defn resp-body [s]
   (match (Response.parse s) (Result.Success r) @(Response.body &r) _ @""))
 
+; ---- multipart/form-data + MediaType test helpers ----
+(defn mp-parts [body boundary]
+  (match (Multipart.parse body boundary)
+    (Result.Success ps) ps
+    (Result.Error _) []))
+(defn mp-name [ps i] @(FormPart.name (Array.unsafe-nth ps i)))
+(defn mp-body [ps i] @(FormPart.body (Array.unsafe-nth ps i)))
+(defn mp-fname [ps i]
+  (Maybe.from @(FormPart.filename (Array.unsafe-nth ps i)) @"<none>"))
+(defn mp-ctype [ps i]
+  (Maybe.from @(FormPart.content-type (Array.unsafe-nth ps i)) @"<none>"))
+
+(def mp-text
+  @"--b\r\nContent-Disposition: form-data; name=\"a\"\r\n\r\nhello\r\n--b--\r\n")
+(def mp-file
+  @"--b\r\nContent-Disposition: form-data; name=\"f\"; filename=\"up.txt\"\r\nContent-Type: text/plain\r\n\r\ndata\r\n--b--\r\n")
+(def mp-two
+  @"--b\r\nContent-Disposition: form-data; name=\"a\"\r\n\r\n1\r\n--b\r\nContent-Disposition: form-data; name=\"c\"\r\n\r\n2\r\n--b--\r\n")
+
 (deftest test
   (assert-true test
     (match (Request.parse &simple-get) (Result.Success _) true _ false)
@@ -414,4 +433,179 @@
         (Form.parse-pairs "x=%26%3D"))
       (Result.Success ps) (= (Pair.b (Array.unsafe-nth &ps 0)) "&=")
       _ false)
-    "parse-pairs decodes percent-encoded values"))
+    "parse-pairs decodes percent-encoded values")
+  ; ---- MediaType ----
+  (assert-equal test
+    "multipart/form-data"
+    &(match (MediaType.parse "multipart/form-data; boundary=xyz")
+      (Result.Success mt) (MediaType.mime &mt)
+      (Result.Error _) @"ERR")
+    "MediaType.parse extracts type/subtype")
+  (assert-equal test
+    "xyz"
+    &(match (MediaType.parse "multipart/form-data; boundary=xyz")
+      (Result.Success mt) (Maybe.from (MediaType.param &mt "boundary") @"?")
+      (Result.Error _) @"ERR")
+    "MediaType.parse extracts the boundary parameter")
+  (assert-equal test
+    "multipart/form-data"
+    &(match (MediaType.parse "Multipart/Form-Data ; boundary=xyz")
+      (Result.Success mt) (MediaType.mime &mt)
+      (Result.Error _) @"ERR")
+    "MediaType lowercases type/subtype and tolerates whitespace before ;")
+  (assert-equal test
+    "xyz"
+    &(match (MediaType.parse "multipart/form-data; boundary=\"xyz\"")
+      (Result.Success mt) (Maybe.from (MediaType.param &mt "boundary") @"?")
+      (Result.Error _) @"ERR")
+    "MediaType unquotes a quoted parameter value")
+  (assert-equal test
+    "xyz"
+    &(match (MediaType.parse "multipart/form-data; BOUNDARY=xyz")
+      (Result.Success mt) (Maybe.from (MediaType.param &mt "boundary") @"?")
+      (Result.Error _) @"ERR")
+    "MediaType parameter lookup is case-insensitive")
+  (assert-true test
+    (match (MediaType.parse "notamediatype")
+      (Result.Error _) true
+      (Result.Success _) false)
+    "MediaType.parse errors without a subtype")
+  (assert-equal test
+    "a;b"
+    &(let [ps (MediaType.parse-params "x/y; n=\"a;b\"")]
+      (Maybe.from (Map.get-maybe &ps "n") @"?"))
+    "parse-params keeps a semicolon inside a quoted value")
+
+  ; ---- Multipart.parse ----
+  (assert-equal test
+    1
+    (Array.length &(mp-parts &mp-text "b"))
+    "one text part parses to one FormPart")
+  (assert-equal test "a" &(mp-name &(mp-parts &mp-text "b") 0) "text part name")
+  (assert-equal test
+    "hello"
+    &(mp-body &(mp-parts &mp-text "b") 0)
+    "text part body")
+  (assert-equal test
+    "<none>"
+    &(mp-fname &(mp-parts &mp-text "b") 0)
+    "text part has no filename")
+  (assert-equal test
+    "up.txt"
+    &(mp-fname &(mp-parts &mp-file "b") 0)
+    "file part filename")
+  (assert-equal test
+    "text/plain"
+    &(mp-ctype &(mp-parts &mp-file "b") 0)
+    "file part content-type")
+  (assert-equal test
+    "data"
+    &(mp-body &(mp-parts &mp-file "b") 0)
+    "file part body")
+  (assert-equal test
+    2
+    (Array.length &(mp-parts &mp-two "b"))
+    "two parts parse to two FormParts")
+  (assert-equal test
+    "c"
+    &(mp-name &(mp-parts &mp-two "b") 1)
+    "second part name preserved in order")
+  (assert-equal test
+    "line1\r\nline2"
+    &(mp-body
+      &(mp-parts
+        "--b\r\nContent-Disposition: form-data; name=\"a\"\r\n\r\nline1\r\nline2\r\n--b--\r\n"
+        "b")
+      0)
+    "CRLF inside a part body is preserved")
+  (assert-equal test
+    ""
+    &(mp-body
+      &(mp-parts
+        "--b\r\nContent-Disposition: form-data; name=\"a\"\r\n\r\n\r\n--b--\r\n"
+        "b")
+      0)
+    "empty part body parses to the empty string")
+  (assert-equal test
+    "z"
+    &(mp-name
+      &(mp-parts
+        "--b\r\ncontent-disposition: form-data; name=\"z\"\r\n\r\nq\r\n--b--\r\n"
+        "b")
+      0)
+    "a lower-case Content-Disposition header is recognized")
+  (assert-equal test
+    "tail"
+    &(mp-body
+      &(mp-parts
+        "--b\r\nContent-Disposition: form-data; name=\"a\"\r\n\r\ntail\r\n--b--"
+        "b")
+      0)
+    "a closing delimiter without a trailing CRLF still parses")
+  (assert-equal test
+    "ok"
+    &(mp-body
+      &(mp-parts
+        "preamble\r\n--b\r\nContent-Disposition: form-data; name=\"a\"\r\n\r\nok\r\n--b--\r\n"
+        "b")
+      0)
+    "a preamble before the first boundary is ignored")
+  (assert-equal test
+    "foo--bbar"
+    &(mp-body
+      &(mp-parts
+        "--b\r\nContent-Disposition: form-data; name=\"a\"\r\n\r\nfoo--bbar\r\n--b--\r\n"
+        "b")
+      0)
+    "a --boundary substring inside a body is not treated as a delimiter")
+  (assert-equal test
+    "a\"b"
+    &(mp-name
+      &(mp-parts
+        "--b\r\nContent-Disposition: form-data; name=\"a\\\"b\"\r\n\r\nv\r\n--b--\r\n"
+        "b")
+      0)
+    "an escaped quote inside a quoted name is unescaped")
+  (assert-equal test
+    "v"
+    &(mp-body
+      &(mp-parts
+        "------CarpBoundary9\r\nContent-Disposition: form-data; name=\"a\"\r\n\r\nv\r\n------CarpBoundary9--\r\n"
+        "----CarpBoundary9")
+      0)
+    "a boundary with leading dashes round-trips")
+  (assert-true test
+    (match (Multipart.parse "no boundary here" "b")
+      (Result.Error _) true
+      (Result.Success _) false)
+    "a missing boundary delimiter is an error")
+
+  ; ---- Request.multipart-data ----
+  (assert-equal test
+    "world"
+    &(let [r (Request.post (URI.zero)
+                           []
+                           {@"Content-Type" [@"multipart/form-data; boundary=b"]}
+                           @"--b\r\nContent-Disposition: form-data; name=\"greeting\"\r\n\r\nworld\r\n--b--\r\n")]
+      (match (Request.multipart-data &r)
+        (Result.Success ps) (mp-body &ps 0)
+        (Result.Error _) @"ERR"))
+    "Request.multipart-data decodes the body using the header boundary")
+  (assert-true test
+    (let [r (Request.post (URI.zero)
+                          []
+                          {@"Content-Type" [@"application/json"]}
+                          @"{}")]
+      (match (Request.multipart-data &r)
+        (Result.Error _) true
+        (Result.Success _) false))
+    "Request.multipart-data errors on a non-multipart content type")
+  (assert-true test
+    (let [r (Request.post (URI.zero)
+                          []
+                          {@"Content-Type" [@"multipart/form-data"]}
+                          @"--b--")]
+      (match (Request.multipart-data &r)
+        (Result.Error _) true
+        (Result.Success _) false))
+    "Request.multipart-data errors when the boundary parameter is absent"))

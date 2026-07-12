@@ -70,6 +70,9 @@ Status.not-found    ; => 404
 | `SameSite` | Cookie SameSite attribute (Lax, Strict, None) |
 | `Status` | Status code constants and reason phrases |
 | `Form` | URL-encoded form body parser |
+| `MediaType` | `Content-Type` / media-type parser (type, subtype, parameters) |
+| `Multipart` | `multipart/form-data` body decoder |
+| `FormPart` | a single decoded multipart part (name, filename, content-type, body) |
 
 ## Testing
 
