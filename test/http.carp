@@ -792,4 +792,54 @@
 
   (assert-true test
     (req-chunked? "POST / HTTP/1.1\r\nTransfer-Encoding: chunked\r\n\r\n")
-    "Request.chunked? true for Transfer-Encoding: chunked"))
+    "Request.chunked? true for Transfer-Encoding: chunked")
+
+  ; ---- Cache-Control ----
+  (assert-equal test
+    3600
+    (let [m (CacheControl.parse "max-age=3600, no-cache")]
+      (Maybe.from (CacheControl.max-age &m) -1))
+    "CacheControl.max-age is parsed as an Int")
+  (assert-true test
+    (let [m (CacheControl.parse "max-age=3600, no-cache")]
+      (CacheControl.no-cache? &m))
+    "CacheControl detects no-cache alongside a valued directive")
+  (assert-true test
+    (let [m (CacheControl.parse "no-store")] (CacheControl.no-store? &m))
+    "CacheControl detects a lone valueless directive")
+  (assert-true test
+    (let [m (CacheControl.parse "no-store")]
+      (match (CacheControl.max-age &m) (Maybe.Nothing) true (Maybe.Just _) false))
+    "CacheControl.max-age is Nothing when the directive is absent")
+  (assert-true test
+    (let [m (CacheControl.parse "private, max-age=0")]
+      (CacheControl.private? &m))
+    "CacheControl detects private")
+  (assert-equal test
+    0
+    (let [m (CacheControl.parse "private, max-age=0")]
+      (Maybe.from (CacheControl.max-age &m) -1))
+    "CacheControl parses max-age=0")
+  (assert-equal test
+    60
+    (let [m (CacheControl.parse "Max-Age=60")]
+      (Maybe.from (CacheControl.max-age &m) -1))
+    "CacheControl directive names are case-insensitive")
+  (assert-equal test
+    120
+    (let [m (CacheControl.parse "public, s-maxage=120")]
+      (Maybe.from (CacheControl.s-maxage &m) -1))
+    "CacheControl.s-maxage is parsed as an Int")
+  (assert-equal test
+    2
+    (Map.length &(CacheControl.parse "no-cache=\"Set-Cookie, X\", max-age=5"))
+    "CacheControl keeps a comma inside a quoted value as one directive")
+  (assert-equal test
+    "Set-Cookie, X"
+    &(let [m (CacheControl.parse "no-cache=\"Set-Cookie, X\"")]
+      (Maybe.from (CacheControl.directive &m "no-cache") @"?"))
+    "CacheControl unquotes a quoted directive value")
+  (assert-equal test
+    0
+    (Map.length &(CacheControl.parse ""))
+    "CacheControl parses an empty header into an empty map"))
