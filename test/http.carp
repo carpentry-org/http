@@ -744,6 +744,14 @@
     "dechunk errors on a non-hex chunk size")
 
   (assert-true test
+    (dechunk-err? "80000000\r\nWiki\r\n0\r\n\r\n")
+    "dechunk rejects an overflowing chunk size instead of segfaulting")
+
+  (assert-true test
+    (dechunk-err? "100000000\r\nWiki\r\n0\r\n\r\n")
+    "dechunk rejects a 2^32 chunk size instead of silently mis-decoding as empty")
+
+  (assert-true test
     (dechunk-err? "5\r\nhi\r\n0\r\n\r\n")
     "dechunk errors on a chunk shorter than its declared size")
 
