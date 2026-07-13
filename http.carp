@@ -952,6 +952,102 @@ acceptable.")
             (Maybe.Nothing)
             (Maybe.Just @(Array.unsafe-nth offers best-idx))))))))
 
+(doc CacheControl "parses `Cache-Control` header values (RFC 7234 §5.2) into a
+map of lower-cased directive names to their values, with convenience accessors
+for the common directives.")
+(defmodule CacheControl
+  (hidden split-directives)
+  (private split-directives)
+  ; splits `s` on `,`, ignoring commas that sit inside a quoted-string.
+  (defn split-directives [s]
+    (let-do [segs (the (Array String) [])
+             start 0
+             i 0
+             in-q false
+             len (String.length s)]
+      (while (< i len)
+        (let [c (String.char-at s i)]
+          (cond
+            (= c \") (do (set! in-q (not in-q)) (set! i (Int.inc i)))
+            (and in-q (and (= c \\) (< (Int.inc i) len))) (set! i (+ i 2))
+            (and (= c \,) (not in-q))
+              (do
+                (Array.push-back! &segs (String.byte-slice s start i))
+                (set! i (Int.inc i))
+                (set! start i))
+            (set! i (Int.inc i)))))
+      (Array.push-back! &segs (String.byte-slice s start len))
+      segs))
+
+  (hidden unquote)
+  (private unquote)
+  ; strips surrounding double quotes from a directive value.
+  (defn unquote [v]
+    (if (and (String.starts-with? v "\"")
+             (and (String.ends-with? v "\"") (> (String.length v) 1)))
+      (String.byte-slice v 1 (Int.dec (String.length v)))
+      @v))
+
+  (doc parse "parses a `Cache-Control` header value into a map from lower-cased
+directive names to values. A valueless directive (e.g. `no-cache`) maps to the
+empty string; a quoted value has its surrounding quotes removed. Empty segments
+are ignored, so an empty header yields an empty map.")
+  (defn parse [s]
+    (let-do [m (the (Map String String) {})
+             segs (split-directives s)]
+      (for [i 0 (Array.length &segs)]
+        (let [seg &(String.trim (Array.unsafe-nth &segs i))]
+          (unless (String.empty? seg)
+            (let [eq (String.index-of seg \=)]
+              (if (< eq 0)
+                (Map.put! &m &(String.ascii-to-lower seg) "")
+                (let [k (String.ascii-to-lower
+                        &(String.trim &(String.byte-slice seg 0 eq)))
+                      v (unquote
+                        &(String.trim
+                          &(String.byte-slice seg
+                                              (Int.inc eq)
+                                              (String.length seg))))]
+                  (Map.put! &m &k &v)))))))
+      m))
+
+  (doc has? "whether directive `name` (case-insensitive) is present.")
+  (defn has? [m name] (Map.contains? m &(String.ascii-to-lower name)))
+
+  (doc directive "looks up directive `name` (case-insensitive), returning its
+value as `(Maybe String)`. A present valueless directive yields `(Just @\"\")`.")
+  (defn directive [m name] (Map.get-maybe m &(String.ascii-to-lower name)))
+
+  (hidden int-directive)
+  (private int-directive)
+  (defn int-directive [m name]
+    (match (directive m name)
+      (Maybe.Just v) (Int.from-string &v)
+      (Maybe.Nothing) (Maybe.Nothing)))
+
+  (doc max-age "the `max-age` delta-seconds as `(Maybe Int)`, when present and
+numeric.")
+  (defn max-age [m] (int-directive m "max-age"))
+
+  (doc s-maxage "the `s-maxage` delta-seconds as `(Maybe Int)`, when present and
+numeric.")
+  (defn s-maxage [m] (int-directive m "s-maxage"))
+
+  (doc no-cache? "whether the `no-cache` directive is present.")
+  (defn no-cache? [m] (has? m "no-cache"))
+
+  (doc no-store? "whether the `no-store` directive is present.")
+  (defn no-store? [m] (has? m "no-store"))
+
+  (doc must-revalidate? "whether the `must-revalidate` directive is present.")
+  (defn must-revalidate? [m] (has? m "must-revalidate"))
+
+  (doc public? "whether the `public` response directive is present.")
+  (defn public? [m] (has? m "public"))
+
+  (doc private? "whether the `private` response directive is present.")
+  (defn private? [m] (has? m "private")))
+
 (doc FormPart "is a single part decoded from a `multipart/form-data` body: the
 field `name`, an optional `filename` (present for file uploads), an optional
 `content-type`, and the raw `body`.")
