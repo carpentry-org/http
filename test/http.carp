@@ -67,6 +67,18 @@
     (match (Request.negotiate &r offers)
       (Maybe.Just m) m
       (Maybe.Nothing) @"NONE")))
+; ---- chunked transfer-encoding test helpers ----
+(defn dechunk-ok [s]
+  (match (TransferEncoding.dechunk s) (Result.Success b) b _ @"FAIL"))
+
+(defn dechunk-err? [s]
+  (match (TransferEncoding.dechunk s) (Result.Error _) true _ false))
+
+(defn resp-chunked? [s]
+  (match (Response.parse s) (Result.Success r) (Response.chunked? &r) _ false))
+
+(defn req-chunked? [s]
+  (match (Request.parse s) (Result.Success r) (Request.chunked? &r) _ false))
 
 (deftest test
   (assert-true test
@@ -701,4 +713,83 @@
   (assert-equal test
     "text/html"
     &(req-pick-noaccept &[@"text/html" @"application/json"])
-    "Request.negotiate with no Accept header accepts anything"))
+    "Request.negotiate with no Accept header accepts anything")
+  (assert-equal test
+    &(dechunk-ok "4\r\nWiki\r\n5\r\npedia\r\n0\r\n\r\n")
+    "Wikipedia"
+    "dechunk decodes a multi-chunk body")
+
+  (assert-equal test
+    &(dechunk-ok "1c\r\nabcdefghijklmnopqrstuvwxyz01\r\n0\r\n\r\n")
+    "abcdefghijklmnopqrstuvwxyz01"
+    "dechunk decodes a chunk with a multi-digit hex size")
+
+  (assert-equal test
+    &(dechunk-ok "4;name=value\r\nWiki\r\n5\r\npedia\r\n0\r\n\r\n")
+    "Wikipedia"
+    "dechunk ignores chunk extensions")
+
+  (assert-equal test
+    &(dechunk-ok "0\r\n\r\n")
+    ""
+    "dechunk decodes a zero-only body")
+
+  (assert-equal test
+    &(dechunk-ok "5\r\nhello\r\n0\r\nX-Checksum: abc123\r\nX-Extra: 1\r\n\r\n")
+    "hello"
+    "dechunk ignores trailing headers")
+
+  (assert-true test
+    (dechunk-err? "zz\r\nWiki\r\n0\r\n\r\n")
+    "dechunk errors on a non-hex chunk size")
+
+  (assert-true test
+    (dechunk-err? "80000000\r\nWiki\r\n0\r\n\r\n")
+    "dechunk rejects an overflowing chunk size instead of segfaulting")
+
+  (assert-true test
+    (dechunk-err? "100000000\r\nWiki\r\n0\r\n\r\n")
+    "dechunk rejects a 2^32 chunk size instead of silently mis-decoding as empty")
+
+  (assert-true test
+    (dechunk-err? "5\r\nhi\r\n0\r\n\r\n")
+    "dechunk errors on a chunk shorter than its declared size")
+
+  (assert-true test
+    (dechunk-err? "4\r\nWiki\r\n5\r\npedia\r\n")
+    "dechunk errors on a missing terminating zero-size chunk")
+
+  (assert-equal test
+    &(match (Response.parse
+        "HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n4\r\nWiki\r\n5\r\npedia\r\n0\r\n\r\n")
+      (Result.Success r)
+        (if (Response.chunked? &r)
+          (dechunk-ok (Response.body &r))
+          @"not-chunked")
+      _ @"parse-failed")
+    "Wikipedia"
+    "parse + chunked? + dechunk decodes a real chunked response")
+
+  (assert-true test
+    (resp-chunked? "HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n")
+    "chunked? true for Transfer-Encoding: chunked")
+
+  (assert-true test
+    (resp-chunked? "HTTP/1.1 200 OK\r\ntransfer-encoding: Chunked\r\n\r\n")
+    "chunked? is case-insensitive in header name and value")
+
+  (assert-true test
+    (resp-chunked? "HTTP/1.1 200 OK\r\nTransfer-Encoding: gzip, chunked\r\n\r\n")
+    "chunked? true when chunked is last in a coding list")
+
+  (assert-false test
+    (resp-chunked? "HTTP/1.1 200 OK\r\nContent-Length: 0\r\n\r\n")
+    "chunked? false when Transfer-Encoding header is absent")
+
+  (assert-false test
+    (resp-chunked? "HTTP/1.1 200 OK\r\nTransfer-Encoding: gzip\r\n\r\n")
+    "chunked? false when chunked is not among the codings")
+
+  (assert-true test
+    (req-chunked? "POST / HTTP/1.1\r\nTransfer-Encoding: chunked\r\n\r\n")
+    "Request.chunked? true for Transfer-Encoding: chunked"))

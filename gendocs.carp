@@ -30,5 +30,5 @@ Status.not-found    ; => 404
 (Status.reason 200) ; => \"OK\"
 ```")
 
-(save-docs Request Response Cookie Status Form)
+(save-docs Request Response Cookie Status Form TransferEncoding)
 (quit)
