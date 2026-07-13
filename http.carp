@@ -103,22 +103,23 @@ the type yourself, instead you can [parse](#parse) it.")
       (Result.Error err) (Result.Error err)
       (Result.Success c)
         (let [prop &(trim p)
+              lprop &(String.ascii-to-lower prop)
               splt &(split-by prop &[\=])
               l<2 (< (Array.length splt) 2)]
           (cond
-            (= prop "Secure") (Result.Success (set-secure c true))
-            (= prop "HttpOnly") (Result.Success (set-httponly c true))
-            (starts-with? prop "Path")
+            (= lprop "secure") (Result.Success (set-secure c true))
+            (= lprop "httponly") (Result.Success (set-httponly c true))
+            (starts-with? lprop "path")
               (if l<2
                 (Result.Error @"malformed path property in set-cookie, no value")
                 (Result.Success (set-path c (join "=" &(Array.suffix splt 1)))))
-            (starts-with? prop "Domain")
+            (starts-with? lprop "domain")
               (if l<2
                 (Result.Error
                   @"malformed domain property in set-cookie, no value")
                 (Result.Success
                   (set-domain c (Maybe.Just (join "=" &(Array.suffix splt 1))))))
-            (starts-with? prop "Expires")
+            (starts-with? lprop "expires")
               (if l<2
                 (Result.Error
                   @"malformed expires property in set-cookie, no value")
@@ -129,7 +130,7 @@ the type yourself, instead you can [parse](#parse) it.")
                         (fmt "malformed expires date in set-cookie: %s" &e))
                     (Result.Success dt)
                       (Result.Success (set-expires c (Maybe.Just dt))))))
-            (starts-with? prop "Max-Age")
+            (starts-with? lprop "max-age")
               (if l<2
                 (Result.Error
                   @"malformed max-age property in set-cookie, no value")
@@ -142,17 +143,18 @@ the type yourself, instead you can [parse](#parse) it.")
                         (set-expires c
                                      (Maybe.Just (Datetime.add-seconds &(Datetime.now)
                                                                        i)))))))
-            (starts-with? prop "SameSite")
+            (starts-with? lprop "samesite")
               (if l<2
                 (Result.Error
                   @"malformed samesite property in set-cookie, no value")
-                (let [s (join "=" &(Array.suffix splt 1))]
-                  (case &s
-                        "Lax"
+                (let [s (join "=" &(Array.suffix splt 1))
+                      ls &(String.ascii-to-lower &s)]
+                  (case ls
+                        "lax"
                         (Result.Success (set-samesite c (SameSite.Lax)))
-                        "Strict"
+                        "strict"
                         (Result.Success (set-samesite c (SameSite.Strict)))
-                        "None"
+                        "none"
                         (Result.Success (set-samesite c (SameSite.None)))
                         (Result.Error
                           (fmt

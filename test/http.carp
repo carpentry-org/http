@@ -206,6 +206,85 @@
     "parse-set handles mix of known and unknown attributes")
 
   (assert-true test
+    (match (Cookie.parse-set "id=abc; secure")
+      (Result.Success c) @(Cookie.secure &c)
+      _ false)
+    "parse-set honors lowercase Secure attribute")
+
+  (assert-true test
+    (match (Cookie.parse-set "id=abc; httponly")
+      (Result.Success c) @(Cookie.httponly &c)
+      _ false)
+    "parse-set honors lowercase HttpOnly attribute")
+
+  (assert-true test
+    (match (Cookie.parse-set "id=abc; PaTh=/Foo")
+      (Result.Success c) (= (Cookie.path &c) "/Foo")
+      _ false)
+    "parse-set honors mixed-case Path attribute and preserves value case")
+
+  (assert-true test
+    (match (Cookie.parse-set "id=abc; domain=Example.com")
+      (Result.Success c)
+        (match @(Cookie.domain &c)
+          (Maybe.Just d) (= &d "Example.com")
+          (Maybe.Nothing) false)
+      _ false)
+    "parse-set honors lowercase Domain attribute and preserves value case")
+
+  (assert-true test
+    (match (Cookie.parse-set "id=abc; max-age=60")
+      (Result.Success c)
+        (match @(Cookie.expires &c) (Maybe.Just _) true (Maybe.Nothing) false)
+      _ false)
+    "parse-set honors lowercase Max-Age attribute")
+
+  (assert-true test
+    (match (Cookie.parse-set "id=abc; expires=Wed, 09 Jun 2021 10:18:14 GMT")
+      (Result.Success c)
+        (match @(Cookie.expires &c)
+          (Maybe.Just d)
+            (and (= 2021 @(Datetime.year &d))
+                 (and (= 6 @(Datetime.month &d)) (= 9 @(Datetime.day &d))))
+          (Maybe.Nothing) false)
+      _ false)
+    "parse-set honors lowercase Expires attribute")
+
+  (assert-true test
+    (match (Cookie.parse-set "id=abc; SameSite=lax")
+      (Result.Success c)
+        (match @(Cookie.samesite &c) (SameSite.Lax) true _ false)
+      _ false)
+    "parse-set honors lowercase SameSite value lax")
+
+  (assert-true test
+    (match (Cookie.parse-set "id=abc; SameSite=strict")
+      (Result.Success c)
+        (match @(Cookie.samesite &c) (SameSite.Strict) true _ false)
+      _ false)
+    "parse-set honors lowercase SameSite value strict")
+
+  (assert-true test
+    (match (Cookie.parse-set "id=abc; SameSite=none")
+      (Result.Success c)
+        (match @(Cookie.samesite &c) (SameSite.None) true _ false)
+      _ false)
+    "parse-set honors lowercase SameSite value none")
+
+  (assert-true test
+    (match (Response.parse
+        "HTTP/1.1 200 OK\r\nSet-Cookie: id=abc; SameSite=lax\r\n\r\n")
+      (Result.Success r) (= 1 (Array.length (Response.cookies &r)))
+      _ false)
+    "lowercase SameSite value does not abort Response.parse")
+
+  (assert-true test
+    (match (Cookie.parse-set "id=abc; partitioned")
+      (Result.Success c) (= (Cookie.name &c) "id")
+      _ false)
+    "parse-set still ignores a genuinely unknown attribute (lowercase)")
+
+  (assert-true test
     (match (Cookie.parse "session=YWJjZA==")
       (Result.Success c)
         (and (= (Cookie.name &c) "session") (= (Cookie.value &c) "YWJjZA=="))
