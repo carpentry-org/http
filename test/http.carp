@@ -74,6 +74,11 @@
 (defn dechunk-err? [s]
   (match (TransferEncoding.dechunk s) (Result.Error _) true _ false))
 
+(defn chunk-rt? [s size]
+  (match (TransferEncoding.dechunk &(TransferEncoding.chunk-with-size s size))
+    (Result.Success b) (= &b s)
+    (Result.Error _) false))
+
 (defn resp-chunked? [s]
   (match (Response.parse s) (Result.Success r) (Response.chunked? &r) _ false))
 
@@ -921,4 +926,37 @@
   (assert-equal test
     0
     (Map.length &(CacheControl.parse ""))
-    "CacheControl parses an empty header into an empty map"))
+    "CacheControl parses an empty header into an empty map")
+  (assert-equal test
+    "5\r\nhello\r\n0\r\n\r\n"
+    &(TransferEncoding.chunk "hello")
+    "chunk emits a hex size line, the data, and the terminator")
+  (assert-equal test
+    "0\r\n\r\n"
+    &(TransferEncoding.chunk "")
+    "chunk of an empty body is just the terminator")
+  (assert-equal test
+    "2\r\nhe\r\n2\r\nll\r\n1\r\no\r\n0\r\n\r\n"
+    &(TransferEncoding.chunk-with-size "hello" 2)
+    "chunk-with-size splits the body into size-bounded chunks")
+  (assert-true test
+    (chunk-rt? "hello world" 1)
+    "chunk-with-size round-trips through dechunk at size 1")
+  (assert-true test
+    (chunk-rt? "hello world" 4)
+    "chunk-with-size round-trips through dechunk at size 4")
+  (assert-true test
+    (chunk-rt? &(String.repeat 300 "x") 256)
+    "chunk-with-size round-trips across the two-to-three hex-digit boundary")
+  (assert-true test
+    (chunk-rt? "héllo wörld" 3)
+    "chunk-with-size is byte-exact across multi-byte UTF-8 split points")
+  (assert-true test
+    (chunk-rt? "abc" 0)
+    "chunk-with-size clamps a non-positive size to at least 1")
+  (assert-true test
+    (match (TransferEncoding.dechunk
+        &(TransferEncoding.chunk "the quick brown fox"))
+      (Result.Success b) (= &b "the quick brown fox")
+      (Result.Error _) false)
+    "chunk (single chunk) round-trips through dechunk"))
