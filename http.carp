@@ -686,18 +686,20 @@ bad hex size or a truncated chunk.")
 Keys and values are percent-decoded. The `+` character is decoded as space
 per the `application/x-www-form-urlencoded` specification.")
   (defn parse [s]
-    (let-do [m (the (Map String String) {})
-             pairs &(String.split-by s &[\&])]
-      (for [i 0 (Array.length pairs)]
-        (let [pair (Array.unsafe-nth pairs i)
-              eq (String.index-of pair \=)]
-          (if (= eq -1)
-            (let [k (form-unescape pair)] (Map.put! &m &k ""))
-            (let [k (form-unescape &(String.byte-slice pair 0 eq))
-                  v (form-unescape
-                    &(String.byte-slice pair (Int.inc eq) (String.length pair)))]
-              (Map.put! &m &k &v)))))
-      (Result.Success m)))
+    (if (String.empty? s)
+      (Result.Success (the (Map String String) {}))
+      (let-do [m (the (Map String String) {})
+               pairs &(String.split-by s &[\&])]
+        (for [i 0 (Array.length pairs)]
+          (let [pair (Array.unsafe-nth pairs i)
+                eq (String.index-of pair \=)]
+            (if (= eq -1)
+              (let [k (form-unescape pair)] (Map.put! &m &k ""))
+              (let [k (form-unescape &(String.byte-slice pair 0 eq))
+                    v (form-unescape
+                      &(String.byte-slice pair (Int.inc eq) (String.length pair)))]
+                (Map.put! &m &k &v)))))
+        (Result.Success m))))
 
   (private form-escape)
   (hidden form-escape)
@@ -724,18 +726,20 @@ This is the inverse of `parse`.")
 of pairs and allows duplicate keys. Keys and values are percent-decoded.
 The `+` character is decoded as space.")
   (defn parse-pairs [s]
-    (let-do [result (the (Array (Pair String String)) [])
-             parts &(String.split-by s &[\&])]
-      (for [i 0 (Array.length parts)]
-        (let [part (Array.unsafe-nth parts i)
-              eq (String.index-of part \=)]
-          (if (= eq -1)
-            (Array.push-back! &result (Pair.init (form-unescape part) @""))
-            (let [k (form-unescape &(String.byte-slice part 0 eq))
-                  v (form-unescape
-                    &(String.byte-slice part (Int.inc eq) (String.length part)))]
-              (Array.push-back! &result (Pair.init k v))))))
-      (Result.Success result))))
+    (if (String.empty? s)
+      (Result.Success (the (Array (Pair String String)) []))
+      (let-do [result (the (Array (Pair String String)) [])
+               parts &(String.split-by s &[\&])]
+        (for [i 0 (Array.length parts)]
+          (let [part (Array.unsafe-nth parts i)
+                eq (String.index-of part \=)]
+            (if (= eq -1)
+              (Array.push-back! &result (Pair.init (form-unescape part) @""))
+              (let [k (form-unescape &(String.byte-slice part 0 eq))
+                    v (form-unescape
+                      &(String.byte-slice part (Int.inc eq) (String.length part)))]
+                (Array.push-back! &result (Pair.init k v))))))
+        (Result.Success result)))))
 
 (doc MediaType "is a parsed media type — the value of a `Content-Type` header,
 such as `multipart/form-data; boundary=abc`. `type` and `subtype` are
