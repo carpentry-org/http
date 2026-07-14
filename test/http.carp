@@ -554,6 +554,15 @@
       (Result.Success ps) (= (Pair.b (Array.unsafe-nth &ps 0)) "&=")
       _ false)
     "parse-pairs decodes percent-encoded values")
+
+  (assert-equal test
+    0
+    (match (the
+        (Result (Array (Pair String String)) String)
+        (Form.parse-pairs ""))
+      (Result.Success ps) (Array.length &ps)
+      _ -1)
+    "parse-pairs on empty body returns empty array")
   ; ---- MediaType ----
   (assert-equal test
     "multipart/form-data"
