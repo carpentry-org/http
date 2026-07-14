@@ -632,23 +632,32 @@ zero-size chunk (RFC 7230 §4.1). The result decodes back to `body` via
 (defmodule Status
   (def ok 200)
   (def created 201)
+  (def accepted 202)
   (def no-content 204)
+  (def partial-content 206)
   (def moved-permanently 301)
   (def found 302)
+  (def see-other 303)
   (def not-modified 304)
+  (def temporary-redirect 307)
+  (def permanent-redirect 308)
   (def bad-request 400)
   (def unauthorized 401)
   (def forbidden 403)
   (def not-found 404)
   (def method-not-allowed 405)
+  (def not-acceptable 406)
   (def conflict 409)
   (def gone 410)
+  (def unsupported-media-type 415)
   (def unprocessable-entity 422)
   (def too-many-requests 429)
   (def internal-server-error 500)
   (def not-implemented 501)
   (def bad-gateway 502)
   (def service-unavailable 503)
+  (def gateway-timeout 504)
+  (def http-version-not-supported 505)
 
   (doc reason "returns the standard reason phrase for a status code.")
   (defn reason [code]
@@ -657,14 +666,24 @@ zero-size chunk (RFC 7230 §4.1). The result decodes back to `body` via
           @"OK"
           201
           @"Created"
+          202
+          @"Accepted"
           204
           @"No Content"
+          206
+          @"Partial Content"
           301
           @"Moved Permanently"
           302
           @"Found"
+          303
+          @"See Other"
           304
           @"Not Modified"
+          307
+          @"Temporary Redirect"
+          308
+          @"Permanent Redirect"
           400
           @"Bad Request"
           401
@@ -675,10 +694,14 @@ zero-size chunk (RFC 7230 §4.1). The result decodes back to `body` via
           @"Not Found"
           405
           @"Method Not Allowed"
+          406
+          @"Not Acceptable"
           409
           @"Conflict"
           410
           @"Gone"
+          415
+          @"Unsupported Media Type"
           422
           @"Unprocessable Entity"
           429
@@ -691,7 +714,69 @@ zero-size chunk (RFC 7230 §4.1). The result decodes back to `body` via
           @"Bad Gateway"
           503
           @"Service Unavailable"
+          504
+          @"Gateway Timeout"
+          505
+          @"HTTP Version Not Supported"
           @"Unknown")))
+
+(defmodule Response
+  (doc respond "builds an HTTP/1.1 response with status `code`, the standard
+reason phrase for that code (via `Status.reason`), the given `headers` and
+`body`, and a `Content-Length` header set to the body's byte length.")
+  (defn respond [code headers body]
+    (let [clen (fmt "%d" (String.length &body))]
+      (init code
+            (Status.reason code)
+            @"HTTP/1.1"
+            []
+            (Map.put headers "Content-Length" &[clen])
+            body)))
+
+  (doc with-header "returns `r` with `value` appended under header `name`; any
+existing values for `name` are kept.")
+  (defn with-header [r name value]
+    (let-do [hs @(headers &r)
+             existing (Map.get-with-default &hs &name &[])]
+      (set-headers r (Map.put hs &name &(Array.push-back existing value)))))
+
+  (doc with-content-type "returns `r` with a `Content-Type` header of `ct`.")
+  (defn with-content-type [r ct] (with-header r @"Content-Type" ct))
+
+  (doc with-cookie "returns `r` with cookie `c` appended.")
+  (defn with-cookie [r c]
+    (let-do [cs @(cookies &r)] (set-cookies r (Array.push-back cs c))))
+
+  (doc ok "builds a `200 OK` response with `headers` and `body`.")
+  (defn ok [headers body] (respond Status.ok headers body))
+
+  (doc created "builds a `201 Created` response with `headers` and `body`.")
+  (defn created [headers body] (respond Status.created headers body))
+
+  (doc no-content
+    "builds a `204 No Content` response with `headers` and no body.
+Per RFC 7230 a 204 carries no `Content-Length`, so unlike the other builders this
+one adds none.")
+  (defn no-content [headers]
+    (init Status.no-content
+          (Status.reason Status.no-content)
+          @"HTTP/1.1"
+          []
+          headers
+          @""))
+
+  (doc not-found "builds a `404 Not Found` response with `headers` and `body`.")
+  (defn not-found [headers body] (respond Status.not-found headers body))
+
+  (doc bad-request "builds a `400 Bad Request` response with `headers` and
+`body`.")
+  (defn bad-request [headers body] (respond Status.bad-request headers body))
+
+  (doc redirect "builds a redirect response with status `code` (e.g.
+`Status.found`), a `Location` header of `location`, `headers`, and an empty
+body.")
+  (defn redirect [code location headers]
+    (with-header (respond code headers @"") @"Location" location)))
 
 (doc Form "provides URL-encoded form body parsing and serialization.
 

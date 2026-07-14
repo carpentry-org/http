@@ -968,4 +968,88 @@
         &(TransferEncoding.chunk "the quick brown fox"))
       (Result.Success b) (= &b "the quick brown fox")
       (Result.Error _) false)
-    "chunk (single chunk) round-trips through dechunk"))
+    "chunk (single chunk) round-trips through dechunk")
+  (assert-equal test
+    200
+    @(Response.code &(Response.ok {} @"hi"))
+    "Response.ok sets code 200")
+  (assert-equal test
+    "OK"
+    (Response.message &(Response.ok {} @"hi"))
+    "Response.ok sets the reason phrase as the message")
+  (assert-equal test
+    "5"
+    &(Maybe.from
+      (Response.header &(Response.ok {} @"hello") "Content-Length")
+      @"")
+    "respond sets Content-Length to the body byte length")
+  (assert-equal test
+    "6"
+    &(Maybe.from
+      (Response.header &(Response.ok {} @"héllo") "Content-Length")
+      @"")
+    "respond Content-Length counts bytes, not codepoints")
+  (assert-equal test
+    201
+    @(Response.code &(Response.created {} @"{}"))
+    "Response.created sets code 201")
+  (assert-equal test
+    "No Content"
+    (Response.message &(Response.no-content {}))
+    "Response.no-content sets the 204 reason phrase")
+  (assert-equal test
+    0
+    (String.length (Response.body &(Response.no-content {})))
+    "Response.no-content has an empty body")
+  (assert-equal test
+    false
+    (Maybe.just? &(Response.header &(Response.no-content {}) "Content-Length"))
+    "Response.no-content omits Content-Length per RFC 7230")
+  (assert-equal test
+    "application/json"
+    &(Maybe.from
+      (Response.header
+        &(Response.with-content-type (Response.ok {} @"{}") @"application/json")
+        "Content-Type")
+      @"")
+    "with-content-type sets the Content-Type header")
+  (assert-equal test
+    "1"
+    &(Maybe.from
+      (Response.header
+        &(Response.with-header (Response.ok {} @"x") @"X-Test" @"1")
+        "X-Test")
+      @"")
+    "with-header adds a header value")
+  (assert-equal test
+    1
+    (match (Cookie.parse "a=b")
+      (Result.Success c)
+        (Array.length
+          (Response.cookies &(Response.with-cookie (Response.ok {} @"x") c)))
+      (Result.Error _) -1)
+    "with-cookie appends a cookie")
+  (assert-equal test
+    302
+    @(Response.code &(Response.redirect Status.found @"/new" {}))
+    "redirect sets the status code")
+  (assert-equal test
+    "/new"
+    &(Maybe.from
+      (Response.header &(Response.redirect Status.found @"/new" {}) "Location")
+      @"")
+    "redirect sets the Location header")
+  (assert-equal test
+    "Partial Content"
+    &(Status.reason 206)
+    "Status.reason knows 206")
+  (assert-equal test
+    "Gateway Timeout"
+    &(Status.reason 504)
+    "Status.reason knows 504")
+  (assert-true test
+    (match (Response.parse &(Response.str &(Response.ok {} @"hello")))
+      (Result.Success r)
+        (and (= 200 @(Response.code &r)) (= "hello" (Response.body &r)))
+      (Result.Error _) false)
+    "a built response round-trips through parse"))
