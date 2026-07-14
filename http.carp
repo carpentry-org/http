@@ -509,10 +509,10 @@ i.e. its `Transfer-Encoding` header lists `chunked` (case-insensitively). Decode
 such a body with `TransferEncoding.dechunk`.")
   (defn chunked? [r] (transfer-encoding-chunked? (headers r))))
 
-(doc TransferEncoding "provides decoding for HTTP transfer codings.
+(doc TransferEncoding "provides encoding and decoding for HTTP transfer codings.
 
 Use `Request.chunked?`/`Response.chunked?` to detect a chunked body, then
-[dechunk](#dechunk) to decode it.")
+[dechunk](#dechunk) to decode it, or [chunk](#chunk) to encode one.")
 (defmodule TransferEncoding
   (private hex-nibble)
   (hidden hex-nibble)
@@ -602,7 +602,31 @@ bad hex size or a truncated chunk.")
         (set! err @"malformed chunked body: missing terminating zero-size chunk"))
       (let-do [decoded (StringBuf.to-string &sb)]
         (StringBuf.delete sb)
-        (if (String.empty? &err) (Result.Success decoded) (Result.Error err))))))
+        (if (String.empty? &err) (Result.Success decoded) (Result.Error err)))))
+
+  (doc chunk-with-size "chunk-encodes `body` into chunks of at most `size` bytes
+per RFC 7230 §4.1 — each a hex size line, the data, and a CRLF — closed by the
+terminating zero-size chunk. `size` is clamped to at least 1. The result decodes
+back to `body` via [dechunk](#dechunk).")
+  (defn chunk-with-size [body size]
+    (let-do [len (String.length body)
+             step (Int.max 1 size)
+             sb (StringBuf.create)
+             pos 0]
+      (while (< pos len)
+        (let-do [end (Int.min len (+ pos step))]
+          (StringBuf.append-str &sb &(fmt "%x" (- end pos)))
+          (StringBuf.append-str &sb "\r\n")
+          (StringBuf.append-str &sb &(String.byte-slice body pos end))
+          (StringBuf.append-str &sb "\r\n")
+          (set! pos end)))
+      (StringBuf.append-str &sb "0\r\n\r\n")
+      (let-do [s (StringBuf.to-string &sb)] (StringBuf.delete sb) s)))
+
+  (doc chunk "chunk-encodes `body` as a single chunk followed by the terminating
+zero-size chunk (RFC 7230 §4.1). The result decodes back to `body` via
+[dechunk](#dechunk); an empty body yields just the terminator.")
+  (defn chunk [body] (chunk-with-size body (String.length body))))
 
 (doc Status "provides HTTP status code constants and reason phrases.")
 (defmodule Status
