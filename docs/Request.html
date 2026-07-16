@@ -42,6 +42,11 @@
                                 Form
                             </a>
                         </li>
+                        <li>
+                            <a href="TransferEncoding.html">
+                                TransferEncoding
+                            </a>
+                        </li>
                     </ul>
                 </div>
             </div>
@@ -71,6 +76,28 @@
                     </span>
                     <p class="doc">
                         <p>gets the <code>body</code> property of a <code>Request</code>.</p>
+
+                    </p>
+                </div>
+                <div class="binder">
+                    <a class="anchor" href="#chunked?">
+                        <h3 id="chunked?">
+                            chunked?
+                        </h3>
+                    </a>
+                    <div class="description">
+                        defn
+                    </div>
+                    <p class="sig">
+                        (Fn [(Ref Request a)] Bool)
+                    </p>
+                    <pre class="args">
+                        (chunked? r)
+                    </pre>
+                    <p class="doc">
+                        <p>checks whether the request body is chunked transfer-encoded,
+i.e. its <code>Transfer-Encoding</code> header lists <code>chunked</code> (case-insensitively). Decode
+such a body with <code>TransferEncoding.dechunk</code>.</p>
 
                     </p>
                 </div>
@@ -273,6 +300,52 @@ Returns <code>(Maybe String)</code>.</p>
                     </span>
                     <p class="doc">
                         <p>creates a <code>Request</code>.</p>
+
+                    </p>
+                </div>
+                <div class="binder">
+                    <a class="anchor" href="#multipart-data">
+                        <h3 id="multipart-data">
+                            multipart-data
+                        </h3>
+                    </a>
+                    <div class="description">
+                        defn
+                    </div>
+                    <p class="sig">
+                        (Fn [(Ref Request a)] (Result (Array FormPart) String))
+                    </p>
+                    <pre class="args">
+                        (multipart-data r)
+                    </pre>
+                    <p class="doc">
+                        <p>parses the request body as <code>multipart/form-data</code>, taking
+the boundary from the <code>Content-Type</code> header. Returns
+<code>(Result (Array FormPart) String)</code>; fails when the request is not
+<code>multipart/form-data</code> or carries no boundary.</p>
+
+                    </p>
+                </div>
+                <div class="binder">
+                    <a class="anchor" href="#negotiate">
+                        <h3 id="negotiate">
+                            negotiate
+                        </h3>
+                    </a>
+                    <div class="description">
+                        defn
+                    </div>
+                    <p class="sig">
+                        (Fn [(Ref Request a), (Ref (Array String) b)] (Maybe String))
+                    </p>
+                    <pre class="args">
+                        (negotiate r offers)
+                    </pre>
+                    <p class="doc">
+                        <p>chooses the best response media type for this request from the
+server's <code>offers</code>, honoring the request's <code>Accept</code> header (RFC 7231 §5.3.2). A
+request with no <code>Accept</code> header accepts anything. See
+<a href="#negotiate"><code>Accept.negotiate</code></a>.</p>
 
                     </p>
                 </div>

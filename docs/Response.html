@@ -42,6 +42,11 @@
                                 Form
                             </a>
                         </li>
+                        <li>
+                            <a href="TransferEncoding.html">
+                                TransferEncoding
+                            </a>
+                        </li>
                     </ul>
                 </div>
             </div>
@@ -53,6 +58,27 @@
                     <p>is a response data type. It holds the <code>code</code> of the request, the
 <code>version</code>, the <code>message</code>, the <code>cookies</code>, the <code>headers</code>, and the <code>body</code>.</p>
 
+                </div>
+                <div class="binder">
+                    <a class="anchor" href="#bad-request">
+                        <h3 id="bad-request">
+                            bad-request
+                        </h3>
+                    </a>
+                    <div class="description">
+                        defn
+                    </div>
+                    <p class="sig">
+                        (Fn [(Map String (Array String)), String] Response)
+                    </p>
+                    <pre class="args">
+                        (bad-request headers body)
+                    </pre>
+                    <p class="doc">
+                        <p>builds a <code>400 Bad Request</code> response with <code>headers</code> and
+<code>body</code>.</p>
+
+                    </p>
                 </div>
                 <div class="binder">
                     <a class="anchor" href="#body">
@@ -71,6 +97,28 @@
                     </span>
                     <p class="doc">
                         <p>gets the <code>body</code> property of a <code>Response</code>.</p>
+
+                    </p>
+                </div>
+                <div class="binder">
+                    <a class="anchor" href="#chunked?">
+                        <h3 id="chunked?">
+                            chunked?
+                        </h3>
+                    </a>
+                    <div class="description">
+                        defn
+                    </div>
+                    <p class="sig">
+                        (Fn [(Ref Response a)] Bool)
+                    </p>
+                    <pre class="args">
+                        (chunked? r)
+                    </pre>
+                    <p class="doc">
+                        <p>checks whether the response body is chunked transfer-encoded,
+i.e. its <code>Transfer-Encoding</code> header lists <code>chunked</code> (case-insensitively). Decode
+such a body with <code>TransferEncoding.dechunk</code>.</p>
 
                     </p>
                 </div>
@@ -151,6 +199,26 @@
                     </span>
                     <p class="doc">
                         <p>copies a <code>Response</code>.</p>
+
+                    </p>
+                </div>
+                <div class="binder">
+                    <a class="anchor" href="#created">
+                        <h3 id="created">
+                            created
+                        </h3>
+                    </a>
+                    <div class="description">
+                        defn
+                    </div>
+                    <p class="sig">
+                        (Fn [(Map String (Array String)), String] Response)
+                    </p>
+                    <pre class="args">
+                        (created headers body)
+                    </pre>
+                    <p class="doc">
+                        <p>builds a <code>201 Created</code> response with <code>headers</code> and <code>body</code>.</p>
 
                     </p>
                 </div>
@@ -256,6 +324,68 @@ Returns <code>(Maybe String)</code>.</p>
                     </p>
                 </div>
                 <div class="binder">
+                    <a class="anchor" href="#no-content">
+                        <h3 id="no-content">
+                            no-content
+                        </h3>
+                    </a>
+                    <div class="description">
+                        defn
+                    </div>
+                    <p class="sig">
+                        (Fn [(Map String (Array String))] Response)
+                    </p>
+                    <pre class="args">
+                        (no-content headers)
+                    </pre>
+                    <p class="doc">
+                        <p>builds a <code>204 No Content</code> response with <code>headers</code> and no body.
+Per RFC 7230 a 204 carries no <code>Content-Length</code>, so unlike the other builders this
+one adds none.</p>
+
+                    </p>
+                </div>
+                <div class="binder">
+                    <a class="anchor" href="#not-found">
+                        <h3 id="not-found">
+                            not-found
+                        </h3>
+                    </a>
+                    <div class="description">
+                        defn
+                    </div>
+                    <p class="sig">
+                        (Fn [(Map String (Array String)), String] Response)
+                    </p>
+                    <pre class="args">
+                        (not-found headers body)
+                    </pre>
+                    <p class="doc">
+                        <p>builds a <code>404 Not Found</code> response with <code>headers</code> and <code>body</code>.</p>
+
+                    </p>
+                </div>
+                <div class="binder">
+                    <a class="anchor" href="#ok">
+                        <h3 id="ok">
+                            ok
+                        </h3>
+                    </a>
+                    <div class="description">
+                        defn
+                    </div>
+                    <p class="sig">
+                        (Fn [(Map String (Array String)), String] Response)
+                    </p>
+                    <pre class="args">
+                        (ok headers body)
+                    </pre>
+                    <p class="doc">
+                        <p>builds a <code>200 OK</code> response with <code>headers</code> and <code>body</code>.</p>
+
+                    </p>
+                </div>
+                <div class="binder">
                     <a class="anchor" href="#ok?">
                         <h3 id="ok?">
                             ok?
@@ -314,6 +444,50 @@ it will return a <code>(Success Response)</code>.</p>
                     </span>
                     <p class="doc">
                         <p>converts a <code>Response</code> to a string.</p>
+
+                    </p>
+                </div>
+                <div class="binder">
+                    <a class="anchor" href="#redirect">
+                        <h3 id="redirect">
+                            redirect
+                        </h3>
+                    </a>
+                    <div class="description">
+                        defn
+                    </div>
+                    <p class="sig">
+                        (Fn [Int, String, (Map String (Array String))] Response)
+                    </p>
+                    <pre class="args">
+                        (redirect code location headers)
+                    </pre>
+                    <p class="doc">
+                        <p>builds a redirect response with status <code>code</code> (e.g.
+<code>Status.found</code>), a <code>Location</code> header of <code>location</code>, <code>headers</code>, and an empty
+body.</p>
+
+                    </p>
+                </div>
+                <div class="binder">
+                    <a class="anchor" href="#respond">
+                        <h3 id="respond">
+                            respond
+                        </h3>
+                    </a>
+                    <div class="description">
+                        defn
+                    </div>
+                    <p class="sig">
+                        (Fn [Int, (Map String (Array String)), String] Response)
+                    </p>
+                    <pre class="args">
+                        (respond code headers body)
+                    </pre>
+                    <p class="doc">
+                        <p>builds an HTTP/1.1 response with status <code>code</code>, the standard
+reason phrase for that code (via <code>Status.reason</code>), the given <code>headers</code> and
+<code>body</code>, and a <code>Content-Length</code> header set to the body's byte length.</p>
 
                     </p>
                 </div>
@@ -734,6 +908,67 @@ it will return a <code>(Success Response)</code>.</p>
                     </span>
                     <p class="doc">
                         <p>gets the <code>version</code> property of a <code>Response</code>.</p>
+
+                    </p>
+                </div>
+                <div class="binder">
+                    <a class="anchor" href="#with-content-type">
+                        <h3 id="with-content-type">
+                            with-content-type
+                        </h3>
+                    </a>
+                    <div class="description">
+                        defn
+                    </div>
+                    <p class="sig">
+                        (Fn [Response, String] Response)
+                    </p>
+                    <pre class="args">
+                        (with-content-type r ct)
+                    </pre>
+                    <p class="doc">
+                        <p>returns <code>r</code> with a <code>Content-Type</code> header of <code>ct</code>.</p>
+
+                    </p>
+                </div>
+                <div class="binder">
+                    <a class="anchor" href="#with-cookie">
+                        <h3 id="with-cookie">
+                            with-cookie
+                        </h3>
+                    </a>
+                    <div class="description">
+                        defn
+                    </div>
+                    <p class="sig">
+                        (Fn [Response, Cookie] Response)
+                    </p>
+                    <pre class="args">
+                        (with-cookie r c)
+                    </pre>
+                    <p class="doc">
+                        <p>returns <code>r</code> with cookie <code>c</code> appended.</p>
+
+                    </p>
+                </div>
+                <div class="binder">
+                    <a class="anchor" href="#with-header">
+                        <h3 id="with-header">
+                            with-header
+                        </h3>
+                    </a>
+                    <div class="description">
+                        defn
+                    </div>
+                    <p class="sig">
+                        (Fn [Response, String, String] Response)
+                    </p>
+                    <pre class="args">
+                        (with-header r name value)
+                    </pre>
+                    <p class="doc">
+                        <p>returns <code>r</code> with <code>value</code> appended under header <code>name</code>; any
+existing values for <code>name</code> are kept.</p>
 
                     </p>
                 </div>
