@@ -740,8 +740,15 @@ existing values for `name` are kept.")
              existing (Map.get-with-default &hs &name &[])]
       (set-headers r (Map.put hs &name &(Array.push-back existing value)))))
 
-  (doc with-content-type "returns `r` with a `Content-Type` header of `ct`.")
-  (defn with-content-type [r ct] (with-header r @"Content-Type" ct))
+  (doc set-header "returns `r` with header `name` set to `value`, replacing any
+existing values for `name`. Use this for headers that RFC 9110 defines as
+singletons; use [with-header](#with-header) for repeatable ones.")
+  (defn set-header [r name value]
+    (let-do [hs @(headers &r)] (set-headers r (Map.put hs &name &[value]))))
+
+  (doc with-content-type "returns `r` with a `Content-Type` header of `ct`,
+replacing any existing one.")
+  (defn with-content-type [r ct] (set-header r @"Content-Type" ct))
 
   (doc with-cookie "returns `r` with cookie `c` appended.")
   (defn with-cookie [r c]
@@ -774,9 +781,9 @@ one adds none.")
 
   (doc redirect "builds a redirect response with status `code` (e.g.
 `Status.found`), a `Location` header of `location`, `headers`, and an empty
-body.")
+body. A `Location` in `headers` is replaced.")
   (defn redirect [code location headers]
-    (with-header (respond code headers @"") @"Location" location)))
+    (set-header (respond code headers @"") @"Location" location)))
 
 (doc Form "provides URL-encoded form body parsing and serialization.
 

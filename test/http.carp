@@ -1014,6 +1014,36 @@
       @"")
     "with-content-type sets the Content-Type header")
   (assert-equal test
+    "application/json"
+    &(Maybe.from
+      (Response.header
+        &(Response.with-content-type
+          (Response.with-content-type (Response.ok {} @"{}") @"text/plain")
+          @"application/json")
+        "Content-Type")
+      @"")
+    "with-content-type replaces an existing Content-Type")
+  (assert-equal test
+    1
+    (Array.length
+      &(Array.copy-filter
+        &(fn [l] (String.starts-with? l "Content-Type:"))
+        &(String.split-by
+          &(Response.str
+            &(Response.with-content-type
+              (Response.with-content-type (Response.ok {} @"{}") @"text/plain")
+              @"application/json"))
+          &[\newline])))
+    "with-content-type emits exactly one Content-Type line")
+  (assert-equal test
+    "/new"
+    &(Maybe.from
+      (Response.header
+        &(Response.redirect Status.found @"/new" {@"Location" [@"/old"]})
+        "Location")
+      @"")
+    "redirect replaces a Location in the given headers")
+  (assert-equal test
     "1"
     &(Maybe.from
       (Response.header
