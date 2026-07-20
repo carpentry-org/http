@@ -465,7 +465,7 @@ it will return a <code>(Success Response)</code>.</p>
                     <p class="doc">
                         <p>builds a redirect response with status <code>code</code> (e.g.
 <code>Status.found</code>), a <code>Location</code> header of <code>location</code>, <code>headers</code>, and an empty
-body.</p>
+body. A <code>Location</code> in <code>headers</code> is replaced.</p>
 
                     </p>
                 </div>
@@ -628,6 +628,28 @@ reason phrase for that code (via <code>Status.reason</code>), the given <code>he
                     </span>
                     <p class="doc">
                         <p>sets the <code>cookies</code> property of a <code>Response</code> in place.</p>
+
+                    </p>
+                </div>
+                <div class="binder">
+                    <a class="anchor" href="#set-header">
+                        <h3 id="set-header">
+                            set-header
+                        </h3>
+                    </a>
+                    <div class="description">
+                        defn
+                    </div>
+                    <p class="sig">
+                        (Fn [Response, String, String] Response)
+                    </p>
+                    <pre class="args">
+                        (set-header r name value)
+                    </pre>
+                    <p class="doc">
+                        <p>returns <code>r</code> with header <code>name</code> set to <code>value</code>, replacing any
+existing values for <code>name</code>. Use this for headers that RFC 9110 defines as
+singletons; use <a href="#with-header">with-header</a> for repeatable ones.</p>
 
                     </p>
                 </div>
@@ -927,7 +949,8 @@ reason phrase for that code (via <code>Status.reason</code>), the given <code>he
                         (with-content-type r ct)
                     </pre>
                     <p class="doc">
-                        <p>returns <code>r</code> with a <code>Content-Type</code> header of <code>ct</code>.</p>
+                        <p>returns <code>r</code> with a <code>Content-Type</code> header of <code>ct</code>,
+replacing any existing one.</p>
 
                     </p>
                 </div>
