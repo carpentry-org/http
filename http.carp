@@ -183,15 +183,27 @@ the type yourself, instead you can [parse](#parse) it.")
       (the (Maybe String) (Maybe.Nothing))
       hdrs)))
 
+(private header-values)
+(hidden header-values)
+(defn header-values [hdrs name]
+  (let [lower-name &(String.ascii-to-lower name)]
+    (Map.kv-reduce
+      &(fn [acc k v]
+        (if (= &(String.ascii-to-lower k) lower-name)
+          (Array.concat &[acc @v])
+          acc))
+      (the (Array String) [])
+      hdrs)))
+
 (private transfer-encoding-chunked?)
 (hidden transfer-encoding-chunked?)
 (defn transfer-encoding-chunked? [hdrs]
-  (match (header-lookup hdrs "transfer-encoding")
-    (Maybe.Just v)
+  (Array.any?
+    &(fn [v]
       (Array.any?
         &(fn [tok] (= &(String.trim tok) "chunked"))
-        &(String.split-by &(String.ascii-to-lower &v) &[\,]))
-    (Maybe.Nothing) false))
+        &(String.split-by &(String.ascii-to-lower v) &[\,])))
+    &(header-values hdrs "transfer-encoding")))
 
 (doc Request "is a request data type. It holds the `verb` of the request, the
 `version`, the `uri`, the `cookies`, the `headers`, and the `body`.")
@@ -1317,6 +1329,7 @@ server's `offers`, honoring the request's `Accept` header (RFC 7231 §5.3.2). A
 request with no `Accept` header accepts anything. See
 [`Accept.negotiate`](#negotiate).")
   (defn negotiate [r offers]
-    (match (Request.header r "Accept")
-      (Maybe.Nothing) (Accept.negotiate "" offers)
-      (Maybe.Just a) (Accept.negotiate &a offers))))
+    (let [accepts (header-values (headers r) "Accept")]
+      (if (Array.empty? &accepts)
+        (Accept.negotiate "" offers)
+        (Accept.negotiate &(String.join ", " &accepts) offers)))))

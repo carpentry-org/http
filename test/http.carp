@@ -67,6 +67,14 @@
     (match (Request.negotiate &r offers)
       (Maybe.Just m) m
       (Maybe.Nothing) @"NONE")))
+
+(defn req-parse-pick [s offers]
+  (match (Request.parse s)
+    (Result.Success r)
+      (match (Request.negotiate &r offers)
+        (Maybe.Just m) m
+        (Maybe.Nothing) @"NONE")
+    _ @"PARSE-FAIL"))
 ; ---- chunked transfer-encoding test helpers ----
 (defn dechunk-ok [s]
   (match (TransferEncoding.dechunk s) (Result.Success b) b _ @"FAIL"))
@@ -808,6 +816,20 @@
     &(req-pick-noaccept &[@"text/html" @"application/json"])
     "Request.negotiate with no Accept header accepts anything")
   (assert-equal test
+    "application/json"
+    &(req-parse-pick &multi-header &[@"application/json"])
+    "Request.negotiate folds an Accept split across multiple lines")
+  (assert-equal test
+    "text/html"
+    &(req-parse-pick &multi-header &[@"text/html" @"application/json"])
+    "Request.negotiate still honors the first line of a multi-line Accept")
+  (assert-equal test
+    "text/html"
+    &(req-parse-pick
+      "GET / HTTP/1.1\r\nHost: localhost\r\nAccept: text/html\r\n\r\n"
+      &[@"text/html"])
+    "Request.negotiate honors a single-line Accept")
+  (assert-equal test
     &(dechunk-ok "4\r\nWiki\r\n5\r\npedia\r\n0\r\n\r\n")
     "Wikipedia"
     "dechunk decodes a multi-chunk body")
@@ -886,6 +908,21 @@
   (assert-true test
     (req-chunked? "POST / HTTP/1.1\r\nTransfer-Encoding: chunked\r\n\r\n")
     "Request.chunked? true for Transfer-Encoding: chunked")
+
+  (assert-true test
+    (req-chunked?
+      "POST / HTTP/1.1\r\nTransfer-Encoding: gzip\r\nTransfer-Encoding: chunked\r\n\r\n")
+    "Request.chunked? true when chunked is on a second Transfer-Encoding line")
+
+  (assert-true test
+    (req-chunked?
+      "POST / HTTP/1.1\r\nTransfer-Encoding: gzip\r\ntransfer-encoding: chunked\r\n\r\n")
+    "Request.chunked? folds Transfer-Encoding lines that differ only in case")
+
+  (assert-false test
+    (req-chunked?
+      "POST / HTTP/1.1\r\nTransfer-Encoding: gzip\r\nTransfer-Encoding: deflate\r\n\r\n")
+    "Request.chunked? false when no Transfer-Encoding line lists chunked")
 
   ; ---- Cache-Control ----
   (assert-equal test
