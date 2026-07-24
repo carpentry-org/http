@@ -10,6 +10,27 @@
 (def with-cookies
   @"GET / HTTP/1.1\r\nHost: localhost\r\nCookie: a=1;b=2\r\n\r\n")
 
+; ---- cookie expiry test helpers ----
+(defn expiry-verdict [s]
+  (match (Cookie.parse-set s)
+    (Result.Success c) (if (Cookie.expired? &c) @"expired" @"live")
+    (Result.Error e) e))
+
+(defn expiry-verdict-at [s t]
+  (match (Cookie.parse-set s)
+    (Result.Success c) (if (Cookie.expired-at? &c t) @"expired" @"live")
+    (Result.Error e) e))
+
+(defn zoned [year month day hours zone delta]
+  (Datetime.init year
+                 month
+                 day
+                 (Maybe.Just hours)
+                 (Maybe.Just 0)
+                 (Maybe.Just 0)
+                 (Maybe.Nothing)
+                 (Maybe.Just (Timezone.init zone delta false))))
+
 (defn parse-verb [s]
   (match (Request.parse s) (Result.Success r) @(Request.verb &r) _ @""))
 
@@ -1119,4 +1140,58 @@
       (Result.Success r)
         (and (= 200 @(Response.code &r)) (= "hello" (Response.body &r)))
       (Result.Error _) false)
-    "a built response round-trips through parse"))
+    "a built response round-trips through parse")
+
+  ; ---- cookie expiry ----
+  (assert-equal test
+    "expired"
+    &(expiry-verdict "id=abc; Max-Age=0; Expires=Thu, 01 Jan 2037 00:00:00 GMT")
+    "Max-Age wins over an Expires that comes after it")
+  (assert-equal test
+    "expired"
+    &(expiry-verdict "id=abc; Expires=Thu, 01 Jan 2037 00:00:00 GMT; Max-Age=0")
+    "Max-Age wins over an Expires that comes before it")
+  (assert-equal test
+    "expired"
+    &(expiry-verdict "id=abc; Max-Age=0")
+    "Max-Age=0 expires the cookie immediately")
+  (assert-equal test
+    "expired"
+    &(expiry-verdict-at "id=abc; Max-Age=0" &(zoned 2021 6 9 12 @"UTC" 0l))
+    "Max-Age=0 puts the expiry in the past, not at the instant of parsing")
+  (assert-equal test
+    "expired"
+    &(expiry-verdict "id=abc; Max-Age=-100")
+    "a negative Max-Age expires the cookie immediately")
+  (assert-equal test
+    "live"
+    &(expiry-verdict "id=abc; Max-Age=3600")
+    "a positive Max-Age keeps the cookie alive")
+  (assert-equal test
+    "expired"
+    &(expiry-verdict "id=abc; Expires=Wed, 09 Jun 2021 10:18:14 GMT")
+    "a past Expires expires the cookie when there is no Max-Age")
+  (assert-equal test
+    "live"
+    &(expiry-verdict "id=abc; Expires=Thu, 01 Jan 2037 00:00:00 GMT")
+    "a future Expires keeps the cookie alive when there is no Max-Age")
+  (assert-equal test
+    "live"
+    &(expiry-verdict "id=abc; Expires=Wed, 01 Jan 2070 00:00:00 GMT")
+    "an Expires past 2038 stays live and does not wrap the epoch")
+  (assert-equal test
+    "live"
+    &(expiry-verdict "id=abc; Expires=Fri, 31 Dec 9999 23:59:59 GMT")
+    "the never-expires idiom (Expires 9999) stays live")
+  (assert-equal test
+    "live"
+    &(expiry-verdict-at
+      "id=abc; Expires=Fri, 24 Jul 2026 12:00:00 GMT"
+      &(zoned 2026 7 24 13 @"CEST" 7200l))
+    "13:00 at UTC+2 is 11:00 GMT, before a 12:00 GMT expiry")
+  (assert-equal test
+    "expired"
+    &(expiry-verdict-at
+      "id=abc; Expires=Fri, 24 Jul 2026 12:00:00 GMT"
+      &(zoned 2026 7 24 11 @"EST" -18000l))
+    "11:00 at UTC-5 is 16:00 GMT, after a 12:00 GMT expiry"))
