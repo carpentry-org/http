@@ -1,5 +1,5 @@
 (load "git@github.com:carpentry-org/uri@0.1.0")
-(load "git@github.com:carpentry-org/time@0.4.0")
+(load "git@github.com:carpentry-org/time@0.5.0")
 (load "git@github.com:carpentry-org/strbuf@0.1.0")
 
 (defmodule String
@@ -38,11 +38,16 @@ the type yourself, instead you can [parse](#parse) it.")
    samesite SameSite])
 
 (defmodule Cookie
-  (doc expired? "checks if a cookie is expired now.")
-  (defn expired? [c]
+  (doc expired-at? "checks whether a cookie is expired at the instant `t`. `t`
+and the expiry of the cookie may carry different timezones; they are compared as
+instants, not as wall-clock readings.")
+  (defn expired-at? [c t]
     (match @(expires c)
-      (Maybe.Just d) (> &(Datetime.now) &d)
+      (Maybe.Just d) (Datetime.after-instant? t &d)
       (Maybe.Nothing) false))
+
+  (doc expired? "checks if a cookie is expired now.")
+  (defn expired? [c] (expired-at? c &(Datetime.now)))
 
   (doc parse "parses a cookie.")
   (defn parse [s]
@@ -96,6 +101,14 @@ the type yourself, instead you can [parse](#parse) it.")
         (SameSite.None) (set! s (fmt "%s; SameSite=None" &s)))
       s))
 
+  (private max-age-expiry)
+  (hidden max-age-expiry)
+  ; RFC 6265 §5.2.2: a max-age of zero or less expires the cookie immediately
+  (defn max-age-expiry [i]
+    (if (<= i 0)
+      (Datetime.from-unix-timestamp 0)
+      (Datetime.add-seconds &(Datetime.now) i)))
+
   (private parse-set-prop)
   (hidden parse-set-prop)
   (defn parse-set-prop [a p]
@@ -140,9 +153,7 @@ the type yourself, instead you can [parse](#parse) it.")
                       (Result.Error @"malformed max-age value in set-cookie")
                     (Maybe.Just i)
                       (Result.Success
-                        (set-expires c
-                                     (Maybe.Just (Datetime.add-seconds &(Datetime.now)
-                                                                       i)))))))
+                        (set-expires c (Maybe.Just (max-age-expiry i)))))))
             (starts-with? lprop "samesite")
               (if l<2
                 (Result.Error
@@ -162,12 +173,25 @@ the type yourself, instead you can [parse](#parse) it.")
                             &s)))))
             (Result.Success c)))))
 
-  (doc parse-set "parses a `Set-Cookie` form.")
+  (private max-age-attr?)
+  (hidden max-age-attr?)
+  (defn max-age-attr? [p]
+    (starts-with? &(String.ascii-to-lower &(trim p)) "max-age"))
+
+  (doc parse-set "parses a `Set-Cookie` form.
+
+Per RFC 6265 §4.1.2.2, a `Max-Age` attribute takes precedence over an `Expires`
+attribute, whatever order the two appear in.")
   (defn parse-set [s]
-    (let [splt (split-by s &[\;])]
-      (Array.reduce &parse-set-prop
-                    (parse (Array.unsafe-first &splt))
-                    &(Array.suffix &splt 1)))))
+    (let [splt (split-by s &[\;])
+          attrs (Array.suffix &splt 1)
+          c (Array.reduce &parse-set-prop
+                          (parse (Array.unsafe-first &splt))
+                          &attrs)
+          max-ages (Array.copy-filter &max-age-attr? &attrs)]
+      (if (Array.empty? &max-ages)
+        c
+        (parse-set-prop c (Array.unsafe-last &max-ages))))))
 
 (private header-lookup)
 (hidden header-lookup)
