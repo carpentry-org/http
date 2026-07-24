@@ -43,7 +43,7 @@ and the expiry of the cookie may carry different timezones; they are compared as
 instants, not as wall-clock readings.")
   (defn expired-at? [c t]
     (match @(expires c)
-      (Maybe.Just d) (Datetime.after-instant? t &d)
+      (Maybe.Just d) (> &(Datetime.to-utc t) &(Datetime.to-utc &d))
       (Maybe.Nothing) false))
 
   (doc expired? "checks if a cookie is expired now.")

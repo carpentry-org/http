@@ -1177,6 +1177,14 @@
     "a future Expires keeps the cookie alive when there is no Max-Age")
   (assert-equal test
     "live"
+    &(expiry-verdict "id=abc; Expires=Wed, 01 Jan 2070 00:00:00 GMT")
+    "an Expires past 2038 stays live and does not wrap the epoch")
+  (assert-equal test
+    "live"
+    &(expiry-verdict "id=abc; Expires=Fri, 31 Dec 9999 23:59:59 GMT")
+    "the never-expires idiom (Expires 9999) stays live")
+  (assert-equal test
+    "live"
     &(expiry-verdict-at
       "id=abc; Expires=Fri, 24 Jul 2026 12:00:00 GMT"
       &(zoned 2026 7 24 13 @"CEST" 7200l))
