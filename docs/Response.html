@@ -794,6 +794,30 @@ singletons; use <a href="#with-header">with-header</a> for repeatable ones.</p>
                     </p>
                 </div>
                 <div class="binder">
+                    <a class="anchor" href="#unauthorized">
+                        <h3 id="unauthorized">
+                            unauthorized
+                        </h3>
+                    </a>
+                    <div class="description">
+                        defn
+                    </div>
+                    <p class="sig">
+                        (Fn [String, (Map String (Array String)), String] Response)
+                    </p>
+                    <pre class="args">
+                        (unauthorized challenge headers body)
+                    </pre>
+                    <p class="doc">
+                        <p>builds a <code>401 Unauthorized</code> response carrying <code>challenge</code>
+as its <code>WWW-Authenticate</code> header, which RFC 7235 §3.1 requires of every 401,
+with <code>headers</code> and <code>body</code>. A <code>WWW-Authenticate</code> in <code>headers</code> is replaced. Build
+<code>challenge</code> with <a href="#basic-challenge">Auth.basic-challenge</a> or
+<a href="#str">Credentials.str</a>.</p>
+
+                    </p>
+                </div>
+                <div class="binder">
                     <a class="anchor" href="#update-body">
                         <h3 id="update-body">
                             update-body

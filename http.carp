@@ -1,3 +1,4 @@
+(load "git@github.com:carpentry-org/base64.carp@0.2.0")
 (load "git@github.com:carpentry-org/uri@0.1.0")
 (load "git@github.com:carpentry-org/time@0.5.0")
 (load "git@github.com:carpentry-org/strbuf@0.1.0")
@@ -819,7 +820,18 @@ one adds none.")
 `Status.found`), a `Location` header of `location`, `headers`, and an empty
 body. A `Location` in `headers` is replaced.")
   (defn redirect [code location headers]
-    (set-header (respond code headers @"") @"Location" location)))
+    (set-header (respond code headers @"") @"Location" location))
+
+  (doc unauthorized "builds a `401 Unauthorized` response carrying `challenge`
+as its `WWW-Authenticate` header, which RFC 7235 §3.1 requires of every 401,
+with `headers` and `body`. A `WWW-Authenticate` in `headers` is replaced. Build
+`challenge` with [Auth.basic-challenge](#basic-challenge) or
+[Credentials.str](#str).")
+  (defn unauthorized [challenge headers body]
+    (set-header
+      (respond Status.unauthorized headers body)
+      @"WWW-Authenticate"
+      challenge)))
 
 (doc Form "provides URL-encoded form body parsing and serialization.
 
@@ -1203,6 +1215,285 @@ numeric.")
 
   (doc private? "whether the `private` response directive is present.")
   (defn private? [m] (has? m "private")))
+
+(doc Credentials "is one RFC 7235 §2.1 `credentials` or `challenge`: an
+authentication `scheme` followed by either a `token68` (`token`, e.g. the base64
+blob of a `Basic` credential) or a list of auth-`params`. Both productions have
+the same grammar, so this one type models the `Authorization` and the
+`WWW-Authenticate` side alike.
+
+`scheme` is kept as written and compared case-insensitively. Param names are
+lower-cased and their values unquoted; `params` holds them in header order.")
+(deftype Credentials
+  [scheme String
+   token String
+   params (Array (Pair String String))])
+
+(defmodule Credentials
+  (doc scheme-is? "whether the scheme is `name`, compared case-insensitively as
+RFC 7235 §2.1 requires.")
+  (defn scheme-is? [c name]
+    (= &(String.ascii-to-lower (scheme c)) &(String.ascii-to-lower name)))
+
+  (doc param "looks up auth-param `name` (case-insensitive), returning
+`(Maybe String)`.")
+  (defn param [c name]
+    (let-do [lname (String.ascii-to-lower name)
+             ps (params c)
+             len (Array.length ps)
+             i 0
+             found (Maybe.Nothing)]
+      (while (and (< i len) (Maybe.nothing? &found))
+        (let-do [p (Array.unsafe-nth ps i)]
+          (when (= (Pair.a p) &lname) (set! found (Maybe.Just @(Pair.b p))))
+          (set! i (Int.inc i))))
+      found))
+
+  (doc realm "the `realm` auth-param, as `(Maybe String)`.")
+  (defn realm [c] (param c "realm"))
+
+  (hidden quote-value)
+  (private quote-value)
+  ; wraps `v` in double quotes, backslash-escaping `"` and `\`.
+  (defn quote-value [v]
+    (let-do [bs (String.to-bytes v)
+             len (Array.length &bs)
+             out (the (Array Byte) [])
+             quot (Char.to-byte \")
+             esc (Char.to-byte \\)]
+      (Array.push-back! &out quot)
+      (for [i 0 len]
+        (let-do [b @(Array.unsafe-nth &bs i)]
+          (when (or (= b quot) (= b esc)) (Array.push-back! &out esc))
+          (Array.push-back! &out b)))
+      (Array.push-back! &out quot)
+      (String.from-bytes &out)))
+
+  (doc str "serializes back into a header value, which parses back into an equal
+`Credentials`. A `token` takes precedence over `params`, since RFC 7235 allows
+only one of the two. Param values are always quoted, which the grammar permits
+for any of them.")
+  (defn str [c]
+    (let-do [sb (StringBuf.create)]
+      (StringBuf.append-str &sb (scheme c))
+      (if (String.empty? (token c))
+        (for [i 0 (Array.length (params c))]
+          (let-do [p (Array.unsafe-nth (params c) i)]
+            (if (= i 0)
+              (StringBuf.append-char &sb \space)
+              (StringBuf.append-str &sb ", "))
+            (StringBuf.append-str &sb (Pair.a p))
+            (StringBuf.append-char &sb \=)
+            (StringBuf.append-str &sb &(quote-value (Pair.b p)))))
+        (do
+          (StringBuf.append-char &sb \space)
+          (StringBuf.append-str &sb (token c))))
+      (let-do [s (StringBuf.to-string &sb)] (StringBuf.delete sb) s)))
+  (implements str Credentials.str))
+
+(doc Auth "parses and builds HTTP authentication headers (RFC 7235): the
+`Authorization` and `Proxy-Authorization` credentials a client sends, and the
+`WWW-Authenticate` and `Proxy-Authenticate` challenges a server answers a 401 or
+407 with. The `Basic` (RFC 7617) and `Bearer` (RFC 6750) schemes have dedicated
+helpers.
+
+```
+(match (Auth.parse \"Basic YWxhZGRpbjpvcGVuIHNlc2FtZQ==\")
+  (Result.Success c)
+    (match (Auth.basic-credentials &c)
+      (Result.Success up) (println* (Pair.a &up) \":\" (Pair.b &up))
+      (Result.Error e) (IO.errorln &e))
+  (Result.Error e) (IO.errorln &e))
+```")
+(defmodule Auth
+  (hidden tchar?)
+  (private tchar?)
+  ; whether `c` is an RFC 7230 tchar, i.e. may appear in a bare token.
+  (defn tchar? [c]
+    (or (Char.alphanum? c) (> (String.index-of "!#$%&'*+-.^_`|~" c) -1)))
+
+  (hidden space?)
+  (private space?)
+  (defn space? [c] (let [i (Char.to-int c)] (or (= i 32) (= i 9))))
+
+  (hidden skip-ows)
+  (private skip-ows)
+  (defn skip-ows [s i len]
+    (let-do [j i]
+      (while (and (< j len) (space? (String.char-at s j))) (set! j (Int.inc j)))
+      j))
+
+  (hidden scan-token)
+  (private scan-token)
+  (defn scan-token [s i len]
+    (let-do [j i]
+      (while (and (< j len) (tchar? (String.char-at s j))) (set! j (Int.inc j)))
+      j))
+
+  (hidden scan-padding)
+  (private scan-padding)
+  (defn scan-padding [s i len]
+    (let-do [j i]
+      (while (and (< j len) (= (String.char-at s j) \=)) (set! j (Int.inc j)))
+      j))
+
+  (hidden scan-quoted)
+  (private scan-quoted)
+  ; scans the quoted-string at `i`, pairing the index just past it with its
+  ; unescaped contents; an unterminated string runs to the end of `s`.
+  (defn scan-quoted [s i len]
+    (let-do [j (Int.inc i)
+             out (the (Array Byte) [])
+             done false]
+      (while (and (< j len) (not done))
+        (let [c (String.char-at s j)]
+          (cond
+            (= c \") (do (set! done true) (set! j (Int.inc j)))
+            (and (= c \\) (< (Int.inc j) len))
+              (do
+                (Array.push-back! &out
+                                  (Char.to-byte (String.char-at s (Int.inc j))))
+                (set! j (+ j 2)))
+            (do (Array.push-back! &out (Char.to-byte c)) (set! j (Int.inc j))))))
+      (Pair.init j (String.from-bytes &out))))
+
+  (hidden scan)
+  (private scan)
+  ; a bare token directly after a scheme is that scheme's token68; anywhere else
+  ; it opens a new challenge. Bytes that fit nowhere are dropped.
+  (defn scan [s]
+    (let-do [len (String.length s)
+             i 0
+             out (the (Array Credentials) [])
+             scheme @""
+             token @""
+             ps (the (Array (Pair String String)) [])
+             open false
+             token68-ok false]
+      (while (< i len)
+        (let [c (String.char-at s i)]
+          (cond
+            (space? c) (set! i (Int.inc i))
+            (= c \,) (do (set! token68-ok false) (set! i (Int.inc i)))
+            (not (tchar? c)) (set! i (Int.inc i))
+            (let-do [tend (scan-token s i len)
+                     name (String.byte-slice s i tend)
+                     j (skip-ows s tend len)
+                     eq (and (< j len) (= (String.char-at s j) \=))
+                     k (if eq (skip-ows s (Int.inc j) len) j)
+                     quoted (and eq (and (< k len) (= (String.char-at s k) \")))
+                     valued (and eq
+                                 (and (< k len) (tchar? (String.char-at s k))))]
+              (cond
+                (or quoted valued)
+                  (let-do [v (if quoted
+                             (scan-quoted s k len)
+                             (Pair.init (scan-token s k len) @""))
+                           vend @(Pair.a &v)]
+                    (when open
+                      (Array.push-back! &ps
+                                        (Pair.init (String.ascii-to-lower &name)
+                                                   (if quoted
+                                                     @(Pair.b &v)
+                                                     (String.byte-slice s k vend)))))
+                    (set! token68-ok false)
+                    (set! i vend))
+                (and eq token68-ok)
+                  (let-do [pend (scan-padding s j len)]
+                    (set! token (String.byte-slice s i pend))
+                    (set! token68-ok false)
+                    (set! i pend))
+                eq
+                  (do
+                    (when open
+                      (Array.push-back! &ps
+                                        (Pair.init (String.ascii-to-lower &name)
+                                                   @"")))
+                    (set! i (Int.inc j)))
+                token68-ok
+                  (do (set! token @&name) (set! token68-ok false) (set! i tend))
+                (do
+                  (when open
+                    (Array.push-back! &out
+                                      (Credentials.init @&scheme @&token @&ps)))
+                  (set! scheme @&name)
+                  (set! token @"")
+                  (set! ps [])
+                  (set! open true)
+                  (set! token68-ok true)
+                  (set! i tend)))))))
+      (when open
+        (Array.push-back! &out (Credentials.init @&scheme @&token @&ps)))
+      out))
+
+  (doc parse-challenges "parses a `WWW-Authenticate` or `Proxy-Authenticate`
+value into its challenges, in header order. One header value may carry several
+challenges, and a challenge may carry no params at all. Bytes that fit the
+grammar nowhere are dropped rather than rejected, so this never fails.")
+  (defn parse-challenges [s] (scan s))
+
+  (doc parse "parses an `Authorization` or `Proxy-Authorization` value into the
+one set of credentials it may carry. Fails when there is no scheme, or when more
+than one scheme is present.")
+  (defn parse [s]
+    (let [cs (scan s)]
+      (cond
+        (Array.empty? &cs) (Result.Error (fmt "malformed credentials: '%s'" s))
+        (> (Array.length &cs) 1)
+          (Result.Error (fmt "more than one scheme in credentials: '%s'" s))
+        (Result.Success @(Array.unsafe-nth &cs 0)))))
+
+  (doc basic "builds an RFC 7617 `Basic` `Authorization` value from `user` and
+`password`. Fails when `user` contains a colon, which the scheme cannot
+represent; a `password` may contain any number of them.")
+  (defn basic [user password]
+    (if (> (String.index-of user \:) -1)
+      (Result.Error @"a Basic user-id may not contain a colon")
+      (Result.Success
+        (fmt "Basic %s" &(Base64.encode-str &(fmt "%s:%s" user password))))))
+
+  (doc basic-credentials "decodes RFC 7617 `Basic` credentials into a user and
+password `Pair`, splitting on the first colon. Fails when the scheme is not
+`Basic`, the base64 does not decode, or the decoded value has no colon.")
+  (defn basic-credentials [c]
+    (if (not (Credentials.scheme-is? c "Basic"))
+      (Result.Error (fmt "not Basic credentials: '%s'" (Credentials.scheme c)))
+      (match (Base64.decode-str (Credentials.token c))
+        (Result.Error e) (Result.Error e)
+        (Result.Success decoded)
+          (let [colon (String.index-of &decoded \:)]
+            (if (< colon 0)
+              (Result.Error @"Basic credentials have no colon")
+              (Result.Success
+                (Pair.init (String.byte-slice &decoded 0 colon)
+                           (String.byte-slice &decoded
+                                              (Int.inc colon)
+                                              (String.length &decoded)))))))))
+
+  (doc bearer "builds an RFC 6750 `Bearer` `Authorization` value from `token`.")
+  (defn bearer [token] (fmt "Bearer %s" token))
+
+  (doc bearer-token "the token of RFC 6750 `Bearer` credentials. Fails when the
+scheme is not `Bearer`, or when the token is empty.")
+  (defn bearer-token [c]
+    (cond
+      (not (Credentials.scheme-is? c "Bearer"))
+        (Result.Error
+          (fmt "not Bearer credentials: '%s'" (Credentials.scheme c)))
+      (String.empty? (Credentials.token c)) (Result.Error @"empty Bearer token")
+      (Result.Success @(Credentials.token c))))
+
+  (doc basic-challenge "builds a `Basic` `WWW-Authenticate` challenge for
+`realm`.")
+  (defn basic-challenge [realm]
+    (Credentials.str
+      &(Credentials.init @"Basic" @"" [(Pair.init @"realm" @realm)])))
+
+  (doc bearer-challenge "builds a `Bearer` `WWW-Authenticate` challenge for
+`realm`.")
+  (defn bearer-challenge [realm]
+    (Credentials.str
+      &(Credentials.init @"Bearer" @"" [(Pair.init @"realm" @realm)]))))
 
 (doc FormPart "is a single part decoded from a `multipart/form-data` body: the
 field `name`, an optional `filename` (present for file uploads), an optional

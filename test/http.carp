@@ -136,6 +136,82 @@
 
 (defn cookie-roundtrip [c] (Cookie.parse-set &(Cookie.set &c)))
 
+; ---- auth test helpers ----
+; renders parsed challenges as `scheme token/name=value`, joined by `|`
+(defn chal-summary [s]
+  (let-do [cs (Auth.parse-challenges s)
+           sb (StringBuf.create)]
+    (for [i 0 (Array.length &cs)]
+      (let-do [c (Array.unsafe-nth &cs i)]
+        (when (> i 0) (StringBuf.append-char &sb \|))
+        (StringBuf.append-str &sb (Credentials.scheme c))
+        (unless-do (String.empty? (Credentials.token c))
+          (StringBuf.append-char &sb \space)
+          (StringBuf.append-str &sb (Credentials.token c)))
+        (for [j 0 (Array.length (Credentials.params c))]
+          (let-do [p (Array.unsafe-nth (Credentials.params c) j)]
+            (StringBuf.append-char &sb \/)
+            (StringBuf.append-str &sb (Pair.a p))
+            (StringBuf.append-char &sb \=)
+            (StringBuf.append-str &sb (Pair.b p))))))
+    (let-do [r (StringBuf.to-string &sb)] (StringBuf.delete sb) r)))
+
+(defn chal-count [s] (Array.length &(Auth.parse-challenges s)))
+
+(defn chal-realm [s i]
+  (let [cs (Auth.parse-challenges s)]
+    (if (<= (Array.length &cs) i)
+      @"<none>"
+      (Maybe.from (Credentials.realm (Array.unsafe-nth &cs i)) @"<none>"))))
+
+(defn auth-roundtrip [s]
+  (let-do [cs (Auth.parse-challenges s)
+           sb (StringBuf.create)]
+    (for [i 0 (Array.length &cs)]
+      (do
+        (when (> i 0) (StringBuf.append-str &sb ", "))
+        (StringBuf.append-str &sb &(Credentials.str (Array.unsafe-nth &cs i)))))
+    (let-do [r (StringBuf.to-string &sb)] (StringBuf.delete sb) r)))
+
+(defn auth-scheme-is? [s name]
+  (match (Auth.parse s)
+    (Result.Success c) (Credentials.scheme-is? &c name)
+    (Result.Error _) false))
+
+(defn basic-parts [s]
+  (match (Auth.parse s)
+    (Result.Error e) e
+    (Result.Success c)
+      (match (Auth.basic-credentials &c)
+        (Result.Error e) e
+        (Result.Success up) (fmt "%s/%s" (Pair.a &up) (Pair.b &up)))))
+
+(defn bearer-of [s]
+  (match (Auth.parse s)
+    (Result.Error e) e
+    (Result.Success c)
+      (match (Auth.bearer-token &c) (Result.Error e) e (Result.Success t) t)))
+
+(defn auth-verdict [s]
+  (match (Auth.parse s) (Result.Success _) @"<ok>" (Result.Error e) e))
+
+(defn basic-header [u p]
+  (match (Auth.basic u p) (Result.Success h) h (Result.Error e) e))
+
+(defn basic-header-roundtrip [u p] (basic-parts &(basic-header u p)))
+
+(defn repeated [s n]
+  (let-do [sb (StringBuf.create)]
+    (for [i 0 n] (StringBuf.append-str &sb s))
+    (let-do [r (StringBuf.to-string &sb)] (StringBuf.delete sb) r)))
+
+(defn unauthorized-header [challenge headers]
+  (Maybe.from
+    (Response.header
+      &(Response.unauthorized challenge headers @"")
+      "WWW-Authenticate")
+    @"<none>"))
+
 (deftest test
   (assert-true test
     (match (Request.parse &simple-get) (Result.Success _) true _ false)
@@ -1316,4 +1392,226 @@
     &(expiry-verdict-at
       "id=abc; Expires=Fri, 24 Jul 2026 12:00:00 GMT"
       &(zoned 2026 7 24 11 @"EST" -18000l))
-    "11:00 at UTC-5 is 16:00 GMT, after a 12:00 GMT expiry"))
+    "11:00 at UTC-5 is 16:00 GMT, after a 12:00 GMT expiry")
+  (assert-equal test
+    "Basic dXNlcjpwYXNz"
+    &(chal-summary "Basic dXNlcjpwYXNz")
+    "a bare token after a scheme parses as token68")
+  (assert-equal test
+    "Basic dXNlcjpwYXNz=="
+    &(chal-summary "Basic dXNlcjpwYXNz==")
+    "token68 keeps its trailing padding")
+  (assert-equal test
+    "Digest/realm=a/qop=auth"
+    &(chal-summary "Digest realm=\"a\", qop=\"auth\"")
+    "commas between auth-params stay inside one challenge")
+  (assert-equal test
+    "Digest/algorithm=MD5/nc=1"
+    &(chal-summary "Digest algorithm=MD5, nc=1")
+    "auth-param values may be bare tokens")
+  (assert-equal test
+    "Digest/qop=auth,auth-int"
+    &(chal-summary "Digest qop=\"auth,auth-int\"")
+    "a comma inside a quoted-string does not split the list")
+  (assert-equal test
+    "Newauth/realm=apps/type=1/title=Login to \"apps\"|Basic/realm=simple"
+    &(chal-summary
+      "Newauth realm=\"apps\", type=1, title=\"Login to \\\"apps\\\"\", Basic realm=\"simple\"")
+    "the RFC 7235 §4.1 example splits into two challenges")
+  (assert-equal test
+    "Basic/realm=a|Bearer|Digest/realm=b"
+    &(chal-summary "Basic realm=\"a\", Bearer, Digest realm=\"b\"")
+    "a challenge with no params survives between two that have them")
+  (assert-equal test
+    3
+    (chal-count "Basic realm=\"a\", Bearer, Digest realm=\"b\"")
+    "three challenges are found where the middle one is bare")
+  (assert-equal test
+    "Digest/realm=say \"hi\"/nonce=a\\b"
+    &(chal-summary "Digest realm=\"say \\\"hi\\\"\", nonce=\"a\\\\b\"")
+    "backslash escapes resolve inside quoted-strings")
+  (assert-equal test
+    "WallyWorld"
+    &(chal-realm "Basic realm=\"WallyWorld\"" 0)
+    "realm reads the realm auth-param")
+  (assert-equal test
+    "x"
+    &(chal-realm "Basic REALM=\"x\"" 0)
+    "auth-param names are matched case-insensitively")
+  (assert-equal test
+    "<none>"
+    &(chal-realm "Bearer" 0)
+    "realm is Nothing for a challenge without one")
+  (assert-equal test
+    "BASIC dXNlcjpwYXNz"
+    &(chal-summary "BASIC dXNlcjpwYXNz")
+    "the scheme is preserved exactly as written")
+  (assert-true test
+    (auth-scheme-is? "BaSiC dXNlcjpwYXNz" "basic")
+    "scheme matching is case-insensitive")
+  (assert-false test
+    (auth-scheme-is? "Bearer abc" "basic")
+    "scheme matching rejects a different scheme")
+  (assert-equal test
+    "Basic realm=\"WallyWorld\""
+    &(auth-roundtrip "Basic realm=\"WallyWorld\"")
+    "a challenge round-trips through the serializer")
+  (assert-equal test
+    "Basic dXNlcjpwYXNz=="
+    &(auth-roundtrip "Basic dXNlcjpwYXNz==")
+    "token68 round-trips through the serializer")
+  (assert-equal test
+    "Basic realm=\"a\", Bearer, Digest realm=\"b\""
+    &(auth-roundtrip "Basic realm=\"a\", Bearer, Digest realm=\"b\"")
+    "a challenge list round-trips, bare challenge included")
+  (assert-equal test
+    "Digest realm=\"say \\\"hi\\\"\""
+    &(auth-roundtrip "Digest realm=\"say \\\"hi\\\"\"")
+    "quotes in a param value are re-escaped on serialization")
+  (assert-equal test
+    "Digest algorithm=\"MD5\""
+    &(auth-roundtrip "Digest algorithm=MD5")
+    "an unquoted param value is quoted on serialization")
+  (assert-equal test
+    "Basic dXNlcjpwYXNz"
+    &(basic-header "user" "pass")
+    "Auth.basic base64-encodes user and password")
+  (assert-equal test
+    "user/pass"
+    &(basic-header-roundtrip "user" "pass")
+    "Basic credentials round-trip through parse and decode")
+  (assert-equal test
+    "user/pa:ss:word"
+    &(basic-header-roundtrip "user" "pa:ss:word")
+    "a password may contain colons, which stay in the password")
+  (assert-equal test
+    "user/"
+    &(basic-header-roundtrip "user" "")
+    "an empty password round-trips")
+  (assert-equal test
+    "a Basic user-id may not contain a colon"
+    &(basic-header "us:er" "pass")
+    "Auth.basic rejects a user-id containing a colon")
+  (assert-equal test
+    "Basic credentials have no colon"
+    &(basic-parts "Basic aaaa")
+    "base64 that decodes without a colon is a clean failure")
+  (assert-equal test
+    "Basic credentials have no colon"
+    &(basic-parts "Basic")
+    "a lone Basic scheme is a clean failure")
+  (assert-equal test
+    "input length must be a multiple of 4"
+    &(basic-parts "Basic !!!")
+    "invalid base64 is a clean failure")
+  (assert-equal test
+    "not Basic credentials: 'Bearer'"
+    &(basic-parts "Bearer abc")
+    "basic-credentials rejects another scheme")
+  (assert-equal test
+    "Bearer abc123"
+    &(Auth.bearer "abc123")
+    "Auth.bearer builds a Bearer header value")
+  (assert-equal test
+    "abc123"
+    &(bearer-of "Bearer abc123")
+    "bearer-token reads the token back")
+  (assert-equal test
+    "abc123"
+    &(bearer-of "bearer abc123")
+    "bearer-token accepts a lower-cased scheme")
+  (assert-equal test
+    "empty Bearer token"
+    &(bearer-of "Bearer")
+    "bearer-token rejects a scheme with no token")
+  (assert-equal test
+    "not Bearer credentials: 'Basic'"
+    &(bearer-of "Basic dXNlcjpwYXNz")
+    "bearer-token rejects another scheme")
+  (assert-equal test
+    "Basic realm=\"WallyWorld\""
+    &(Auth.basic-challenge "WallyWorld")
+    "basic-challenge builds a WWW-Authenticate value")
+  (assert-equal test
+    "Basic realm=\"say \\\"hi\\\"\""
+    &(Auth.basic-challenge "say \"hi\"")
+    "basic-challenge escapes quotes in the realm")
+  (assert-equal test
+    "Bearer realm=\"api\""
+    &(Auth.bearer-challenge "api")
+    "bearer-challenge builds a WWW-Authenticate value")
+  (assert-equal test
+    "malformed credentials: ''"
+    &(auth-verdict "")
+    "Auth.parse rejects an empty value")
+  (assert-equal test
+    "malformed credentials: '   '"
+    &(auth-verdict "   ")
+    "Auth.parse rejects a whitespace-only value")
+  (assert-equal test
+    "more than one scheme in credentials: 'Basic abc, Bearer def'"
+    &(auth-verdict "Basic abc, Bearer def")
+    "Auth.parse rejects more than one scheme")
+  (assert-equal test
+    "<ok>"
+    &(auth-verdict "Basic")
+    "Auth.parse accepts a scheme with no credentials")
+  (assert-equal test
+    0
+    (chal-count "")
+    "an empty header value yields no challenges")
+  (assert-equal test
+    0
+    (chal-count " \t ")
+    "a whitespace-only header value yields no challenges")
+  (assert-equal test 0 (chal-count ",,,") "commas alone yield no challenges")
+  (assert-equal test
+    0
+    (chal-count "=")
+    "a stray equals sign yields no challenges")
+  (assert-equal test
+    "Basic"
+    &(chal-summary "Basic ,")
+    "a trailing comma does not invent a challenge")
+  (assert-equal test
+    "Basic/realm=unterminated"
+    &(chal-summary "Basic realm=\"unterminated")
+    "an unterminated quoted-string runs to the end of the value")
+  (assert-equal test
+    "Basic/realm=a\\"
+    &(chal-summary "Basic realm=\"a\\")
+    "a trailing backslash inside a quoted-string is kept literally")
+  (assert-equal test
+    "Basic/realm=/foo="
+    &(chal-summary "Basic realm=\"\", foo=")
+    "empty param values parse as empty")
+  (assert-equal test
+    "Basic"
+    &(chal-summary "Basic éé")
+    "non-ASCII bytes outside a quoted-string are dropped")
+  (assert-equal test
+    "Basic/realm=é"
+    &(chal-summary "Basic realm=\"é\"")
+    "non-ASCII bytes inside a quoted-string are preserved")
+  (assert-equal test
+    1
+    (chal-count &(fmt "Basic realm=\"%s\"" &(repeated "a" 20000)))
+    "a very long header value parses without crashing")
+  (assert-equal test
+    0
+    (chal-count &(repeated "\\\"=," 5000))
+    "a long run of delimiters parses without crashing")
+  (assert-equal test
+    401
+    @(Response.code
+      &(Response.unauthorized (Auth.basic-challenge "site") {} @""))
+    "Response.unauthorized is a 401")
+  (assert-equal test
+    "Basic realm=\"site\""
+    &(unauthorized-header (Auth.basic-challenge "site") {})
+    "Response.unauthorized attaches the challenge")
+  (assert-equal test
+    "Basic realm=\"new\""
+    &(unauthorized-header (Auth.basic-challenge "new")
+                          {@"WWW-Authenticate" [@"Basic realm=\"old\""]})
+    "Response.unauthorized replaces a WWW-Authenticate in headers"))
