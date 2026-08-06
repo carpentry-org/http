@@ -1402,6 +1402,14 @@
     &(chal-summary "Basic dXNlcjpwYXNz==")
     "token68 keeps its trailing padding")
   (assert-equal test
+    "Basic dTphYWE/"
+    &(chal-summary "Basic dTphYWE/")
+    "a token68 keeps a slash, which the token grammar excludes")
+  (assert-equal test
+    "Digest/realm=a|b"
+    &(chal-summary "Digest realm=a/b")
+    "the wider token68 alphabet does not reach an auth-param value")
+  (assert-equal test
     "Digest/realm=a/qop=auth"
     &(chal-summary "Digest realm=\"a\", qop=\"auth\"")
     "commas between auth-params stay inside one challenge")
@@ -1481,6 +1489,14 @@
     &(basic-header-roundtrip "user" "pass")
     "Basic credentials round-trip through parse and decode")
   (assert-equal test
+    "Basic dTphYWE/"
+    &(basic-header "u" "aaa?")
+    "Auth.basic emits the standard base64 alphabet, slash included")
+  (assert-equal test
+    "u/aaa?"
+    &(basic-header-roundtrip "u" "aaa?")
+    "Basic credentials whose base64 contains a slash round-trip")
+  (assert-equal test
     "user/pa:ss:word"
     &(basic-header-roundtrip "user" "pa:ss:word")
     "a password may contain colons, which stay in the password")
@@ -1520,6 +1536,18 @@
     "abc123"
     &(bearer-of "bearer abc123")
     "bearer-token accepts a lower-cased scheme")
+  (assert-equal test
+    "ab/cd.ef/gh"
+    &(bearer-of "Bearer ab/cd.ef/gh")
+    "a Bearer token may contain slashes")
+  (assert-equal test
+    1
+    (chal-count "Bearer ab/cd.ef/gh")
+    "a slash does not split a Bearer token into two challenges")
+  (assert-equal test
+    "/abc"
+    &(bearer-of "Bearer /abc")
+    "a token68 may begin with a slash")
   (assert-equal test
     "empty Bearer token"
     &(bearer-of "Bearer")

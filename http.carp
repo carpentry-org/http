@@ -1312,6 +1312,11 @@ helpers.
   (defn tchar? [c]
     (or (Char.alphanum? c) (> (String.index-of "!#$%&'*+-.^_`|~" c) -1)))
 
+  (hidden token68-char?)
+  (private token68-char?)
+  ; whether `c` may appear in an RFC 7235 token68, which allows `/`.
+  (defn token68-char? [c] (or (tchar? c) (= c \/)))
+
   (hidden space?)
   (private space?)
   (defn space? [c] (let [i (Char.to-int c)] (or (= i 32) (= i 9))))
@@ -1328,6 +1333,14 @@ helpers.
   (defn scan-token [s i len]
     (let-do [j i]
       (while (and (< j len) (tchar? (String.char-at s j))) (set! j (Int.inc j)))
+      j))
+
+  (hidden scan-token68)
+  (private scan-token68)
+  (defn scan-token68 [s i len]
+    (let-do [j i]
+      (while (and (< j len) (token68-char? (String.char-at s j)))
+        (set! j (Int.inc j)))
       j))
 
   (hidden scan-padding)
@@ -1375,8 +1388,11 @@ helpers.
           (cond
             (space? c) (set! i (Int.inc i))
             (= c \,) (do (set! token68-ok false) (set! i (Int.inc i)))
-            (not (tchar? c)) (set! i (Int.inc i))
-            (let-do [tend (scan-token s i len)
+            (not (if token68-ok (token68-char? c) (tchar? c)))
+              (set! i (Int.inc i))
+            (let-do [tend (if token68-ok
+                       (scan-token68 s i len)
+                       (scan-token s i len))
                      name (String.byte-slice s i tend)
                      j (skip-ows s tend len)
                      eq (and (< j len) (= (String.char-at s j) \=))
