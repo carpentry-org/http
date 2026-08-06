@@ -69,6 +69,30 @@ chunk framing. Detect it with `chunked?` and decode it with
   _ ())
 ```
 
+### Authentication
+
+`Auth` parses and builds the RFC 7235 headers: the credentials a client sends in
+`Authorization`, and the challenges a server answers a 401 with in
+`WWW-Authenticate`. One `WWW-Authenticate` value may carry several challenges.
+
+```clojure
+(match (Auth.parse "Basic YWxhZGRpbjpvcGVuIHNlc2FtZQ==")
+  (Result.Success c)
+    (match (Auth.basic-credentials &c)
+      (Result.Success up) (println* (Pair.a &up) ":" (Pair.b &up))
+      (Result.Error e) (IO.errorln &e))
+  (Result.Error e) (IO.errorln &e))
+
+(Auth.basic "aladdin" "open sesame")
+; => (Success "Basic YWxhZGRpbjpvcGVuIHNlc2FtZQ==")
+(Auth.bearer "mF_9.B5f-4.1JqM") ; => "Bearer mF_9.B5f-4.1JqM"
+
+(let [cs (Auth.parse-challenges "Basic realm=\"a\", Digest realm=\"b\"")]
+  (println* (Credentials.realm (Array.unsafe-nth &cs 1)))) ; => (Just "b")
+
+(Response.unauthorized (Auth.basic-challenge "WallyWorld") {} @"go away")
+```
+
 ### Status codes
 
 ```clojure
@@ -88,6 +112,8 @@ Status.not-found    ; => 404
 | `Status` | Status code constants and reason phrases |
 | `Form` | URL-encoded form body parser |
 | `MediaType` | `Content-Type` / media-type parser (type, subtype, parameters) |
+| `Auth` | `Authorization` / `WWW-Authenticate` parser and builder (RFC 7235) |
+| `Credentials` | one authentication scheme with its token68 or auth-params |
 | `Multipart` | `multipart/form-data` body decoder |
 | `FormPart` | a single decoded multipart part (name, filename, content-type, body) |
 | `TransferEncoding` | Chunked transfer-encoding decoder |
