@@ -1008,6 +1008,47 @@ when there is no `type/subtype`.")
   (doc mime "returns the `type/subtype` string, without any parameters.")
   (defn mime [mt] (fmt "%s/%s" (type mt) (subtype mt))))
 
+(doc Weighted "is one entry of a weighted, comma-separated header list such as
+`Accept`, `Accept-Encoding` or `Accept-Language`: a lower-cased `value` — the
+media range, content coding or language range — and its quality `q` between
+`0.0` and `1.0`.")
+(deftype Weighted [value String
+                   q Double])
+
+(defmodule Weighted
+  (hidden clamp-q)
+  (private clamp-q)
+  (defn clamp-q [d] (cond (Double.< d 0.0) 0.0 (Double.> d 1.0) 1.0 d))
+
+  (hidden q-of)
+  (private q-of)
+  ; the `q` parameter of one list entry, defaulting to 1.0 when it is absent or
+  ; unparseable
+  (defn q-of [s]
+    (match (Map.get-maybe &(MediaType.parse-params s) "q")
+      (Maybe.Nothing) 1.0
+      (Maybe.Just qs)
+        (match (Double.from-string &qs)
+          (Maybe.Nothing) 1.0
+          (Maybe.Just d) (clamp-q d))))
+
+  (doc parse-list "parses a weighted, comma-separated header list into its
+entries, in header order. Each entry's `value` is the lower-cased text before
+its first `;`, and its `q` is the `;q=` parameter, clamped to `[0.0, 1.0]` and
+defaulting to `1.0`. Entries with an empty value are skipped.")
+  (defn parse-list [s]
+    (let-do [entries (the (Array Weighted) [])
+             segs (String.split-by s &[\,])]
+      (for [i 0 (Array.length &segs)]
+        (let [seg (Array.unsafe-nth &segs i)
+              semi (String.index-of seg \;)
+              value (String.ascii-to-lower
+                &(String.trim
+                  &(if (< semi 0) @seg (String.byte-slice seg 0 semi))))]
+          (unless (String.empty? &value)
+            (Array.push-back! &entries (Weighted.init value (q-of seg))))))
+      entries)))
+
 (doc MediaRange "is one entry of an `Accept` header: a media range whose `type`
 and `subtype` may each be the wildcard `*`, weighted by a quality `q` between
 `0.0` and `1.0` (defaulting to `1.0`).")
@@ -1018,45 +1059,21 @@ and `subtype` may each be the wildcard `*`, weighted by a quality `q` between
 (doc Accept "parses `Accept` headers and performs server-side content
 negotiation (RFC 7231 §5.3.2).")
 (defmodule Accept
-  (hidden clamp-q)
-  (private clamp-q)
-  (defn clamp-q [d] (cond (Double.< d 0.0) 0.0 (Double.> d 1.0) 1.0 d))
-
-  (hidden quality-of)
-  (private quality-of)
-  ; the `q` parameter of a parsed range, defaulting to 1.0 when it is absent or
-  ; unparseable
-  (defn quality-of [mt]
-    (match (MediaType.param mt "q")
-      (Maybe.Nothing) 1.0
-      (Maybe.Just qs)
-        (match (Double.from-string &qs)
-          (Maybe.Nothing) 1.0
-          (Maybe.Just d) (clamp-q d))))
-
-  (hidden parse-range)
-  (private parse-range)
-  (defn parse-range [s]
-    (match (MediaType.parse s)
-      (Result.Error _) (Maybe.Nothing)
-      (Result.Success mt)
-        (Maybe.Just
-          (MediaRange.init @(MediaType.type &mt)
-                           @(MediaType.subtype &mt)
-                           (quality-of &mt)))))
-
   (doc parse "parses an `Accept` header value into its weighted media ranges, in
 header order. Malformed ranges are skipped. Delegates to the `MediaType` parser,
-so wildcards (`*/*`, `type/*`) and parameters are handled.")
+so wildcards (`*/*`, `type/*`) are handled.")
   (defn parse [s]
-    (let-do [segs (String.split-by s &[\,])
-             ranges []]
-      (for [i 0 (Array.length &segs)]
-        (let [seg (String.trim (Array.unsafe-nth &segs i))]
-          (unless (String.empty? &seg)
-            (match (parse-range &seg)
-              (Maybe.Just r) (Array.push-back! &ranges r)
-              (Maybe.Nothing) ()))))
+    (let-do [entries (Weighted.parse-list s)
+             ranges (the (Array MediaRange) [])]
+      (for [i 0 (Array.length &entries)]
+        (let [e (Array.unsafe-nth &entries i)]
+          (match (MediaType.parse (Weighted.value e))
+            (Result.Error _) ()
+            (Result.Success mt)
+              (Array.push-back! &ranges
+                                (MediaRange.init @(MediaType.type &mt)
+                                                 @(MediaType.subtype &mt)
+                                                 @(Weighted.q e))))))
       ranges))
 
   (hidden specificity)
@@ -1116,6 +1133,147 @@ acceptable.")
                   (when-do (and (Double.> q 0.0) (Double.> q best-q))
                     (set! best-q q)
                     (set! best-idx i)))))
+          (if (= best-idx -1)
+            (Maybe.Nothing)
+            (Maybe.Just @(Array.unsafe-nth offers best-idx))))))))
+
+(doc AcceptEncoding "parses `Accept-Encoding` headers and performs server-side
+content coding negotiation (RFC 9110 §12.5.3). `Accept-Charset` has no
+counterpart here: RFC 9110 §12.5.2 deprecates it.")
+(defmodule AcceptEncoding
+  (doc parse "parses an `Accept-Encoding` header value into its weighted content
+codings, in header order.")
+  (defn parse [s] (Weighted.parse-list s))
+
+  (hidden coding-quality)
+  (private coding-quality)
+  ; the weight of the coding matching `name` — one naming it beats `*` — or
+  ; -1.0 when none match
+  (defn coding-quality [codings name]
+    (let-do [best-spec 0
+             best-q -1.0]
+      (for [i 0 (Array.length codings)]
+        (let [c (Array.unsafe-nth codings i)
+              v (Weighted.value c)
+              spec (cond (= v name) 2 (= v "*") 1 0)]
+          (when (> spec 0)
+            (cond
+              (> spec best-spec)
+                (do (set! best-spec spec) (set! best-q @(Weighted.q c)))
+              (and (= spec best-spec) (Double.> @(Weighted.q c) best-q))
+                (set! best-q @(Weighted.q c))
+              ()))))
+      best-q))
+
+  (hidden acceptable-q)
+  (private acceptable-q)
+  ; `identity` is acceptable by default: only a coding that matched it — its own
+  ; name, or `*` — can rate it
+  (defn acceptable-q [codings name]
+    (let [q (coding-quality codings name)]
+      (if (and (Double.< q 0.0) (= name "identity")) 1.0 q)))
+
+  (doc negotiate
+    "selects the best content coding to serve from `offers` given an
+`Accept-Encoding` header value, per RFC 9110 §12.5.3, as `(Maybe String)`. A
+coding named by the field takes that entry's weight, one only `*` matches takes
+the wildcard's, and any other coding is unacceptable — except `identity`, which
+is acceptable at full weight unless the field rates it. A weight of `0` makes a
+coding unacceptable rather than least preferred. The highest-weighted acceptable
+offer wins, ties broken by the order of `offers`; matching is case-insensitive.
+An empty `Accept-Encoding` accepts only `identity`; a request that sends no
+`Accept-Encoding` at all accepts anything, which
+[`Request.negotiate-encoding`](Request.html#negotiate-encoding) handles.
+`Nothing` means nothing is acceptable.")
+  (defn negotiate [accept offers]
+    (let-do [codings (parse accept)
+             best-q 0.0
+             best-idx -1]
+      (for [i 0 (Array.length offers)]
+        (let [name (String.ascii-to-lower (Array.unsafe-nth offers i))
+              q (acceptable-q &codings &name)]
+          (when-do (and (Double.> q 0.0) (Double.> q best-q))
+            (set! best-q q)
+            (set! best-idx i))))
+      (if (= best-idx -1)
+        (Maybe.Nothing)
+        (Maybe.Just @(Array.unsafe-nth offers best-idx))))))
+
+(doc AcceptLanguage "parses `Accept-Language` headers and performs server-side
+language negotiation, matching ranges against tags by RFC 4647 §3.3.1 basic
+filtering.")
+(defmodule AcceptLanguage
+  (doc parse
+    "parses an `Accept-Language` header value into its weighted language
+ranges, in header order.")
+  (defn parse [s] (Weighted.parse-list s))
+
+  (hidden matches?)
+  (private matches?)
+  ; `range` matches `tag` when it is `*`, equal to it, or a prefix of it ending
+  ; on a subtag boundary
+  (defn matches? [range tag]
+    (or (= range "*")
+        (or (= range tag)
+            (and (String.starts-with? tag range)
+                 (= \- (String.char-at tag (String.length range)))))))
+
+  (hidden specificity)
+  (private specificity)
+  ; how specifically `range` matches: its subtag count, with `*` least specific
+  (defn specificity [range]
+    (if (= range "*") 0 (Array.length &(String.split-by range &[\-]))))
+
+  (hidden best-match)
+  (private best-match)
+  ; the weight and specificity of the most specific range matching `tag`, or a
+  ; weight of -1.0 when none match
+  (defn best-match [ranges tag]
+    (let-do [best-spec -1
+             best-q -1.0]
+      (for [i 0 (Array.length ranges)]
+        (let [r (Array.unsafe-nth ranges i)
+              range (Weighted.value r)]
+          (when (matches? range tag)
+            (let [spec (specificity range)]
+              (cond
+                (> spec best-spec)
+                  (do (set! best-spec spec) (set! best-q @(Weighted.q r)))
+                (and (= spec best-spec) (Double.> @(Weighted.q r) best-q))
+                  (set! best-q @(Weighted.q r))
+                ())))))
+      (Pair.init best-q best-spec)))
+
+  (doc negotiate "selects the best language tag to serve from `offers` given an
+`Accept-Language` header value, as `(Maybe String)`. Ranges match tags by RFC
+4647 §3.3.1 basic filtering: `*` matches anything, and a range matches a tag it
+prefixes on a subtag boundary, so `en` matches `en-US` but neither `en-US`
+matches `en` nor `en` matches `eng`. Each offer takes the weight of the most
+specific range matching it; a weight of `0` (or no matching range) makes the
+offer unacceptable. The highest-weighted acceptable offer wins, ties broken by
+range specificity and then by the order of `offers`; matching is
+case-insensitive. An empty `Accept-Language` accepts anything and yields the
+first offer; `Nothing` means nothing is acceptable.")
+  (defn negotiate [accept offers]
+    (let [ranges (parse accept)]
+      (if (Array.empty? &ranges)
+        (if (Array.empty? offers)
+          (Maybe.Nothing)
+          (Maybe.Just @(Array.unsafe-first offers)))
+        (let-do [best-q 0.0
+                 best-spec -1
+                 best-idx -1]
+          (for [i 0 (Array.length offers)]
+            (let [tag (String.ascii-to-lower (Array.unsafe-nth offers i))
+                  m (best-match &ranges &tag)
+                  q @(Pair.a &m)
+                  spec @(Pair.b &m)]
+              (when-do (and (Double.> q 0.0)
+                            (or (Double.> q best-q)
+                                (and (= q best-q) (> spec best-spec))))
+                (set! best-q q)
+                (set! best-spec spec)
+                (set! best-idx i))))
           (if (= best-idx -1)
             (Maybe.Nothing)
             (Maybe.Just @(Array.unsafe-nth offers best-idx))))))))
@@ -1663,4 +1821,27 @@ request with no `Accept` header accepts anything. See
     (let [accepts (header-values (headers r) "Accept")]
       (if (Array.empty? &accepts)
         (Accept.negotiate "" offers)
-        (Accept.negotiate &(String.join ", " &accepts) offers)))))
+        (Accept.negotiate &(String.join ", " &accepts) offers))))
+
+  (doc negotiate-encoding "chooses the best content coding for this request's
+response from the server's `offers`, honoring the request's `Accept-Encoding`
+header (RFC 9110 §12.5.3). A request with no `Accept-Encoding` header accepts
+anything and yields the first offer, whereas one with an empty header accepts
+only `identity`. See [`AcceptEncoding.negotiate`](AcceptEncoding.html#negotiate).")
+  (defn negotiate-encoding [r offers]
+    (let [accepts (header-values (headers r) "Accept-Encoding")]
+      (if (Array.empty? &accepts)
+        (if (Array.empty? offers)
+          (Maybe.Nothing)
+          (Maybe.Just @(Array.unsafe-first offers)))
+        (AcceptEncoding.negotiate &(String.join ", " &accepts) offers))))
+
+  (doc negotiate-language "chooses the best language for this request's response
+from the server's `offers`, honoring the request's `Accept-Language` header (RFC
+4647 §3.3.1). A request with no `Accept-Language` header accepts anything. See
+[`AcceptLanguage.negotiate`](AcceptLanguage.html#negotiate).")
+  (defn negotiate-language [r offers]
+    (let [accepts (header-values (headers r) "Accept-Language")]
+      (if (Array.empty? &accepts)
+        (AcceptLanguage.negotiate "" offers)
+        (AcceptLanguage.negotiate &(String.join ", " &accepts) offers)))))

@@ -96,6 +96,32 @@
         (Maybe.Just m) m
         (Maybe.Nothing) @"NONE")
     _ @"PARSE-FAIL"))
+
+(defn pick-enc [accept offers]
+  (match (AcceptEncoding.negotiate accept offers)
+    (Maybe.Just c) c
+    (Maybe.Nothing) @"NONE"))
+
+(defn pick-lang [accept offers]
+  (match (AcceptLanguage.negotiate accept offers)
+    (Maybe.Just l) l
+    (Maybe.Nothing) @"NONE"))
+
+(defn req-pick-enc [hdrs offers]
+  (let [r (Request.get (URI.zero) [] hdrs @"")]
+    (match (Request.negotiate-encoding &r offers)
+      (Maybe.Just c) c
+      (Maybe.Nothing) @"NONE")))
+
+(defn req-pick-lang [hdrs offers]
+  (let [r (Request.get (URI.zero) [] hdrs @"")]
+    (match (Request.negotiate-language &r offers)
+      (Maybe.Just l) l
+      (Maybe.Nothing) @"NONE")))
+
+(defn weighted-entry [es i]
+  (let [e (Array.unsafe-nth es i)]
+    (fmt "%s@%.1f" (Weighted.value e) @(Weighted.q e))))
 ; ---- chunked transfer-encoding test helpers ----
 (defn dechunk-ok [s]
   (match (TransferEncoding.dechunk s) (Result.Success b) b _ @"FAIL"))
@@ -1048,6 +1074,132 @@
       "GET / HTTP/1.1\r\nHost: localhost\r\nAccept: text/html\r\n\r\n"
       &[@"text/html"])
     "Request.negotiate honors a single-line Accept")
+
+  ; ---- content coding negotiation (Accept-Encoding, RFC 9110 §12.5.3) ----
+  (assert-equal test
+    "gzip"
+    &(pick-enc "gzip" &[@"gzip"])
+    "a coding with no q defaults to weight 1")
+  (assert-equal test
+    "br"
+    &(pick-enc "gzip;q=0.5, br;q=0.9" &[@"gzip" @"br"])
+    "the higher-weighted coding wins")
+  (assert-equal test
+    "NONE"
+    &(pick-enc "gzip" &[@"br"])
+    "a coding the field never names is unacceptable")
+  (assert-equal test
+    "NONE"
+    &(pick-enc "gzip;q=0" &[@"gzip"])
+    "q=0 makes a coding unacceptable, not least preferred")
+  (assert-equal test
+    "identity"
+    &(pick-enc "gzip" &[@"identity"])
+    "identity is acceptable by default when the field does not name it")
+  (assert-equal test
+    "NONE"
+    &(pick-enc "identity;q=0" &[@"identity"])
+    "identity;q=0 refuses identity")
+  (assert-equal test
+    "NONE"
+    &(pick-enc "*;q=0" &[@"identity"])
+    "*;q=0 refuses identity too")
+  (assert-equal test
+    "identity"
+    &(pick-enc "*;q=0, identity;q=0.5" &[@"identity"])
+    "an entry naming identity overrides a refusing *")
+  (assert-equal test
+    "br"
+    &(pick-enc "*, gzip;q=0" &[@"gzip" @"br"])
+    "* matches any coding not named elsewhere in the field")
+  (assert-equal test
+    "identity"
+    &(pick-enc "" &[@"gzip" @"identity"])
+    "an empty Accept-Encoding accepts only identity")
+  (assert-equal test
+    "NONE"
+    &(pick-enc "" &[@"gzip"])
+    "an empty Accept-Encoding refuses every other coding")
+  (assert-equal test
+    "GZip"
+    &(pick-enc "GZIP" &[@"GZip"])
+    "coding matching is case-insensitive")
+  (assert-equal test
+    "gzip@0.5"
+    &(weighted-entry &(AcceptEncoding.parse "br, GZIP;q=0.5") 1)
+    "parse lower-cases a coding and keeps its weight")
+  (assert-equal test
+    "gzip"
+    &(req-pick-enc (the (Map String (Array String)) {}) &[@"gzip" @"identity"])
+    "no Accept-Encoding header accepts anything")
+  (assert-equal test
+    "identity"
+    &(req-pick-enc {@"Accept-Encoding" [@""]} &[@"gzip" @"identity"])
+    "an Accept-Encoding header present but empty accepts only identity")
+  (assert-equal test
+    "br"
+    &(req-pick-enc {@"Accept-Encoding" [@"br"]} &[@"gzip" @"br"])
+    "Request.negotiate-encoding honors the request's Accept-Encoding header")
+
+  ; ---- language negotiation (Accept-Language, RFC 4647 §3.3.1) ----
+  (assert-equal test
+    "en-US"
+    &(pick-lang "en" &[@"en-US"])
+    "a range matches a tag it prefixes on a subtag boundary")
+  (assert-equal test
+    "NONE"
+    &(pick-lang "en-US" &[@"en"])
+    "a range more specific than the tag does not match")
+  (assert-equal test
+    "NONE"
+    &(pick-lang "en" &[@"eng"])
+    "a prefix match must land on a subtag boundary")
+  (assert-equal test "de" &(pick-lang "*" &[@"de"]) "* matches any tag")
+  (assert-equal test
+    "en-US"
+    &(pick-lang "EN-us" &[@"en-US"])
+    "language matching is case-insensitive")
+  (assert-equal test
+    "fr"
+    &(pick-lang "de;q=0.5, fr;q=0.9" &[@"de" @"fr"])
+    "the higher-weighted language wins")
+  (assert-equal test
+    "fr"
+    &(pick-lang "de;q=0, *" &[@"de" @"fr"])
+    "q=0 makes a language unacceptable even under *")
+  (assert-equal test
+    "fr"
+    &(pick-lang "*, de;q=0.1" &[@"fr" @"de"])
+    "a range naming a tag outweighs the * that also matches it")
+  (assert-equal test
+    "en-US"
+    &(pick-lang "en, en-US" &[@"en-GB" @"en-US"])
+    "the more specific range wins at equal weight")
+  (assert-equal test
+    "en-GB"
+    &(pick-lang "en;q=0.9, en-US;q=0.1" &[@"en-GB" @"en-US"])
+    "a tag takes the weight of the most specific range matching it")
+  (assert-equal test
+    "de"
+    &(pick-lang "" &[@"de" @"en"])
+    "an empty Accept-Language accepts anything and yields the first offer")
+  (assert-equal test
+    "NONE"
+    &(pick-lang "de" &[@"fr"])
+    "no matching range means no acceptable offer")
+  (assert-equal test
+    "en-us@0.5"
+    &(weighted-entry &(AcceptLanguage.parse "de, EN-US;q=0.5") 1)
+    "parse lower-cases a range and keeps its weight")
+  (assert-equal test
+    "de"
+    &(req-pick-lang (the (Map String (Array String)) {}) &[@"de" @"en"])
+    "no Accept-Language header accepts anything")
+  (assert-equal test
+    "fr"
+    &(req-pick-lang {@"Accept-Language" [@"fr;q=0.9, de;q=0.1"]} &[@"de" @"fr"])
+    "Request.negotiate-language honors the request's Accept-Language header")
+
   (assert-equal test
     &(dechunk-ok "4\r\nWiki\r\n5\r\npedia\r\n0\r\n\r\n")
     "Wikipedia"

@@ -93,6 +93,46 @@ chunk framing. Detect it with `chunked?` and decode it with
 (Response.unauthorized (Auth.basic-challenge "WallyWorld") {} @"go away")
 ```
 
+### Content negotiation
+
+`Accept`, `AcceptEncoding` and `AcceptLanguage` parse their header into weighted
+entries and pick the best of the server's offers, returning `(Maybe String)`.
+The `Request` wrappers read the header off the request and apply the right
+default when it is absent.
+
+```clojure
+(Accept.negotiate "text/html;q=0.8, application/json;q=0.9"
+                  &[@"text/html" @"application/json"])
+; => (Just "application/json")
+
+(Request.negotiate &req &[@"text/html" @"application/json"])
+```
+
+`Accept-Encoding` follows RFC 9110 §12.5.3: `identity` is acceptable unless the
+header refuses it, `*` stands in for any coding the header does not name, and
+`q=0` means unacceptable rather than least preferred. A request with no
+`Accept-Encoding` accepts anything; one with an empty `Accept-Encoding` accepts
+only `identity`.
+
+```clojure
+(AcceptEncoding.negotiate "*;q=0, gzip" &[@"gzip" @"identity"]) ; => (Just "gzip")
+(AcceptEncoding.negotiate "gzip;q=0" &[@"gzip"])                ; => (Nothing)
+
+(Request.negotiate-encoding &req &[@"gzip" @"identity"])
+```
+
+`Accept-Language` matches ranges against tags by RFC 4647 §3.3.1 basic
+filtering, so `en` matches `en-US` but not `eng`, and `en-US` does not match
+`en`. More specific ranges win at equal weight.
+
+```clojure
+(AcceptLanguage.negotiate "de, en;q=0.5" &[@"en-US" @"de-AT"]) ; => (Just "de-AT")
+
+(Request.negotiate-language &req &[@"en" @"de"])
+```
+
+`Accept-Charset` has no counterpart: RFC 9110 §12.5.2 deprecates it.
+
 ### Status codes
 
 ```clojure
@@ -112,6 +152,11 @@ Status.not-found    ; => 404
 | `Status` | Status code constants and reason phrases |
 | `Form` | URL-encoded form body parser |
 | `MediaType` | `Content-Type` / media-type parser (type, subtype, parameters) |
+| `Accept` | `Accept` parser and media-type negotiation (RFC 7231) |
+| `MediaRange` | one weighted media range of an `Accept` header |
+| `AcceptEncoding` | `Accept-Encoding` parser and content-coding negotiation (RFC 9110) |
+| `AcceptLanguage` | `Accept-Language` parser and language negotiation (RFC 4647) |
+| `Weighted` | one entry of a weighted header list (value and `q`) |
 | `Auth` | `Authorization` / `WWW-Authenticate` parser and builder (RFC 7235) |
 | `Credentials` | one authentication scheme with its token68 or auth-params |
 | `Multipart` | `multipart/form-data` body decoder |
