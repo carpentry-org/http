@@ -47,6 +47,16 @@
                                 TransferEncoding
                             </a>
                         </li>
+                        <li>
+                            <a href="AcceptEncoding.html">
+                                AcceptEncoding
+                            </a>
+                        </li>
+                        <li>
+                            <a href="AcceptLanguage.html">
+                                AcceptLanguage
+                            </a>
+                        </li>
                     </ul>
                 </div>
             </div>
@@ -346,6 +356,53 @@ the boundary from the <code>Content-Type</code> header. Returns
 server's <code>offers</code>, honoring the request's <code>Accept</code> header (RFC 7231 §5.3.2). A
 request with no <code>Accept</code> header accepts anything. See
 <a href="#negotiate"><code>Accept.negotiate</code></a>.</p>
+
+                    </p>
+                </div>
+                <div class="binder">
+                    <a class="anchor" href="#negotiate-encoding">
+                        <h3 id="negotiate-encoding">
+                            negotiate-encoding
+                        </h3>
+                    </a>
+                    <div class="description">
+                        defn
+                    </div>
+                    <p class="sig">
+                        (Fn [(Ref Request a), (Ref (Array String) b)] (Maybe String))
+                    </p>
+                    <pre class="args">
+                        (negotiate-encoding r offers)
+                    </pre>
+                    <p class="doc">
+                        <p>chooses the best content coding for this request's
+response from the server's <code>offers</code>, honoring the request's <code>Accept-Encoding</code>
+header (RFC 9110 §12.5.3). A request with no <code>Accept-Encoding</code> header accepts
+anything and yields the first offer, whereas one with an empty header accepts
+only <code>identity</code>. See <a href="AcceptEncoding.html#negotiate"><code>AcceptEncoding.negotiate</code></a>.</p>
+
+                    </p>
+                </div>
+                <div class="binder">
+                    <a class="anchor" href="#negotiate-language">
+                        <h3 id="negotiate-language">
+                            negotiate-language
+                        </h3>
+                    </a>
+                    <div class="description">
+                        defn
+                    </div>
+                    <p class="sig">
+                        (Fn [(Ref Request a), (Ref (Array String) b)] (Maybe String))
+                    </p>
+                    <pre class="args">
+                        (negotiate-language r offers)
+                    </pre>
+                    <p class="doc">
+                        <p>chooses the best language for this request's response
+from the server's <code>offers</code>, honoring the request's <code>Accept-Language</code> header (RFC
+4647 §3.3.1). A request with no <code>Accept-Language</code> header accepts anything. See
+<a href="AcceptLanguage.html#negotiate"><code>AcceptLanguage.negotiate</code></a>.</p>
 
                     </p>
                 </div>
