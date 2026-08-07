@@ -62,35 +62,41 @@
             </div>
             <div class="module">
                 <h1>
-                    Form
+                    AcceptEncoding
                 </h1>
                 <div class="module-description">
-                    <p>provides URL-encoded form body parsing and serialization.</p>
-<pre><code>(match (Form.parse &quot;name=carp&amp;version=1&quot;)
-  (Result.Success m) (println* &amp;(Map.get &amp;m &quot;name&quot;))
-  (Result.Error e) (IO.errorln &amp;e))
-</code></pre>
+                    <p>parses <code>Accept-Encoding</code> headers and performs server-side
+content coding negotiation (RFC 9110 §12.5.3). <code>Accept-Charset</code> has no
+counterpart here: RFC 9110 §12.5.2 deprecates it.</p>
 
                 </div>
                 <div class="binder">
-                    <a class="anchor" href="#encode">
-                        <h3 id="encode">
-                            encode
+                    <a class="anchor" href="#negotiate">
+                        <h3 id="negotiate">
+                            negotiate
                         </h3>
                     </a>
                     <div class="description">
                         defn
                     </div>
                     <p class="sig">
-                        (Fn [(Ref (Map String String) a)] String)
+                        (Fn [(Ref String a), (Ref (Array String) b)] (Maybe String))
                     </p>
                     <pre class="args">
-                        (encode m)
+                        (negotiate accept offers)
                     </pre>
                     <p class="doc">
-                        <p>encodes a <code>(Map String String)</code> as a URL-encoded form body.
-Spaces become <code>+</code> and other special characters are percent-encoded.
-This is the inverse of <code>parse</code>.</p>
+                        <p>selects the best content coding to serve from <code>offers</code> given an
+<code>Accept-Encoding</code> header value, per RFC 9110 §12.5.3, as <code>(Maybe String)</code>. A
+coding named by the field takes that entry's weight, one only <code>*</code> matches takes
+the wildcard's, and any other coding is unacceptable — except <code>identity</code>, which
+is acceptable at full weight unless the field rates it. A weight of <code>0</code> makes a
+coding unacceptable rather than least preferred. The highest-weighted acceptable
+offer wins, ties broken by the order of <code>offers</code>; matching is case-insensitive.
+An empty <code>Accept-Encoding</code> accepts only <code>identity</code>; a request that sends no
+<code>Accept-Encoding</code> at all accepts anything, which
+<a href="Request.html#negotiate-encoding"><code>Request.negotiate-encoding</code></a> handles.
+<code>Nothing</code> means nothing is acceptable.</p>
 
                     </p>
                 </div>
@@ -104,38 +110,14 @@ This is the inverse of <code>parse</code>.</p>
                         defn
                     </div>
                     <p class="sig">
-                        (Fn [(Ref String a)] (Result (Map String String) b))
+                        (Fn [(Ref String a)] (Array Weighted))
                     </p>
                     <pre class="args">
                         (parse s)
                     </pre>
                     <p class="doc">
-                        <p>parses a URL-encoded form body into a <code>(Map String String)</code>.
-Keys and values are percent-decoded. The <code>+</code> character is decoded as space
-per the <code>application/x-www-form-urlencoded</code> specification.</p>
-
-                    </p>
-                </div>
-                <div class="binder">
-                    <a class="anchor" href="#parse-pairs">
-                        <h3 id="parse-pairs">
-                            parse-pairs
-                        </h3>
-                    </a>
-                    <div class="description">
-                        defn
-                    </div>
-                    <p class="sig">
-                        (Fn [(Ref String a)] (Result (Array (Pair String String)) b))
-                    </p>
-                    <pre class="args">
-                        (parse-pairs s)
-                    </pre>
-                    <p class="doc">
-                        <p>parses a URL-encoded form body into an
-<code>(Array (Pair String String))</code>. Unlike <code>parse</code>, this preserves the order
-of pairs and allows duplicate keys. Keys and values are percent-decoded.
-The <code>+</code> character is decoded as space.</p>
+                        <p>parses an <code>Accept-Encoding</code> header value into its weighted content
+codings, in header order.</p>
 
                     </p>
                 </div>
