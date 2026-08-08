@@ -162,6 +162,7 @@ Status.not-found    ; => 404
 | `Multipart` | `multipart/form-data` body decoder |
 | `FormPart` | a single decoded multipart part (name, filename, content-type, body) |
 | `TransferEncoding` | Chunked transfer-encoding decoder |
+| `HttpDate` | HTTP-date parser and formatter (RFC 9110 §5.6.7) |
 
 ## Testing
 

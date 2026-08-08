@@ -33,6 +33,7 @@ Status.not-found    ; => 404
 (save-docs Request
            Response
            Cookie
+           HttpDate
            Status
            Form
            TransferEncoding

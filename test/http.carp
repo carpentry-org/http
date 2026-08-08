@@ -162,6 +162,32 @@
 
 (defn cookie-roundtrip [c] (Cookie.parse-set &(Cookie.set &c)))
 
+; ---- HTTP-date test helpers ----
+; renders a parsed date as `YYYY-MM-DD HH:MM:SS`, or the error message
+(defn http-date [s]
+  (match (HttpDate.parse s)
+    (Result.Success d) (Datetime.strftime &d "%Y-%m-%d %H:%M:%S")
+    (Result.Error e) e))
+
+(defn cookie-expiry [s]
+  (match (Cookie.parse-set s)
+    (Result.Success c)
+      (match @(Cookie.expires &c)
+        (Maybe.Just d) (Datetime.strftime &d "%Y-%m-%d %H:%M:%S")
+        (Maybe.Nothing) @"no expiry")
+    (Result.Error e) e))
+
+(defn resp-cookie-expiry [s]
+  (match (Response.parse s)
+    (Result.Success r)
+      (let [cs (Response.cookies &r)]
+        (if (Array.empty? cs)
+          @"no cookie"
+          (match @(Cookie.expires (Array.unsafe-first cs))
+            (Maybe.Just d) (Datetime.strftime &d "%Y-%m-%d %H:%M:%S")
+            (Maybe.Nothing) @"no expiry")))
+    (Result.Error e) e))
+
 ; ---- auth test helpers ----
 ; renders parsed challenges as `scheme token/name=value`, joined by `|`
 (defn chal-summary [s]
@@ -1794,4 +1820,67 @@
     "Basic realm=\"new\""
     &(unauthorized-header (Auth.basic-challenge "new")
                           {@"WWW-Authenticate" [@"Basic realm=\"old\""]})
-    "Response.unauthorized replaces a WWW-Authenticate in headers"))
+    "Response.unauthorized replaces a WWW-Authenticate in headers")
+  (assert-equal test
+    "1994-11-06 08:49:37"
+    &(http-date "Sun, 06 Nov 1994 08:49:37 GMT")
+    "HttpDate.parse reads an IMF-fixdate")
+  (assert-equal test
+    "1970-01-01 00:00:01"
+    &(http-date "Thu, 01-Jan-1970 00:00:01 GMT")
+    "HttpDate.parse reads a dashed four-digit-year date")
+  (assert-equal test
+    "1994-11-06 08:49:37"
+    &(http-date "Sunday, 06-Nov-94 08:49:37 GMT")
+    "HttpDate.parse reads an rfc850-date")
+  (assert-equal test
+    "1994-11-06 08:49:37"
+    &(http-date "Sun Nov  6 08:49:37 1994")
+    "HttpDate.parse reads an asctime-date")
+  (assert-equal test
+    "1994-11-16 08:49:37"
+    &(http-date "Sun Nov 16 08:49:37 1994")
+    "HttpDate.parse reads an asctime-date with a two-digit day")
+  (assert-equal test
+    "2037-01-01 00:00:00"
+    &(http-date "Thursday, 01-Jan-37 00:00:00 GMT")
+    "an rfc850 two-digit year under 69 lands in the 2000s")
+  (assert-equal test
+    "1969-01-01 00:00:00"
+    &(http-date "Wednesday, 01-Jan-69 00:00:00 GMT")
+    "an rfc850 two-digit year of 69 or over lands in the 1900s")
+  (assert-equal test
+    "unrecognized date format: not a real date"
+    &(http-date "not a real date")
+    "HttpDate.parse rejects a date in no known format")
+  (assert-equal test
+    "unrecognized date format: "
+    &(http-date "")
+    "HttpDate.parse rejects the empty string")
+  (assert-equal test
+    "2021-06-09 10:18:14"
+    &(http-date &(HttpDate.format &(cookie-expires-fixture)))
+    "HttpDate.format round-trips through HttpDate.parse")
+  (assert-equal test
+    "Sun, 06 Nov 1994 09:00:00 GMT"
+    &(HttpDate.format &(zoned 1994 11 6 10 @"CET" 3600l))
+    "HttpDate.format converts to UTC rather than relabelling local time")
+  (assert-equal test
+    "sid=xyz; Path=/; Expires=Sun, 06 Nov 1994 09:00:00 GMT; SameSite=Lax"
+    &(Cookie.set
+      &(Cookie.set-expires (cookie-base)
+                           (Maybe.Just (zoned 1994 11 6 10 @"CET" 3600l))))
+    "Cookie.set writes Expires in UTC")
+  (assert-equal test
+    "1994-11-06 08:49:37"
+    &(cookie-expiry "id=abc; Expires=Sunday, 06-Nov-94 08:49:37 GMT")
+    "parse-set accepts an rfc850 Expires")
+  (assert-equal test
+    "malformed expires date in set-cookie: unrecognized date format: not a real date"
+    &(cookie-expiry "id=abc; Expires=not a real date")
+    "parse-set still rejects an Expires in no known format")
+  (assert-equal test
+    "1970-01-01 00:00:01"
+    &(resp-cookie-expiry
+      "HTTP/1.1 200 OK\r\nSet-Cookie: sid=1; Expires=Thu, 01-Jan-1970 00:00:01 GMT; Path=/\r\n\r\n")
+    "Response.parse accepts the standard cookie-deletion Set-Cookie header"))
