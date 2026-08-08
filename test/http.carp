@@ -1831,6 +1831,18 @@
     "HttpDate.parse reads a dashed four-digit-year date")
   (assert-equal test
     "1994-11-06 08:49:37"
+    &(http-date "Sun, 06-Nov-94 08:49:37 GMT")
+    "HttpDate.parse reads a dashed two-digit-year date")
+  (assert-equal test
+    "1970-01-01 00:00:00"
+    &(http-date "Thu, 01-Jan-70 00:00:00 GMT")
+    "HttpDate.parse reads the two-digit-year cookie-deletion date")
+  (assert-equal test
+    "1999-11-06 08:49:37"
+    &(http-date "Sat, 06-Nov-1999 08:49:37 GMT")
+    "a dashed four-digit year is not read as a two-digit one")
+  (assert-equal test
+    "1994-11-06 08:49:37"
     &(http-date "Sunday, 06-Nov-94 08:49:37 GMT")
     "HttpDate.parse reads an rfc850-date")
   (assert-equal test
