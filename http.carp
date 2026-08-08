@@ -42,9 +42,10 @@ the same instant once labelled `GMT`.")
 
 All three formats RFC 9110 §5.6.7 obliges a recipient to accept are recognized —
 IMF-fixdate (`Sun, 06 Nov 1994 08:49:37 GMT`), rfc850-date (`Sunday, 06-Nov-94
-08:49:37 GMT`) and asctime-date (`Sun Nov  6 08:49:37 1994`) — as are the dashed
-cookie-date forms RFC 6265 §5.1.1 accepts, with either a four- or a two-digit
-year (`Thu, 01-Jan-1970 00:00:01 GMT`, `Sun, 06-Nov-94 08:49:37 GMT`).
+08:49:37 GMT`) and asctime-date (`Sun Nov  6 08:49:37 1994`) — as are two dashed
+cookie-date forms RFC 6265 §5.1.1 accepts, both spelling the day name in its
+abbreviated form: with a four-digit year (`Thu, 01-Jan-1970 00:00:01 GMT`) and
+with a two-digit one (`Sun, 06-Nov-94 08:49:37 GMT`).
 
 A two-digit year is windowed as `69`–`99` → 1969–1999 and `00`–`68` →
 2000–2068.")
