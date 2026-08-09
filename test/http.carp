@@ -284,10 +284,13 @@
     (Result.Error _) @"ERROR"))
 
 (defn spec-bound [s i]
-  (match-ref (Array.unsafe-nth &(Result.unsafe-from-success (Range.parse s)) i)
-    (RangeSpec.FirstLast _ b) @b
-    (RangeSpec.From a) @a
-    (RangeSpec.Suffix n) @n))
+  (match (Range.parse s)
+    (Result.Success specs)
+      (match-ref (Array.unsafe-nth &specs i)
+        (RangeSpec.FirstLast _ b) @b
+        (RangeSpec.From a) @a
+        (RangeSpec.Suffix n) @n)
+    (Result.Error _) -1l))
 
 (defn content-range-verdict [s]
   (match (ContentRange.parse s)
