@@ -1444,6 +1444,34 @@
     &(content-range-verdict "bytes 499-0/1234")
     "a Content-Range last-pos below its first-pos is rejected")
   (assert-equal test
+    "bytes 0-1233/1234"
+    &(content-range-verdict "bytes 0-1233/1234")
+    "a Content-Range last-pos one below its complete length is valid")
+  (assert-equal test
+    "ERROR"
+    &(content-range-verdict "bytes 0-1234/1234")
+    "a Content-Range complete length equal to its last-pos is rejected")
+  (assert-equal test
+    "ERROR"
+    &(content-range-verdict "bytes 1234-1234/1234")
+    "a Content-Range naming the position past its complete length is rejected")
+  (assert-equal test
+    "ERROR"
+    &(content-range-verdict "bytes 5-9/3")
+    "a Content-Range complete length below its last-pos is rejected")
+  (assert-equal test
+    "ERROR"
+    &(content-range-verdict "bytes 0-0/0")
+    "a Content-Range naming a range of an empty representation is rejected")
+  (assert-equal test
+    "bytes 0-1234/*"
+    &(content-range-verdict "bytes 0-1234/*")
+    "an unknown complete length has no last-pos to contradict")
+  (assert-equal test
+    "bytes */0"
+    &(content-range-verdict "bytes */0")
+    "the unsatisfied form of an empty representation is valid")
+  (assert-equal test
     "ERROR"
     &(content-range-verdict "bytes 0-499")
     "a Content-Range without a complete length is rejected")

@@ -1863,7 +1863,9 @@ out-of-range bound. `Nothing` when `s` is empty or holds anything but digits.")
       (if ok (Maybe.Just acc) (Maybe.Nothing))))
 
   (doc str "serializes one spec back into its `range-spec` form: `0-499`, `500-`
-or `-500`.")
+or `-500`. Anything [`Range.parse`](Range.html#parse) produced reads back into
+an equal spec; bounds are written as given, so a hand-built negative one writes
+a `range-spec` that parser rejects.")
   (defn str [s]
     (match-ref s
       (RangeSpec.FirstLast a b) (fmt "%s-%s" &(Long.str @a) &(Long.str @b))
@@ -2017,8 +2019,10 @@ being the `bytes */1234` form of a `416`.")
   (defn complete-str [c]
     (match-ref c (Maybe.Nothing) @"*" (Maybe.Just n) (Long.str @n)))
 
-  (doc str "serializes back into a header value, which [parse](#parse) reads
-back into an equal `ContentRange`.")
+  (doc str "serializes back into a header value. Anything [parse](#parse)
+produced reads back into an equal `ContentRange`; a hand-built value §14.4 has
+no room for — both fields `Nothing`, or a `complete` at or below the range's
+`last-pos` — writes a header value `parse` rejects.")
   (defn str [cr]
     (match-ref (range cr)
       (Maybe.Nothing) (fmt "bytes */%s" &(complete-str (complete cr)))
@@ -2045,6 +2049,12 @@ back into an equal `ContentRange`.")
               (Maybe.Just b)
                 (if (> a b) (Maybe.Nothing) (Maybe.Just (Pair.init a b))))))))
 
+  (hidden within-complete?)
+  (private within-complete?)
+  ; §14.4's second validity clause: a complete-length must exceed its last-pos
+  (defn within-complete? [p complete]
+    (match-ref complete (Maybe.Nothing) true (Maybe.Just n) (< @(Pair.b p) @n)))
+
   (hidden parse-resp)
   (private parse-resp)
   ; the `range-resp` or `unsatisfied-range` after the range unit
@@ -2066,7 +2076,9 @@ back into an equal `ContentRange`.")
             (match (parse-incl-range &rng)
               (Maybe.Nothing) (Maybe.Nothing)
               (Maybe.Just p)
-                (Maybe.Just (ContentRange.init (Maybe.Just p) complete))))))))
+                (if (within-complete? &p &complete)
+                  (Maybe.Just (ContentRange.init (Maybe.Just p) complete))
+                  (Maybe.Nothing))))))))
 
   (doc parse
     "parses a received `Content-Range` header value (RFC 9110 §14.4) as
@@ -2075,8 +2087,13 @@ back into an equal `ContentRange`.")
 All three forms a `bytes` response may carry are understood: `bytes 0-499/1234`,
 `bytes 0-499/*` for a complete length the sender did not know, and
 `bytes */1234` for the unsatisfied form of a `416`. Unit names are compared
-case-insensitively. Any other unit fails, as do a `last-pos` below its
-`first-pos` and the `bytes */*` form, which the grammar has no room for.")
+case-insensitively. Any other unit fails, as does the `bytes */*` form, which the
+grammar has no room for.
+
+The two clauses of §14.4's validity rule are both enforced: a `last-pos` below
+its `first-pos` fails, and so does a known `complete-length` at or below the
+`last-pos` it is paired with — `bytes 0-1234/1234` is an error, not a range. A
+`*` complete length is exempt, having nothing to contradict.")
   (defn parse [s]
     (let [t (String.trim s)
           sp (String.index-of &t \space)]
