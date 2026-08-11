@@ -1832,15 +1832,15 @@ into its `FormPart`s. Fails when the opening boundary delimiter is absent.")
                       (set! pos (+ next cdlen))))))))
           (Result.Success parts))))))
 
-(doc RangeSpec "is one `range-spec` of a `Range` header in the `bytes` unit (RFC
-9110 §14.1.1): `FirstLast` for `0-499`, `From` for `500-` — everything from byte
-`500` to the end — and `Suffix` for `-500`, the last `500` bytes.")
-(deftype RangeSpec
+(doc ByteRangeSpec "is one `range-spec` of a `Range` header in the `bytes` unit
+(RFC 9110 §14.1.1): `FirstLast` for `0-499`, `From` for `500-` — everything from
+byte `500` to the end — and `Suffix` for `-500`, the last `500` bytes.")
+(deftype ByteRangeSpec
   (FirstLast [Long Long])
   (From [Long])
   (Suffix [Long]))
 
-(defmodule RangeSpec
+(defmodule ByteRangeSpec
   (doc bound "parses one decimal byte position — a `first-pos`, `last-pos` or
 `suffix-length` — as `(Maybe Long)`. A digit run too large for a `Long`
 saturates at `Long.MAX` instead of wrapping, so an absurd bound stays an
@@ -1863,29 +1863,29 @@ out-of-range bound. `Nothing` when `s` is empty or holds anything but digits.")
       (if ok (Maybe.Just acc) (Maybe.Nothing))))
 
   (doc str "serializes one spec back into its `range-spec` form: `0-499`, `500-`
-or `-500`. Anything [`Range.parse`](Range.html#parse) produced reads back into
-an equal spec; bounds are written as given, so a hand-built negative one writes
-a `range-spec` that parser rejects.")
+or `-500`. Anything [`ByteRange.parse`](ByteRange.html#parse) produced reads
+back into an equal spec; bounds are written as given, so a hand-built negative
+one writes a `range-spec` that parser rejects.")
   (defn str [s]
     (match-ref s
-      (RangeSpec.FirstLast a b) (fmt "%s-%s" &(Long.str @a) &(Long.str @b))
-      (RangeSpec.From a) (fmt "%s-" &(Long.str @a))
-      (RangeSpec.Suffix n) (fmt "-%s" &(Long.str @n))))
-  (implements str RangeSpec.str))
+      (ByteRangeSpec.FirstLast a b) (fmt "%s-%s" &(Long.str @a) &(Long.str @b))
+      (ByteRangeSpec.From a) (fmt "%s-" &(Long.str @a))
+      (ByteRangeSpec.Suffix n) (fmt "-%s" &(Long.str @n))))
+  (implements str ByteRangeSpec.str))
 
-(doc Range "reads, resolves and writes `Range` header values in the `bytes`
+(doc ByteRange "reads, resolves and writes `Range` header values in the `bytes`
 range unit (RFC 9110 §14.1). A server answers a satisfiable range with a `206`
 carrying a [`ContentRange`](ContentRange.html) header, and an unsatisfiable one
 with a `416`.
 
 ```
-(match (Range.parse \"bytes=0-499, -200\")
+(match (ByteRange.parse \"bytes=0-499, -200\")
   (Result.Success specs)
-    (let [rs (Range.resolve &specs 1000l)]
+    (let [rs (ByteRange.resolve &specs 1000l)]
       (if (Array.empty? &rs) (println* \"416\") (println* &rs)))
   (Result.Error e) (IO.errorln &e))
 ```")
-(defmodule Range
+(defmodule ByteRange
   (hidden parse-spec)
   (private parse-spec)
   ; one `int-range` or `suffix-range`; `Nothing` when it fits neither
@@ -1897,22 +1897,22 @@ with a `416`.
               hi (String.byte-slice s (Int.inc dash) (String.length s))]
           (cond
             (String.empty? &lo)
-              (match (RangeSpec.bound &hi)
+              (match (ByteRangeSpec.bound &hi)
                 (Maybe.Nothing) (Maybe.Nothing)
-                (Maybe.Just n) (Maybe.Just (RangeSpec.Suffix n)))
+                (Maybe.Just n) (Maybe.Just (ByteRangeSpec.Suffix n)))
             (String.empty? &hi)
-              (match (RangeSpec.bound &lo)
+              (match (ByteRangeSpec.bound &lo)
                 (Maybe.Nothing) (Maybe.Nothing)
-                (Maybe.Just a) (Maybe.Just (RangeSpec.From a)))
-            (match (RangeSpec.bound &lo)
+                (Maybe.Just a) (Maybe.Just (ByteRangeSpec.From a)))
+            (match (ByteRangeSpec.bound &lo)
               (Maybe.Nothing) (Maybe.Nothing)
               (Maybe.Just a)
-                (match (RangeSpec.bound &hi)
+                (match (ByteRangeSpec.bound &hi)
                   (Maybe.Nothing) (Maybe.Nothing)
                   (Maybe.Just b)
                     (if (> a b)
                       (Maybe.Nothing)
-                      (Maybe.Just (RangeSpec.FirstLast a b))))))))))
+                      (Maybe.Just (ByteRangeSpec.FirstLast a b))))))))))
 
   (hidden parse-set)
   (private parse-set)
@@ -1920,7 +1920,7 @@ with a `416`.
   (defn parse-set [s]
     (let-do [segs (String.split-by s &[\,])
              n (Array.length &segs)
-             specs (the (Array RangeSpec) [])
+             specs (the (Array ByteRangeSpec) [])
              i 0
              bad @""]
       (while-do (and (< i n) (String.empty? &bad))
@@ -1936,7 +1936,7 @@ with a `416`.
         (Result.Success specs))))
 
   (doc parse "parses a `Range` header value into its `range-spec`s, in header
-order, as `(Result (Array RangeSpec) String)`.
+order, as `(Result (Array ByteRangeSpec) String)`.
 
 Only the `bytes` range unit is understood; unit names are compared
 case-insensitively. Whitespace around the commas of the range-set is ignored, as
@@ -1968,13 +1968,13 @@ Satisfiable` case.")
              end (Long.dec len)]
       (for [i 0 (Array.length specs)]
         (match-ref (Array.unsafe-nth specs i)
-          (RangeSpec.FirstLast a b)
+          (ByteRangeSpec.FirstLast a b)
             (when (and (>= @a 0l) (and (<= @a @b) (< @a len)))
               (Array.push-back! &out (Pair.init @a (if (< @b end) @b end))))
-          (RangeSpec.From a)
+          (ByteRangeSpec.From a)
             (when (and (>= @a 0l) (< @a len))
               (Array.push-back! &out (Pair.init @a end)))
-          (RangeSpec.Suffix n)
+          (ByteRangeSpec.Suffix n)
             (when (and (> @n 0l) (> len 0l))
               (Array.push-back! &out
                                 (Pair.init (if (>= @n len) 0l (- len @n)) end)))))
@@ -1989,7 +1989,8 @@ at least one spec: RFC 9110 §14.1.1 has no empty range-set.")
       (for [i 0 (Array.length specs)]
         (do
           (when (> i 0) (StringBuf.append-str &sb ", "))
-          (StringBuf.append-str &sb &(RangeSpec.str (Array.unsafe-nth specs i)))))
+          (StringBuf.append-str &sb
+                                &(ByteRangeSpec.str (Array.unsafe-nth specs i)))))
       (let-do [s (StringBuf.to-string &sb)] (StringBuf.delete sb) s))))
 
 (doc ContentRange "is a `Content-Range` header value in the `bytes` unit (RFC
@@ -2040,10 +2041,10 @@ no room for — both fields `Nothing`, or a `complete` at or below the range's
     (let [dash (String.index-of s \-)]
       (if (< dash 0)
         (Maybe.Nothing)
-        (match (RangeSpec.bound &(String.byte-slice s 0 dash))
+        (match (ByteRangeSpec.bound &(String.byte-slice s 0 dash))
           (Maybe.Nothing) (Maybe.Nothing)
           (Maybe.Just a)
-            (match (RangeSpec.bound
+            (match (ByteRangeSpec.bound
                 &(String.byte-slice s (Int.inc dash) (String.length s)))
               (Maybe.Nothing) (Maybe.Nothing)
               (Maybe.Just b)
@@ -2066,7 +2067,7 @@ no room for — both fields `Nothing`, or a `complete` at or below the range's
               comp (String.trim
                 &(String.byte-slice s (Int.inc slash) (String.length s)))
               unknown (= &comp "*")
-              complete (RangeSpec.bound &comp)]
+              complete (ByteRangeSpec.bound &comp)]
           (cond
             (and (not unknown) (Maybe.nothing? &complete)) (Maybe.Nothing)
             (= &rng "*")
@@ -2169,11 +2170,11 @@ from the server's `offers`, honoring the request's `Accept-Language` header (RFC
         (AcceptLanguage.negotiate &(String.join ", " &accepts) offers))))
 
   (doc range "the byte ranges this request asks for, as
-`(Maybe (Result (Array RangeSpec) String))`. `Nothing` when it carries no
-`Range` header. See [`Range.parse`](Range.html#parse), whose `Error` means the
-header is one RFC 9110 §14.2 has the server ignore — serving the whole
+`(Maybe (Result (Array ByteRangeSpec) String))`. `Nothing` when it carries no
+`Range` header. See [`ByteRange.parse`](ByteRange.html#parse), whose `Error`
+means the header is one RFC 9110 §14.2 has the server ignore — serving the whole
 representation rather than a `416`.")
   (defn range [r]
     (match (Request.header r "Range")
       (Maybe.Nothing) (Maybe.Nothing)
-      (Maybe.Just v) (Maybe.Just (Range.parse &v)))))
+      (Maybe.Just v) (Maybe.Just (ByteRange.parse &v)))))

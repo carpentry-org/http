@@ -265,16 +265,19 @@
     @"<none>"))
 
 (defn range-verdict [s]
-  (match (Range.parse s)
-    (Result.Success specs) (Range.str &specs)
+  (match (ByteRange.parse s)
+    (Result.Success specs) (ByteRange.str &specs)
     (Result.Error _) @"ERROR"))
+
+(defn range-error [s]
+  (match (ByteRange.parse s) (Result.Success _) @"<none>" (Result.Error e) e))
 
 (defn pair-str [p] (fmt "%s-%s" &(Long.str @(Pair.a p)) &(Long.str @(Pair.b p))))
 
 (defn resolved [s len]
-  (match (Range.parse s)
+  (match (ByteRange.parse s)
     (Result.Success specs)
-      (let-do [rs (Range.resolve &specs len)
+      (let-do [rs (ByteRange.resolve &specs len)
                out @""]
         (for [i 0 (Array.length &rs)]
           (do
@@ -284,12 +287,12 @@
     (Result.Error _) @"ERROR"))
 
 (defn spec-bound [s i]
-  (match (Range.parse s)
+  (match (ByteRange.parse s)
     (Result.Success specs)
       (match-ref (Array.unsafe-nth &specs i)
-        (RangeSpec.FirstLast _ b) @b
-        (RangeSpec.From a) @a
-        (RangeSpec.Suffix n) @n)
+        (ByteRangeSpec.FirstLast _ b) @b
+        (ByteRangeSpec.From a) @a
+        (ByteRangeSpec.Suffix n) @n)
     (Result.Error _) -1l))
 
 (defn content-range-verdict [s]
@@ -297,12 +300,15 @@
     (Result.Success cr) (ContentRange.str &cr)
     (Result.Error _) @"ERROR"))
 
+(defn content-range-error [s]
+  (match (ContentRange.parse s) (Result.Success _) @"<none>" (Result.Error e) e))
+
 (defn req-range-verdict [hdrs]
   (let [r (Request.get (URI.zero) [] hdrs @"")]
     (match (Request.range &r)
       (Maybe.Nothing) @"NONE"
       (Maybe.Just (Result.Error _)) @"ERROR"
-      (Maybe.Just (Result.Success specs)) (Range.str &specs))))
+      (Maybe.Just (Result.Success specs)) (ByteRange.str &specs))))
 
 (deftest test
   (assert-true test
@@ -1413,7 +1419,8 @@
     "a saturated suffix-length is the whole representation")
   (assert-equal test
     "bytes=0-499, -200"
-    &(Range.str &[(RangeSpec.FirstLast 0l 499l) (RangeSpec.Suffix 200l)])
+    &(ByteRange.str
+      &[(ByteRangeSpec.FirstLast 0l 499l) (ByteRangeSpec.Suffix 200l)])
     "a client can build a Range header from specs")
   (assert-equal test
     "bytes 0-499/1234"
@@ -1517,6 +1524,14 @@
     "ERROR"
     &(req-range-verdict {@"Range" [@"bytes=nonsense"]})
     "Request.range reports a Range header the server must ignore")
+  (assert-equal test
+    "malformed Range: 'nonsense'"
+    &(range-error "nonsense")
+    "a rejected range-set is reported against the wire header name")
+  (assert-equal test
+    "malformed Content-Range: 'nonsense'"
+    &(content-range-error "nonsense")
+    "a rejected Content-Range is reported against the wire header name")
 
   (assert-equal test
     &(dechunk-ok "4\r\nWiki\r\n5\r\npedia\r\n0\r\n\r\n")

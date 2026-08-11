@@ -39,7 +39,7 @@ Status.not-found    ; => 404
            TransferEncoding
            AcceptEncoding
            AcceptLanguage
-           Range
-           RangeSpec
+           ByteRange
+           ByteRangeSpec
            ContentRange)
 (quit)
