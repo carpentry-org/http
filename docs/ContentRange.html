@@ -1,0 +1,454 @@
+<!DOCTYPE HTML>
+
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+        <link rel="stylesheet" href="../style.css">
+    </head>
+    <body>
+        <div class="content">
+            <div class="logo">
+                <a href="https://github.com/carpentry-org/http">
+                    <img src="">
+                </a>
+                <div class="title">
+                    http
+                </div>
+                <div class="index">
+                    <ul>
+                        <li>
+                            <a href="Request.html">
+                                Request
+                            </a>
+                        </li>
+                        <li>
+                            <a href="Response.html">
+                                Response
+                            </a>
+                        </li>
+                        <li>
+                            <a href="Cookie.html">
+                                Cookie
+                            </a>
+                        </li>
+                        <li>
+                            <a href="HttpDate.html">
+                                HttpDate
+                            </a>
+                        </li>
+                        <li>
+                            <a href="Status.html">
+                                Status
+                            </a>
+                        </li>
+                        <li>
+                            <a href="Form.html">
+                                Form
+                            </a>
+                        </li>
+                        <li>
+                            <a href="TransferEncoding.html">
+                                TransferEncoding
+                            </a>
+                        </li>
+                        <li>
+                            <a href="AcceptEncoding.html">
+                                AcceptEncoding
+                            </a>
+                        </li>
+                        <li>
+                            <a href="AcceptLanguage.html">
+                                AcceptLanguage
+                            </a>
+                        </li>
+                        <li>
+                            <a href="ByteRange.html">
+                                ByteRange
+                            </a>
+                        </li>
+                        <li>
+                            <a href="ByteRangeSpec.html">
+                                ByteRangeSpec
+                            </a>
+                        </li>
+                        <li>
+                            <a href="ContentRange.html">
+                                ContentRange
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            <div class="module">
+                <h1>
+                    ContentRange
+                </h1>
+                <div class="module-description">
+                    <p>is a <code>Content-Range</code> header value in the <code>bytes</code> unit (RFC
+9110 §14.4): the inclusive <code>range</code> of positions the content covers — <code>Nothing</code>
+in the <code>bytes */1234</code> form a <code>416</code> answers with — and the <code>complete</code> length of
+the representation, <code>Nothing</code> when the sender did not know it (<code>bytes 0-499/*</code>).</p>
+
+                </div>
+                <div class="binder">
+                    <a class="anchor" href="#bytes">
+                        <h3 id="bytes">
+                            bytes
+                        </h3>
+                    </a>
+                    <div class="description">
+                        defn
+                    </div>
+                    <p class="sig">
+                        (Fn [Long, Long, Long] String)
+                    </p>
+                    <pre class="args">
+                        (bytes lo hi complete)
+                    </pre>
+                    <p class="doc">
+                        <p>formats the <code>Content-Range</code> of a <code>206</code> response whose content
+covers the inclusive positions <code>lo</code> to <code>hi</code> of a representation of <code>complete</code>
+bytes, e.g. <code>bytes 0-499/1234</code>.</p>
+
+                    </p>
+                </div>
+                <div class="binder">
+                    <a class="anchor" href="#complete">
+                        <h3 id="complete">
+                            complete
+                        </h3>
+                    </a>
+                    <div class="description">
+                        instantiate
+                    </div>
+                    <p class="sig">
+                        (Fn [(Ref ContentRange a)] (Ref (Maybe Long) a))
+                    </p>
+                    <span>
+                        
+                    </span>
+                    <p class="doc">
+                        <p>gets the <code>complete</code> property of a <code>ContentRange</code>.</p>
+
+                    </p>
+                </div>
+                <div class="binder">
+                    <a class="anchor" href="#copy">
+                        <h3 id="copy">
+                            copy
+                        </h3>
+                    </a>
+                    <div class="description">
+                        instantiate
+                    </div>
+                    <p class="sig">
+                        (Fn [(Ref ContentRange a)] ContentRange)
+                    </p>
+                    <span>
+                        
+                    </span>
+                    <p class="doc">
+                        <p>copies a <code>ContentRange</code>.</p>
+
+                    </p>
+                </div>
+                <div class="binder">
+                    <a class="anchor" href="#delete">
+                        <h3 id="delete">
+                            delete
+                        </h3>
+                    </a>
+                    <div class="description">
+                        instantiate
+                    </div>
+                    <p class="sig">
+                        (Fn [ContentRange] ())
+                    </p>
+                    <span>
+                        
+                    </span>
+                    <p class="doc">
+                        <p>deletes a <code>ContentRange</code>. Should usually not be called manually.</p>
+
+                    </p>
+                </div>
+                <div class="binder">
+                    <a class="anchor" href="#init">
+                        <h3 id="init">
+                            init
+                        </h3>
+                    </a>
+                    <div class="description">
+                        instantiate
+                    </div>
+                    <p class="sig">
+                        (Fn [(Maybe (Pair Long Long)), (Maybe Long)] ContentRange)
+                    </p>
+                    <span>
+                        
+                    </span>
+                    <p class="doc">
+                        <p>creates a <code>ContentRange</code>.</p>
+
+                    </p>
+                </div>
+                <div class="binder">
+                    <a class="anchor" href="#parse">
+                        <h3 id="parse">
+                            parse
+                        </h3>
+                    </a>
+                    <div class="description">
+                        defn
+                    </div>
+                    <p class="sig">
+                        (Fn [(Ref String a)] (Result ContentRange String))
+                    </p>
+                    <pre class="args">
+                        (parse s)
+                    </pre>
+                    <p class="doc">
+                        <p>parses a received <code>Content-Range</code> header value (RFC 9110 §14.4) as
+<code>(Result ContentRange String)</code>.</p>
+<p>All three forms a <code>bytes</code> response may carry are understood: <code>bytes 0-499/1234</code>,
+<code>bytes 0-499/*</code> for a complete length the sender did not know, and
+<code>bytes */1234</code> for the unsatisfied form of a <code>416</code>. Unit names are compared
+case-insensitively. Any other unit fails, as does the <code>bytes */*</code> form, which the
+grammar has no room for.</p>
+<p>The two clauses of §14.4's validity rule are both enforced: a <code>last-pos</code> below
+its <code>first-pos</code> fails, and so does a known <code>complete-length</code> at or below the
+<code>last-pos</code> it is paired with — <code>bytes 0-1234/1234</code> is an error, not a range. A
+<code>*</code> complete length is exempt, having nothing to contradict.</p>
+
+                    </p>
+                </div>
+                <div class="binder">
+                    <a class="anchor" href="#prn">
+                        <h3 id="prn">
+                            prn
+                        </h3>
+                    </a>
+                    <div class="description">
+                        instantiate
+                    </div>
+                    <p class="sig">
+                        (Fn [(Ref ContentRange a)] String)
+                    </p>
+                    <span>
+                        
+                    </span>
+                    <p class="doc">
+                        <p>converts a <code>ContentRange</code> to a string.</p>
+
+                    </p>
+                </div>
+                <div class="binder">
+                    <a class="anchor" href="#range">
+                        <h3 id="range">
+                            range
+                        </h3>
+                    </a>
+                    <div class="description">
+                        instantiate
+                    </div>
+                    <p class="sig">
+                        (Fn [(Ref ContentRange a)] (Ref (Maybe (Pair Long Long)) a))
+                    </p>
+                    <span>
+                        
+                    </span>
+                    <p class="doc">
+                        <p>gets the <code>range</code> property of a <code>ContentRange</code>.</p>
+
+                    </p>
+                </div>
+                <div class="binder">
+                    <a class="anchor" href="#satisfied?">
+                        <h3 id="satisfied?">
+                            satisfied?
+                        </h3>
+                    </a>
+                    <div class="description">
+                        defn
+                    </div>
+                    <p class="sig">
+                        (Fn [(Ref ContentRange a)] Bool)
+                    </p>
+                    <pre class="args">
+                        (satisfied? cr)
+                    </pre>
+                    <p class="doc">
+                        <p>whether the value names a range of positions, rather than
+being the <code>bytes */1234</code> form of a <code>416</code>.</p>
+
+                    </p>
+                </div>
+                <div class="binder">
+                    <a class="anchor" href="#set-complete">
+                        <h3 id="set-complete">
+                            set-complete
+                        </h3>
+                    </a>
+                    <div class="description">
+                        instantiate
+                    </div>
+                    <p class="sig">
+                        (Fn [ContentRange, (Maybe Long)] ContentRange)
+                    </p>
+                    <span>
+                        
+                    </span>
+                    <p class="doc">
+                        <p>sets the <code>complete</code> property of a <code>ContentRange</code>.</p>
+
+                    </p>
+                </div>
+                <div class="binder">
+                    <a class="anchor" href="#set-complete!">
+                        <h3 id="set-complete!">
+                            set-complete!
+                        </h3>
+                    </a>
+                    <div class="description">
+                        instantiate
+                    </div>
+                    <p class="sig">
+                        (Fn [(Ref ContentRange a), (Maybe Long)] ())
+                    </p>
+                    <span>
+                        
+                    </span>
+                    <p class="doc">
+                        <p>sets the <code>complete</code> property of a <code>ContentRange</code> in place.</p>
+
+                    </p>
+                </div>
+                <div class="binder">
+                    <a class="anchor" href="#set-range">
+                        <h3 id="set-range">
+                            set-range
+                        </h3>
+                    </a>
+                    <div class="description">
+                        instantiate
+                    </div>
+                    <p class="sig">
+                        (Fn [ContentRange, (Maybe (Pair Long Long))] ContentRange)
+                    </p>
+                    <span>
+                        
+                    </span>
+                    <p class="doc">
+                        <p>sets the <code>range</code> property of a <code>ContentRange</code>.</p>
+
+                    </p>
+                </div>
+                <div class="binder">
+                    <a class="anchor" href="#set-range!">
+                        <h3 id="set-range!">
+                            set-range!
+                        </h3>
+                    </a>
+                    <div class="description">
+                        instantiate
+                    </div>
+                    <p class="sig">
+                        (Fn [(Ref ContentRange a), (Maybe (Pair Long Long))] ())
+                    </p>
+                    <span>
+                        
+                    </span>
+                    <p class="doc">
+                        <p>sets the <code>range</code> property of a <code>ContentRange</code> in place.</p>
+
+                    </p>
+                </div>
+                <div class="binder">
+                    <a class="anchor" href="#str">
+                        <h3 id="str">
+                            str
+                        </h3>
+                    </a>
+                    <div class="description">
+                        defn
+                    </div>
+                    <p class="sig">
+                        (Fn [(Ref ContentRange a)] String)
+                    </p>
+                    <pre class="args">
+                        (str cr)
+                    </pre>
+                    <p class="doc">
+                        <p>serializes back into a header value. Anything <a href="#parse">parse</a>
+produced reads back into an equal <code>ContentRange</code>; a hand-built value §14.4 has
+no room for — both fields <code>Nothing</code>, or a <code>complete</code> at or below the range's
+<code>last-pos</code> — writes a header value <code>parse</code> rejects.</p>
+
+                    </p>
+                </div>
+                <div class="binder">
+                    <a class="anchor" href="#unsatisfied">
+                        <h3 id="unsatisfied">
+                            unsatisfied
+                        </h3>
+                    </a>
+                    <div class="description">
+                        defn
+                    </div>
+                    <p class="sig">
+                        (Fn [Long] String)
+                    </p>
+                    <pre class="args">
+                        (unsatisfied complete)
+                    </pre>
+                    <p class="doc">
+                        <p>formats the <code>bytes */1234</code> <code>Content-Range</code> of a <code>416</code>
+response, naming the <code>complete</code> length of the representation.</p>
+
+                    </p>
+                </div>
+                <div class="binder">
+                    <a class="anchor" href="#update-complete">
+                        <h3 id="update-complete">
+                            update-complete
+                        </h3>
+                    </a>
+                    <div class="description">
+                        instantiate
+                    </div>
+                    <p class="sig">
+                        (Fn [ContentRange, (Ref (Fn [(Maybe Long)] (Maybe Long) a) b)] ContentRange)
+                    </p>
+                    <span>
+                        
+                    </span>
+                    <p class="doc">
+                        <p>updates the <code>complete</code> property of a <code>ContentRange</code> using a function <code>f</code>.</p>
+
+                    </p>
+                </div>
+                <div class="binder">
+                    <a class="anchor" href="#update-range">
+                        <h3 id="update-range">
+                            update-range
+                        </h3>
+                    </a>
+                    <div class="description">
+                        instantiate
+                    </div>
+                    <p class="sig">
+                        (Fn [ContentRange, (Ref (Fn [(Maybe (Pair Long Long))] (Maybe (Pair Long Long)) a) b)] ContentRange)
+                    </p>
+                    <span>
+                        
+                    </span>
+                    <p class="doc">
+                        <p>updates the <code>range</code> property of a <code>ContentRange</code> using a function <code>f</code>.</p>
+
+                    </p>
+                </div>
+            </div>
+        </div>
+    </body>
+</html>

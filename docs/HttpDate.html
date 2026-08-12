@@ -82,41 +82,33 @@
             </div>
             <div class="module">
                 <h1>
-                    AcceptEncoding
+                    HttpDate
                 </h1>
                 <div class="module-description">
-                    <p>parses <code>Accept-Encoding</code> headers and performs server-side
-content coding negotiation (RFC 9110 §12.5.3). <code>Accept-Charset</code> has no
-counterpart here: RFC 9110 §12.5.2 deprecates it.</p>
+                    <p>reads and writes HTTP-date values (RFC 9110 §5.6.7), the
+timestamp form used by <code>Date</code>, <code>Expires</code>, <code>Last-Modified</code>, <code>If-Modified-Since</code>
+and the <code>Expires</code> attribute of a <code>Set-Cookie</code> header.</p>
 
                 </div>
                 <div class="binder">
-                    <a class="anchor" href="#negotiate">
-                        <h3 id="negotiate">
-                            negotiate
+                    <a class="anchor" href="#format">
+                        <h3 id="format">
+                            format
                         </h3>
                     </a>
                     <div class="description">
                         defn
                     </div>
                     <p class="sig">
-                        (Fn [(Ref String a), (Ref (Array String) b)] (Maybe String))
+                        (Fn [(Ref Datetime a)] String)
                     </p>
                     <pre class="args">
-                        (negotiate accept offers)
+                        (format dt)
                     </pre>
                     <p class="doc">
-                        <p>selects the best content coding to serve from <code>offers</code> given an
-<code>Accept-Encoding</code> header value, per RFC 9110 §12.5.3, as <code>(Maybe String)</code>. A
-coding named by the field takes that entry's weight, one only <code>*</code> matches takes
-the wildcard's, and any other coding is unacceptable — except <code>identity</code>, which
-is acceptable at full weight unless the field rates it. A weight of <code>0</code> makes a
-coding unacceptable rather than least preferred. The highest-weighted acceptable
-offer wins, ties broken by the order of <code>offers</code>; matching is case-insensitive.
-An empty <code>Accept-Encoding</code> accepts only <code>identity</code>; a request that sends no
-<code>Accept-Encoding</code> at all accepts anything, which
-<a href="Request.html#negotiate-encoding"><code>Request.negotiate-encoding</code></a> handles.
-<code>Nothing</code> means nothing is acceptable.</p>
+                        <p>renders <code>dt</code> as an IMF-fixdate, e.g. <code>Sun, 06 Nov 1994 08:49:37 GMT</code>. It is the only format RFC 9110 §5.6.7 permits a sender to generate.</p>
+<p><code>dt</code> is converted to UTC first, so a <code>Datetime</code> carrying a local timezone names
+the same instant once labelled <code>GMT</code>.</p>
 
                     </p>
                 </div>
@@ -130,14 +122,20 @@ An empty <code>Accept-Encoding</code> accepts only <code>identity</code>; a requ
                         defn
                     </div>
                     <p class="sig">
-                        (Fn [(Ref String a)] (Array Weighted))
+                        (Fn [(Ref String a)] (Result Datetime String))
                     </p>
                     <pre class="args">
                         (parse s)
                     </pre>
                     <p class="doc">
-                        <p>parses an <code>Accept-Encoding</code> header value into its weighted content
-codings, in header order.</p>
+                        <p>parses an HTTP-date, returning the <code>Datetime</code> it names in UTC.</p>
+<p>All three formats RFC 9110 §5.6.7 obliges a recipient to accept are recognized —
+IMF-fixdate (<code>Sun, 06 Nov 1994 08:49:37 GMT</code>), rfc850-date (<code>Sunday, 06-Nov-94 08:49:37 GMT</code>) and asctime-date (<code>Sun Nov  6 08:49:37 1994</code>) — as are two dashed
+cookie-date forms RFC 6265 §5.1.1 accepts, both spelling the day name in its
+abbreviated form: with a four-digit year (<code>Thu, 01-Jan-1970 00:00:01 GMT</code>) and
+with a two-digit one (<code>Sun, 06-Nov-94 08:49:37 GMT</code>).</p>
+<p>A two-digit year is windowed as <code>69</code>–<code>99</code> → 1969–1999 and <code>00</code>–<code>68</code> →
+2000–2068.</p>
 
                     </p>
                 </div>

@@ -33,6 +33,11 @@
                             </a>
                         </li>
                         <li>
+                            <a href="HttpDate.html">
+                                HttpDate
+                            </a>
+                        </li>
+                        <li>
                             <a href="Status.html">
                                 Status
                             </a>
@@ -55,6 +60,21 @@
                         <li>
                             <a href="AcceptLanguage.html">
                                 AcceptLanguage
+                            </a>
+                        </li>
+                        <li>
+                            <a href="ByteRange.html">
+                                ByteRange
+                            </a>
+                        </li>
+                        <li>
+                            <a href="ByteRangeSpec.html">
+                                ByteRangeSpec
+                            </a>
+                        </li>
+                        <li>
+                            <a href="ContentRange.html">
+                                ContentRange
                             </a>
                         </li>
                     </ul>
@@ -505,6 +525,30 @@ it will return a <code>(Success Request)</code>.</p>
                     </pre>
                     <p class="doc">
                         <p>builds a HTTP PUT request (version <code>1.1</code>).</p>
+
+                    </p>
+                </div>
+                <div class="binder">
+                    <a class="anchor" href="#range">
+                        <h3 id="range">
+                            range
+                        </h3>
+                    </a>
+                    <div class="description">
+                        defn
+                    </div>
+                    <p class="sig">
+                        (Fn [(Ref Request a)] (Maybe (Result (Array ByteRangeSpec) String)))
+                    </p>
+                    <pre class="args">
+                        (range r)
+                    </pre>
+                    <p class="doc">
+                        <p>the byte ranges this request asks for, as
+<code>(Maybe (Result (Array ByteRangeSpec) String))</code>. <code>Nothing</code> when it carries no
+<code>Range</code> header. See <a href="ByteRange.html#parse"><code>ByteRange.parse</code></a>, whose <code>Error</code>
+means the header is one RFC 9110 §14.2 has the server ignore — serving the whole
+representation rather than a <code>416</code>.</p>
 
                     </p>
                 </div>

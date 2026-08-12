@@ -5,7 +5,7 @@ An HTTP request/response parser and serializer for Carp.
 ## Installation
 
 ```clojure
-(load "git@github.com:carpentry-org/http@0.3.0")
+(load "git@github.com:carpentry-org/http@0.4.0")
 ```
 
 ## Usage
