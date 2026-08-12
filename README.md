@@ -133,6 +133,41 @@ filtering, so `en` matches `en-US` but not `eng`, and `en-US` does not match
 
 `Accept-Charset` has no counterpart: RFC 9110 §12.5.2 deprecates it.
 
+### Range requests
+
+`ByteRange` reads a `Range` header as byte-range specs and resolves them
+against the length of the representation, per RFC 9110 §14. Bounds saturate at
+`Long.MAX` rather than wrapping, a `last-pos` past the end clamps, and
+unsatisfiable specs drop out — so an empty resolution of a non-empty range-set
+is the `416` case.
+
+```clojure
+(match (Request.range &req)
+  (Maybe.Nothing) (whole-representation)
+  (Maybe.Just (Result.Error _)) (whole-representation) ; §14.2: ignore the header
+  (Maybe.Just (Result.Success specs))
+    (let [rs (ByteRange.resolve &specs 1000l)]
+      (if (Array.empty? &rs)
+        (Response.respond Status.range-not-satisfiable
+                          {@"Content-Range" [(ContentRange.unsatisfied 1000l)]}
+                          @"")
+        (partial-content &rs))))
+```
+
+`ByteRange.resolve` of `bytes=0-499, -200` against a 1000-byte representation is
+`[(Pair 0 499) (Pair 800 999)]`. `ContentRange` builds the header a `206` or
+`416` answers with, and parses one a client receives.
+
+```clojure
+(ByteRange.str &[(ByteRangeSpec.FirstLast 0l 499l)]) ; => "bytes=0-499"
+(ContentRange.bytes 0l 499l 1234l)                   ; => "bytes 0-499/1234"
+(ContentRange.unsatisfied 1234l)                     ; => "bytes */1234"
+
+(match (ContentRange.parse "bytes 0-499/1234")
+  (Result.Success cr) (println* &(ContentRange.str &cr))
+  (Result.Error e) (IO.errorln &e))
+```
+
 ### Status codes
 
 ```clojure
@@ -157,6 +192,9 @@ Status.not-found    ; => 404
 | `AcceptEncoding` | `Accept-Encoding` parser and content-coding negotiation (RFC 9110) |
 | `AcceptLanguage` | `Accept-Language` parser and language negotiation (RFC 4647) |
 | `Weighted` | one entry of a weighted header list (value and `q`) |
+| `ByteRange` | `Range` parser, resolver and serializer (RFC 9110 §14) |
+| `ByteRangeSpec` | one byte-range spec of a `Range` header |
+| `ContentRange` | `Content-Range` parser and formatter (RFC 9110 §14.4) |
 | `Auth` | `Authorization` / `WWW-Authenticate` parser and builder (RFC 7235) |
 | `Credentials` | one authentication scheme with its token68 or auth-params |
 | `Multipart` | `multipart/form-data` body decoder |

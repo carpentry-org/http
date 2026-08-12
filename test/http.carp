@@ -264,6 +264,52 @@
       "WWW-Authenticate")
     @"<none>"))
 
+(defn range-verdict [s]
+  (match (ByteRange.parse s)
+    (Result.Success specs) (ByteRange.str &specs)
+    (Result.Error _) @"ERROR"))
+
+(defn range-error [s]
+  (match (ByteRange.parse s) (Result.Success _) @"<none>" (Result.Error e) e))
+
+(defn pair-str [p] (fmt "%s-%s" &(Long.str @(Pair.a p)) &(Long.str @(Pair.b p))))
+
+(defn resolved [s len]
+  (match (ByteRange.parse s)
+    (Result.Success specs)
+      (let-do [rs (ByteRange.resolve &specs len)
+               out @""]
+        (for [i 0 (Array.length &rs)]
+          (do
+            (when (> i 0) (set! out (String.append &out ",")))
+            (set! out (String.append &out &(pair-str (Array.unsafe-nth &rs i))))))
+        out)
+    (Result.Error _) @"ERROR"))
+
+(defn spec-bound [s i]
+  (match (ByteRange.parse s)
+    (Result.Success specs)
+      (match-ref (Array.unsafe-nth &specs i)
+        (ByteRangeSpec.FirstLast _ b) @b
+        (ByteRangeSpec.From a) @a
+        (ByteRangeSpec.Suffix n) @n)
+    (Result.Error _) -1l))
+
+(defn content-range-verdict [s]
+  (match (ContentRange.parse s)
+    (Result.Success cr) (ContentRange.str &cr)
+    (Result.Error _) @"ERROR"))
+
+(defn content-range-error [s]
+  (match (ContentRange.parse s) (Result.Success _) @"<none>" (Result.Error e) e))
+
+(defn req-range-verdict [hdrs]
+  (let [r (Request.get (URI.zero) [] hdrs @"")]
+    (match (Request.range &r)
+      (Maybe.Nothing) @"NONE"
+      (Maybe.Just (Result.Error _)) @"ERROR"
+      (Maybe.Just (Result.Success specs)) (ByteRange.str &specs))))
+
 (deftest test
   (assert-true test
     (match (Request.parse &simple-get) (Result.Success _) true _ false)
@@ -1225,6 +1271,267 @@
     "fr"
     &(req-pick-lang {@"Accept-Language" [@"fr;q=0.9, de;q=0.1"]} &[@"de" @"fr"])
     "Request.negotiate-language honors the request's Accept-Language header")
+
+  ; ---- byte ranges (Range/Content-Range, RFC 9110 §14) ----
+  (assert-equal test
+    "bytes=0-499"
+    &(range-verdict "bytes=0-499")
+    "a first-last spec parses and serializes back")
+  (assert-equal test
+    "bytes=500-"
+    &(range-verdict "bytes=500-")
+    "a from spec parses and serializes back")
+  (assert-equal test
+    "bytes=-500"
+    &(range-verdict "bytes=-500")
+    "a suffix spec parses and serializes back")
+  (assert-equal test
+    "bytes=0-499, 500-999"
+    &(range-verdict "bytes=0-499,500-999")
+    "a range-set holds several specs")
+  (assert-equal test
+    "bytes=0-0, -1"
+    &(range-verdict "bytes=0-0, -1")
+    "whitespace around a comma is ignored")
+  (assert-equal test
+    "bytes=0-1, 2-3"
+    &(range-verdict "bytes=0-1,,2-3")
+    "empty list elements are ignored")
+  (assert-equal test
+    "bytes=0-1"
+    &(range-verdict "BYTES= 0-1 ")
+    "the range unit is case-insensitive and the spec is trimmed")
+  (assert-equal test
+    "bytes=0-0"
+    &(range-verdict "bytes=00-00")
+    "leading zeroes in a bound are accepted")
+  (assert-equal test
+    "ERROR"
+    &(range-verdict "items=0-1")
+    "a range unit other than bytes is rejected")
+  (assert-equal test
+    "ERROR"
+    &(range-verdict "bytes=")
+    "an empty range-set is rejected")
+  (assert-equal test
+    "ERROR"
+    &(range-verdict "bytes=,")
+    "a range-set of only empty elements is rejected")
+  (assert-equal test
+    "ERROR"
+    &(range-verdict "0-499")
+    "a ranges-specifier without a unit is rejected")
+  (assert-equal test
+    "ERROR"
+    &(range-verdict "bytes=abc")
+    "a spec that is not digits is rejected")
+  (assert-equal test
+    "ERROR"
+    &(range-verdict "bytes=-")
+    "a spec with neither bound is rejected")
+  (assert-equal test
+    "ERROR"
+    &(range-verdict "bytes=--1")
+    "a spec with two dashes is rejected")
+  (assert-equal test
+    "ERROR"
+    &(range-verdict "bytes=1-0")
+    "a last-pos below its first-pos is rejected")
+  (assert-equal test
+    "ERROR"
+    &(range-verdict "bytes=0-499,bad")
+    "one invalid spec rejects the whole range-set")
+  (assert-equal test
+    Long.MAX
+    (spec-bound "bytes=0-99999999999999999999999" 0)
+    "a last-pos too large for a Long saturates")
+  (assert-equal test
+    Long.MAX
+    (spec-bound "bytes=99999999999999999999999-" 0)
+    "a first-pos too large for a Long saturates")
+  (assert-equal test
+    Long.MAX
+    (spec-bound "bytes=-99999999999999999999999" 0)
+    "a suffix-length too large for a Long saturates")
+  (assert-equal test
+    Long.MAX
+    (spec-bound &(fmt "bytes=0-%s" &(repeated "9" 20000)) 0)
+    "an absurd digit run saturates without crashing")
+  (assert-equal test
+    "0-499"
+    &(resolved "bytes=0-499" 1234l)
+    "a first-last spec inside the representation resolves as written")
+  (assert-equal test
+    "500-1233"
+    &(resolved "bytes=500-" 1234l)
+    "a from spec resolves to the end of the representation")
+  (assert-equal test
+    "734-1233"
+    &(resolved "bytes=-500" 1234l)
+    "a suffix spec resolves to the last bytes of the representation")
+  (assert-equal test
+    "0-1233"
+    &(resolved "bytes=0-9999" 1234l)
+    "a last-pos past the end clamps to the last byte")
+  (assert-equal test
+    "0-1233"
+    &(resolved "bytes=-5000" 1234l)
+    "a suffix-length past the length is the whole representation")
+  (assert-equal test
+    "1233-1233"
+    &(resolved "bytes=1233-" 1234l)
+    "a first-pos at the last byte resolves to one byte")
+  (assert-equal test
+    ""
+    &(resolved "bytes=1234-" 1234l)
+    "a first-pos at the end is unsatisfiable")
+  (assert-equal test
+    ""
+    &(resolved "bytes=2000-3000" 1234l)
+    "a spec past the end is unsatisfiable")
+  (assert-equal test
+    ""
+    &(resolved "bytes=-0" 1234l)
+    "a suffix-length of zero is unsatisfiable")
+  (assert-equal test
+    ""
+    &(resolved "bytes=0-0" 0l)
+    "no range is satisfiable in an empty representation")
+  (assert-equal test
+    "0-1"
+    &(resolved "bytes=2000-,0-1" 1234l)
+    "unsatisfiable specs are dropped from a range-set that has others")
+  (assert-equal test
+    "0-9,90-99"
+    &(resolved "bytes=0-9,-10" 100l)
+    "several satisfiable specs resolve in spec order")
+  (assert-equal test
+    "0-1233"
+    &(resolved "bytes=0-99999999999999999999999" 1234l)
+    "a saturated last-pos clamps to the last byte")
+  (assert-equal test
+    ""
+    &(resolved "bytes=99999999999999999999999-" 1234l)
+    "a saturated first-pos is unsatisfiable")
+  (assert-equal test
+    "0-1233"
+    &(resolved "bytes=-99999999999999999999999" 1234l)
+    "a saturated suffix-length is the whole representation")
+  (assert-equal test
+    "bytes=0-499, -200"
+    &(ByteRange.str
+      &[(ByteRangeSpec.FirstLast 0l 499l) (ByteRangeSpec.Suffix 200l)])
+    "a client can build a Range header from specs")
+  (assert-equal test
+    "bytes 0-499/1234"
+    &(content-range-verdict "bytes 0-499/1234")
+    "a Content-Range parses and serializes back")
+  (assert-equal test
+    "bytes 0-499/*"
+    &(content-range-verdict "bytes 0-499/*")
+    "a Content-Range with an unknown complete length round-trips")
+  (assert-equal test
+    "bytes */1234"
+    &(content-range-verdict "bytes */1234")
+    "an unsatisfied Content-Range round-trips")
+  (assert-equal test
+    "bytes 0-1/2"
+    &(content-range-verdict "BYTES 0-1/2")
+    "the Content-Range unit is case-insensitive")
+  (assert-equal test
+    "ERROR"
+    &(content-range-verdict "bytes */*")
+    "a Content-Range naming neither a range nor a length is rejected")
+  (assert-equal test
+    "ERROR"
+    &(content-range-verdict "items 0-1/2")
+    "a Content-Range unit other than bytes is rejected")
+  (assert-equal test
+    "ERROR"
+    &(content-range-verdict "bytes 499-0/1234")
+    "a Content-Range last-pos below its first-pos is rejected")
+  (assert-equal test
+    "bytes 0-1233/1234"
+    &(content-range-verdict "bytes 0-1233/1234")
+    "a Content-Range last-pos one below its complete length is valid")
+  (assert-equal test
+    "ERROR"
+    &(content-range-verdict "bytes 0-1234/1234")
+    "a Content-Range complete length equal to its last-pos is rejected")
+  (assert-equal test
+    "ERROR"
+    &(content-range-verdict "bytes 1234-1234/1234")
+    "a Content-Range naming the position past its complete length is rejected")
+  (assert-equal test
+    "ERROR"
+    &(content-range-verdict "bytes 5-9/3")
+    "a Content-Range complete length below its last-pos is rejected")
+  (assert-equal test
+    "ERROR"
+    &(content-range-verdict "bytes 0-0/0")
+    "a Content-Range naming a range of an empty representation is rejected")
+  (assert-equal test
+    "bytes 0-1234/*"
+    &(content-range-verdict "bytes 0-1234/*")
+    "an unknown complete length has no last-pos to contradict")
+  (assert-equal test
+    "bytes */0"
+    &(content-range-verdict "bytes */0")
+    "the unsatisfied form of an empty representation is valid")
+  (assert-equal test
+    "ERROR"
+    &(content-range-verdict "bytes 0-499")
+    "a Content-Range without a complete length is rejected")
+  (assert-equal test
+    "ERROR"
+    &(content-range-verdict "0-499/1234")
+    "a Content-Range without a unit is rejected")
+  (assert-true test
+    (match (ContentRange.parse "bytes 0-499/1234")
+      (Result.Success cr) (ContentRange.satisfied? &cr)
+      (Result.Error _) false)
+    "a Content-Range naming a range is satisfied")
+  (assert-true test
+    (match (ContentRange.parse "bytes */1234")
+      (Result.Success cr) (not (ContentRange.satisfied? &cr))
+      (Result.Error _) false)
+    "the unsatisfied form of a Content-Range is not satisfied")
+  (assert-equal test
+    "bytes 0-499/1234"
+    &(ContentRange.bytes 0l 499l 1234l)
+    "ContentRange.bytes formats the header of a 206")
+  (assert-equal test
+    "bytes */1234"
+    &(ContentRange.unsatisfied 1234l)
+    "ContentRange.unsatisfied formats the header of a 416")
+  (assert-equal test
+    416
+    Status.range-not-satisfiable
+    "Status.range-not-satisfiable is 416")
+  (assert-equal test
+    "Range Not Satisfiable"
+    &(Status.reason 416)
+    "416 has a reason phrase")
+  (assert-equal test
+    "bytes=0-499"
+    &(req-range-verdict {@"Range" [@"bytes=0-499"]})
+    "Request.range parses the request's Range header")
+  (assert-equal test
+    "NONE"
+    &(req-range-verdict {})
+    "Request.range is Nothing without a Range header")
+  (assert-equal test
+    "ERROR"
+    &(req-range-verdict {@"Range" [@"bytes=nonsense"]})
+    "Request.range reports a Range header the server must ignore")
+  (assert-equal test
+    "malformed Range: 'nonsense'"
+    &(range-error "nonsense")
+    "a rejected range-set is reported against the wire header name")
+  (assert-equal test
+    "malformed Content-Range: 'nonsense'"
+    &(content-range-error "nonsense")
+    "a rejected Content-Range is reported against the wire header name")
 
   (assert-equal test
     &(dechunk-ok "4\r\nWiki\r\n5\r\npedia\r\n0\r\n\r\n")

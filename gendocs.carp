@@ -38,5 +38,8 @@ Status.not-found    ; => 404
            Form
            TransferEncoding
            AcceptEncoding
-           AcceptLanguage)
+           AcceptLanguage
+           ByteRange
+           ByteRangeSpec
+           ContentRange)
 (quit)
