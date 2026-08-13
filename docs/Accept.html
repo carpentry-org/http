@@ -132,81 +132,58 @@
             </div>
             <div class="module">
                 <h1>
-                    TransferEncoding
+                    Accept
                 </h1>
                 <div class="module-description">
-                    <p>provides encoding and decoding for HTTP transfer codings.</p>
-<p>Use <code>Request.chunked?</code>/<code>Response.chunked?</code> to detect a chunked body, then
-<a href="#dechunk">dechunk</a> to decode it, or <a href="#chunk">chunk</a> to encode one.</p>
+                    <p>parses <code>Accept</code> headers and performs server-side content
+negotiation (RFC 7231 §5.3.2).</p>
 
                 </div>
                 <div class="binder">
-                    <a class="anchor" href="#chunk">
-                        <h3 id="chunk">
-                            chunk
+                    <a class="anchor" href="#negotiate">
+                        <h3 id="negotiate">
+                            negotiate
                         </h3>
                     </a>
                     <div class="description">
                         defn
                     </div>
                     <p class="sig">
-                        (Fn [(Ref String a)] String)
+                        (Fn [(Ref String a), (Ref (Array String) b)] (Maybe String))
                     </p>
                     <pre class="args">
-                        (chunk body)
+                        (negotiate accept offers)
                     </pre>
                     <p class="doc">
-                        <p>chunk-encodes <code>body</code> as a single chunk followed by the terminating
-zero-size chunk (RFC 7230 §4.1). The result decodes back to <code>body</code> via
-<a href="#dechunk">dechunk</a>; an empty body yields just the terminator.</p>
+                        <p>selects the best media type to serve from <code>offers</code> given an
+<code>Accept</code> header value, per RFC 7231 §5.3.2, as <code>(Maybe String)</code>. Each offer's
+quality is the weight of the most specific range that matches it; a weight of
+<code>0</code> (or no matching range) makes the offer unacceptable. The highest-quality
+acceptable offer wins, ties broken by the order of <code>offers</code>. An empty <code>Accept</code>
+accepts anything and yields the first offer; <code>Nothing</code> means nothing is
+acceptable.</p>
 
                     </p>
                 </div>
                 <div class="binder">
-                    <a class="anchor" href="#chunk-with-size">
-                        <h3 id="chunk-with-size">
-                            chunk-with-size
+                    <a class="anchor" href="#parse">
+                        <h3 id="parse">
+                            parse
                         </h3>
                     </a>
                     <div class="description">
                         defn
                     </div>
                     <p class="sig">
-                        (Fn [(Ref String a), Int] String)
+                        (Fn [(Ref String a)] (Array MediaRange))
                     </p>
                     <pre class="args">
-                        (chunk-with-size body size)
+                        (parse s)
                     </pre>
                     <p class="doc">
-                        <p>chunk-encodes <code>body</code> into chunks of at most <code>size</code> bytes
-per RFC 7230 §4.1 — each a hex size line, the data, and a CRLF — closed by the
-terminating zero-size chunk. <code>size</code> is clamped to at least 1. The result decodes
-back to <code>body</code> via <a href="#dechunk">dechunk</a>.</p>
-
-                    </p>
-                </div>
-                <div class="binder">
-                    <a class="anchor" href="#dechunk">
-                        <h3 id="dechunk">
-                            dechunk
-                        </h3>
-                    </a>
-                    <div class="description">
-                        defn
-                    </div>
-                    <p class="sig">
-                        (Fn [(Ref String a)] (Result String String))
-                    </p>
-                    <pre class="args">
-                        (dechunk body)
-                    </pre>
-                    <p class="doc">
-                        <p>decodes a chunked transfer-encoded <code>body</code> per RFC 7230 §4.1.</p>
-<p>Each chunk is a hexadecimal size line — any chunk extension after a <code>;</code> is
-ignored — followed by that many bytes of data and a CRLF, repeating until a
-zero-size chunk. Optional trailer headers after the final chunk are ignored.
-Returns the decoded body, or an <code>(Error String)</code> on malformed framing such as a
-bad hex size or a truncated chunk.</p>
+                        <p>parses an <code>Accept</code> header value into its weighted media ranges, in
+header order. Malformed ranges are skipped. Delegates to the <code>MediaType</code> parser,
+so wildcards (<code>*/*</code>, <code>type/*</code>) are handled.</p>
 
                     </p>
                 </div>

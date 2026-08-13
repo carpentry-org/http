@@ -132,35 +132,147 @@
             </div>
             <div class="module">
                 <h1>
-                    Form
+                    Auth
                 </h1>
                 <div class="module-description">
-                    <p>provides URL-encoded form body parsing and serialization.</p>
-<pre><code>(match (Form.parse &quot;name=carp&amp;version=1&quot;)
-  (Result.Success m) (println* &amp;(Map.get &amp;m &quot;name&quot;))
+                    <p>parses and builds HTTP authentication headers (RFC 7235): the
+<code>Authorization</code> and <code>Proxy-Authorization</code> credentials a client sends, and the
+<code>WWW-Authenticate</code> and <code>Proxy-Authenticate</code> challenges a server answers a 401 or
+407 with. The <code>Basic</code> (RFC 7617) and <code>Bearer</code> (RFC 6750) schemes have dedicated
+helpers.</p>
+<pre><code>(match (Auth.parse &quot;Basic YWxhZGRpbjpvcGVuIHNlc2FtZQ==&quot;)
+  (Result.Success c)
+    (match (Auth.basic-credentials &amp;c)
+      (Result.Success up) (println* (Pair.a &amp;up) &quot;:&quot; (Pair.b &amp;up))
+      (Result.Error e) (IO.errorln &amp;e))
   (Result.Error e) (IO.errorln &amp;e))
 </code></pre>
 
                 </div>
                 <div class="binder">
-                    <a class="anchor" href="#encode">
-                        <h3 id="encode">
-                            encode
+                    <a class="anchor" href="#basic">
+                        <h3 id="basic">
+                            basic
                         </h3>
                     </a>
                     <div class="description">
                         defn
                     </div>
                     <p class="sig">
-                        (Fn [(Ref (Map String String) a)] String)
+                        (Fn [(Ref String a), b] (Result String String))
                     </p>
                     <pre class="args">
-                        (encode m)
+                        (basic user password)
                     </pre>
                     <p class="doc">
-                        <p>encodes a <code>(Map String String)</code> as a URL-encoded form body.
-Spaces become <code>+</code> and other special characters are percent-encoded.
-This is the inverse of <code>parse</code>.</p>
+                        <p>builds an RFC 7617 <code>Basic</code> <code>Authorization</code> value from <code>user</code> and
+<code>password</code>. Fails when <code>user</code> contains a colon, which the scheme cannot
+represent; a <code>password</code> may contain any number of them.</p>
+
+                    </p>
+                </div>
+                <div class="binder">
+                    <a class="anchor" href="#basic-challenge">
+                        <h3 id="basic-challenge">
+                            basic-challenge
+                        </h3>
+                    </a>
+                    <div class="description">
+                        defn
+                    </div>
+                    <p class="sig">
+                        (Fn [(Ref String a)] String)
+                    </p>
+                    <pre class="args">
+                        (basic-challenge realm)
+                    </pre>
+                    <p class="doc">
+                        <p>builds a <code>Basic</code> <code>WWW-Authenticate</code> challenge for
+<code>realm</code>.</p>
+
+                    </p>
+                </div>
+                <div class="binder">
+                    <a class="anchor" href="#basic-credentials">
+                        <h3 id="basic-credentials">
+                            basic-credentials
+                        </h3>
+                    </a>
+                    <div class="description">
+                        defn
+                    </div>
+                    <p class="sig">
+                        (Fn [(Ref Credentials a)] (Result (Pair String String) String))
+                    </p>
+                    <pre class="args">
+                        (basic-credentials c)
+                    </pre>
+                    <p class="doc">
+                        <p>decodes RFC 7617 <code>Basic</code> credentials into a user and
+password <code>Pair</code>, splitting on the first colon. Fails when the scheme is not
+<code>Basic</code>, the base64 does not decode, or the decoded value has no colon.</p>
+
+                    </p>
+                </div>
+                <div class="binder">
+                    <a class="anchor" href="#bearer">
+                        <h3 id="bearer">
+                            bearer
+                        </h3>
+                    </a>
+                    <div class="description">
+                        defn
+                    </div>
+                    <p class="sig">
+                        (Fn [a] String)
+                    </p>
+                    <pre class="args">
+                        (bearer token)
+                    </pre>
+                    <p class="doc">
+                        <p>builds an RFC 6750 <code>Bearer</code> <code>Authorization</code> value from <code>token</code>.</p>
+
+                    </p>
+                </div>
+                <div class="binder">
+                    <a class="anchor" href="#bearer-challenge">
+                        <h3 id="bearer-challenge">
+                            bearer-challenge
+                        </h3>
+                    </a>
+                    <div class="description">
+                        defn
+                    </div>
+                    <p class="sig">
+                        (Fn [(Ref String a)] String)
+                    </p>
+                    <pre class="args">
+                        (bearer-challenge realm)
+                    </pre>
+                    <p class="doc">
+                        <p>builds a <code>Bearer</code> <code>WWW-Authenticate</code> challenge for
+<code>realm</code>.</p>
+
+                    </p>
+                </div>
+                <div class="binder">
+                    <a class="anchor" href="#bearer-token">
+                        <h3 id="bearer-token">
+                            bearer-token
+                        </h3>
+                    </a>
+                    <div class="description">
+                        defn
+                    </div>
+                    <p class="sig">
+                        (Fn [(Ref Credentials a)] (Result String String))
+                    </p>
+                    <pre class="args">
+                        (bearer-token c)
+                    </pre>
+                    <p class="doc">
+                        <p>the token of RFC 6750 <code>Bearer</code> credentials. Fails when the
+scheme is not <code>Bearer</code>, or when the token is empty.</p>
 
                     </p>
                 </div>
@@ -174,38 +286,38 @@ This is the inverse of <code>parse</code>.</p>
                         defn
                     </div>
                     <p class="sig">
-                        (Fn [(Ref String a)] (Result (Map String String) b))
+                        (Fn [(Ref String a)] (Result Credentials String))
                     </p>
                     <pre class="args">
                         (parse s)
                     </pre>
                     <p class="doc">
-                        <p>parses a URL-encoded form body into a <code>(Map String String)</code>.
-Keys and values are percent-decoded. The <code>+</code> character is decoded as space
-per the <code>application/x-www-form-urlencoded</code> specification.</p>
+                        <p>parses an <code>Authorization</code> or <code>Proxy-Authorization</code> value into the
+one set of credentials it may carry. Fails when there is no scheme, or when more
+than one scheme is present.</p>
 
                     </p>
                 </div>
                 <div class="binder">
-                    <a class="anchor" href="#parse-pairs">
-                        <h3 id="parse-pairs">
-                            parse-pairs
+                    <a class="anchor" href="#parse-challenges">
+                        <h3 id="parse-challenges">
+                            parse-challenges
                         </h3>
                     </a>
                     <div class="description">
                         defn
                     </div>
                     <p class="sig">
-                        (Fn [(Ref String a)] (Result (Array (Pair String String)) b))
+                        (Fn [(Ref String a)] (Array Credentials))
                     </p>
                     <pre class="args">
-                        (parse-pairs s)
+                        (parse-challenges s)
                     </pre>
                     <p class="doc">
-                        <p>parses a URL-encoded form body into an
-<code>(Array (Pair String String))</code>. Unlike <code>parse</code>, this preserves the order
-of pairs and allows duplicate keys. Keys and values are percent-decoded.
-The <code>+</code> character is decoded as space.</p>
+                        <p>parses a <code>WWW-Authenticate</code> or <code>Proxy-Authenticate</code>
+value into its challenges, in header order. One header value may carry several
+challenges, and a challenge may carry no params at all. Bytes that fit the
+grammar nowhere are dropped rather than rejected, so this never fails.</p>
 
                     </p>
                 </div>

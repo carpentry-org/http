@@ -61,6 +61,16 @@ A two-digit year is windowed as `69`–`99` → 1969–1999 and `00`–`68` →
         (Maybe.Just d) (Result.Success d)
         (Maybe.Nothing) (Result.Error (fmt "unrecognized date format: %s" s))))))
 
+(doc SameSite "is the `SameSite` attribute of a `Set-Cookie` header (RFC
+6265bis): `Strict` sends the cookie on same-site requests only, `Lax` sends it on
+top-level cross-site navigations as well, and `None` sends it on every request. A
+[`Cookie`](Cookie.html) always carries one and [`Cookie.set`](Cookie.html#set)
+always writes it; the zero value is `Lax`.
+
+```
+(Cookie.set &(Cookie.set-samesite cookie (SameSite.Strict)))
+; => \"id=abc; Path=/; SameSite=Strict\"
+```")
 (deftype SameSite
   (Lax [])
   (Strict [])
@@ -1723,6 +1733,17 @@ field `name`, an optional `filename` (present for file uploads), an optional
    content-type (Maybe String)
    body String])
 
+(doc Multipart "decodes `multipart/form-data` bodies (RFC 7578) into their
+[`FormPart`](FormPart.html)s. The boundary is a parameter of the `Content-Type`
+header; [`Request.multipart-data`](Request.html#multipart-data) reads it off the
+request for you.
+
+```
+(match (Request.multipart-data &req)
+  (Result.Success parts)
+    (println* (FormPart.name (Array.unsafe-nth &parts 0)))
+  (Result.Error e) (IO.errorln &e))
+```")
 (defmodule Multipart
   (hidden at?)
   (private at?)

@@ -132,82 +132,196 @@
             </div>
             <div class="module">
                 <h1>
-                    TransferEncoding
+                    SameSite
                 </h1>
                 <div class="module-description">
-                    <p>provides encoding and decoding for HTTP transfer codings.</p>
-<p>Use <code>Request.chunked?</code>/<code>Response.chunked?</code> to detect a chunked body, then
-<a href="#dechunk">dechunk</a> to decode it, or <a href="#chunk">chunk</a> to encode one.</p>
+                    <p>is the <code>SameSite</code> attribute of a <code>Set-Cookie</code> header (RFC
+6265bis): <code>Strict</code> sends the cookie on same-site requests only, <code>Lax</code> sends it on
+top-level cross-site navigations as well, and <code>None</code> sends it on every request. A
+<a href="Cookie.html"><code>Cookie</code></a> always carries one and <a href="Cookie.html#set"><code>Cookie.set</code></a>
+always writes it; the zero value is <code>Lax</code>.</p>
+<pre><code>(Cookie.set &amp;(Cookie.set-samesite cookie (SameSite.Strict)))
+; =&gt; &quot;id=abc; Path=/; SameSite=Strict&quot;
+</code></pre>
 
                 </div>
                 <div class="binder">
-                    <a class="anchor" href="#chunk">
-                        <h3 id="chunk">
-                            chunk
+                    <a class="anchor" href="#Lax">
+                        <h3 id="Lax">
+                            Lax
+                        </h3>
+                    </a>
+                    <div class="description">
+                        instantiate
+                    </div>
+                    <p class="sig">
+                        (Fn [] SameSite)
+                    </p>
+                    <span>
+                        
+                    </span>
+                    <p class="doc">
+                        <p>creates a <code>Lax</code>.</p>
+
+                    </p>
+                </div>
+                <div class="binder">
+                    <a class="anchor" href="#None">
+                        <h3 id="None">
+                            None
+                        </h3>
+                    </a>
+                    <div class="description">
+                        instantiate
+                    </div>
+                    <p class="sig">
+                        (Fn [] SameSite)
+                    </p>
+                    <span>
+                        
+                    </span>
+                    <p class="doc">
+                        <p>creates a <code>None</code>.</p>
+
+                    </p>
+                </div>
+                <div class="binder">
+                    <a class="anchor" href="#Strict">
+                        <h3 id="Strict">
+                            Strict
+                        </h3>
+                    </a>
+                    <div class="description">
+                        instantiate
+                    </div>
+                    <p class="sig">
+                        (Fn [] SameSite)
+                    </p>
+                    <span>
+                        
+                    </span>
+                    <p class="doc">
+                        <p>creates a <code>Strict</code>.</p>
+
+                    </p>
+                </div>
+                <div class="binder">
+                    <a class="anchor" href="#copy">
+                        <h3 id="copy">
+                            copy
+                        </h3>
+                    </a>
+                    <div class="description">
+                        instantiate
+                    </div>
+                    <p class="sig">
+                        (Fn [(Ref SameSite a)] SameSite)
+                    </p>
+                    <span>
+                        
+                    </span>
+                    <p class="doc">
+                        <p>copies a <code>SameSite</code>.</p>
+
+                    </p>
+                </div>
+                <div class="binder">
+                    <a class="anchor" href="#delete">
+                        <h3 id="delete">
+                            delete
+                        </h3>
+                    </a>
+                    <div class="description">
+                        instantiate
+                    </div>
+                    <p class="sig">
+                        (Fn [SameSite] ())
+                    </p>
+                    <span>
+                        
+                    </span>
+                    <p class="doc">
+                        <p>deletes a <code>SameSite</code>. This should usually not be called manually.</p>
+
+                    </p>
+                </div>
+                <div class="binder">
+                    <a class="anchor" href="#get-tag">
+                        <h3 id="get-tag">
+                            get-tag
+                        </h3>
+                    </a>
+                    <div class="description">
+                        instantiate
+                    </div>
+                    <p class="sig">
+                        (Fn [(Ref SameSite a)] Int)
+                    </p>
+                    <span>
+                        
+                    </span>
+                    <p class="doc">
+                        <p>Gets the tag from a <code>SameSite</code>.</p>
+
+                    </p>
+                </div>
+                <div class="binder">
+                    <a class="anchor" href="#prn">
+                        <h3 id="prn">
+                            prn
+                        </h3>
+                    </a>
+                    <div class="description">
+                        instantiate
+                    </div>
+                    <p class="sig">
+                        (Fn [(Ref SameSite a)] String)
+                    </p>
+                    <span>
+                        
+                    </span>
+                    <p class="doc">
+                        <p>converts a <code>SameSite</code> to a string.</p>
+
+                    </p>
+                </div>
+                <div class="binder">
+                    <a class="anchor" href="#str">
+                        <h3 id="str">
+                            str
+                        </h3>
+                    </a>
+                    <div class="description">
+                        instantiate
+                    </div>
+                    <p class="sig">
+                        (Fn [(Ref SameSite a)] String)
+                    </p>
+                    <span>
+                        
+                    </span>
+                    <p class="doc">
+                        <p>converts a <code>SameSite</code> to a string.</p>
+
+                    </p>
+                </div>
+                <div class="binder">
+                    <a class="anchor" href="#zero">
+                        <h3 id="zero">
+                            zero
                         </h3>
                     </a>
                     <div class="description">
                         defn
                     </div>
                     <p class="sig">
-                        (Fn [(Ref String a)] String)
+                        (Fn [] SameSite)
                     </p>
                     <pre class="args">
-                        (chunk body)
+                        (zero)
                     </pre>
                     <p class="doc">
-                        <p>chunk-encodes <code>body</code> as a single chunk followed by the terminating
-zero-size chunk (RFC 7230 §4.1). The result decodes back to <code>body</code> via
-<a href="#dechunk">dechunk</a>; an empty body yields just the terminator.</p>
-
-                    </p>
-                </div>
-                <div class="binder">
-                    <a class="anchor" href="#chunk-with-size">
-                        <h3 id="chunk-with-size">
-                            chunk-with-size
-                        </h3>
-                    </a>
-                    <div class="description">
-                        defn
-                    </div>
-                    <p class="sig">
-                        (Fn [(Ref String a), Int] String)
-                    </p>
-                    <pre class="args">
-                        (chunk-with-size body size)
-                    </pre>
-                    <p class="doc">
-                        <p>chunk-encodes <code>body</code> into chunks of at most <code>size</code> bytes
-per RFC 7230 §4.1 — each a hex size line, the data, and a CRLF — closed by the
-terminating zero-size chunk. <code>size</code> is clamped to at least 1. The result decodes
-back to <code>body</code> via <a href="#dechunk">dechunk</a>.</p>
-
-                    </p>
-                </div>
-                <div class="binder">
-                    <a class="anchor" href="#dechunk">
-                        <h3 id="dechunk">
-                            dechunk
-                        </h3>
-                    </a>
-                    <div class="description">
-                        defn
-                    </div>
-                    <p class="sig">
-                        (Fn [(Ref String a)] (Result String String))
-                    </p>
-                    <pre class="args">
-                        (dechunk body)
-                    </pre>
-                    <p class="doc">
-                        <p>decodes a chunked transfer-encoded <code>body</code> per RFC 7230 §4.1.</p>
-<p>Each chunk is a hexadecimal size line — any chunk extension after a <code>;</code> is
-ignored — followed by that many bytes of data and a CRLF, repeating until a
-zero-size chunk. Optional trailer headers after the final chunk are ignored.
-Returns the decoded body, or an <code>(Error String)</code> on malformed framing such as a
-bad hex size or a truncated chunk.</p>
-
+                        
                     </p>
                 </div>
             </div>

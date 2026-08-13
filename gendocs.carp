@@ -14,7 +14,15 @@ Parse requests with [`Request.parse`](./Request.html#parse), responses with
 [`Request.get`](./Request.html#get), [`Request.post`](./Request.html#post), etc.
 
 Status codes are available as constants in the [`Status`](./Status.html) module.
-Form bodies can be parsed with [`Form.parse`](./Form.html#parse).
+Form bodies can be parsed with [`Form.parse`](./Form.html#parse), and
+`multipart/form-data` ones with
+[`Request.multipart-data`](./Request.html#multipart-data).
+
+Content is negotiated with [`Accept`](./Accept.html),
+[`AcceptEncoding`](./AcceptEncoding.html) and
+[`AcceptLanguage`](./AcceptLanguage.html), or the `Request` wrappers around them.
+[`Auth`](./Auth.html) reads and writes the RFC 7235 authentication headers,
+[`ByteRange`](./ByteRange.html) the RFC 9110 range headers.
 
 ### Parsing
 ```
@@ -33,13 +41,23 @@ Status.not-found    ; => 404
 (save-docs Request
            Response
            Cookie
+           SameSite
            HttpDate
            Status
            Form
+           Multipart
+           FormPart
            TransferEncoding
+           MediaType
+           Accept
+           MediaRange
            AcceptEncoding
            AcceptLanguage
+           Weighted
+           Auth
+           Credentials
            ByteRange
            ByteRangeSpec
-           ContentRange)
+           ContentRange
+           CacheControl)
 (quit)

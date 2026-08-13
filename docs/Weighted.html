@@ -132,96 +132,14 @@
             </div>
             <div class="module">
                 <h1>
-                    ByteRangeSpec
+                    Weighted
                 </h1>
                 <div class="module-description">
-                    <p>is one <code>range-spec</code> of a <code>Range</code> header in the <code>bytes</code> unit
-(RFC 9110 §14.1.1): <code>FirstLast</code> for <code>0-499</code>, <code>From</code> for <code>500-</code> — everything from
-byte <code>500</code> to the end — and <code>Suffix</code> for <code>-500</code>, the last <code>500</code> bytes.</p>
+                    <p>is one entry of a weighted, comma-separated header list such as
+<code>Accept</code>, <code>Accept-Encoding</code> or <code>Accept-Language</code>: a lower-cased <code>value</code> — the
+media range, content coding or language range — and its quality <code>q</code> between
+<code>0.0</code> and <code>1.0</code>.</p>
 
-                </div>
-                <div class="binder">
-                    <a class="anchor" href="#FirstLast">
-                        <h3 id="FirstLast">
-                            FirstLast
-                        </h3>
-                    </a>
-                    <div class="description">
-                        instantiate
-                    </div>
-                    <p class="sig">
-                        (Fn [Long, Long] ByteRangeSpec)
-                    </p>
-                    <span>
-                        
-                    </span>
-                    <p class="doc">
-                        <p>creates a <code>FirstLast</code>.</p>
-
-                    </p>
-                </div>
-                <div class="binder">
-                    <a class="anchor" href="#From">
-                        <h3 id="From">
-                            From
-                        </h3>
-                    </a>
-                    <div class="description">
-                        instantiate
-                    </div>
-                    <p class="sig">
-                        (Fn [Long] ByteRangeSpec)
-                    </p>
-                    <span>
-                        
-                    </span>
-                    <p class="doc">
-                        <p>creates a <code>From</code>.</p>
-
-                    </p>
-                </div>
-                <div class="binder">
-                    <a class="anchor" href="#Suffix">
-                        <h3 id="Suffix">
-                            Suffix
-                        </h3>
-                    </a>
-                    <div class="description">
-                        instantiate
-                    </div>
-                    <p class="sig">
-                        (Fn [Long] ByteRangeSpec)
-                    </p>
-                    <span>
-                        
-                    </span>
-                    <p class="doc">
-                        <p>creates a <code>Suffix</code>.</p>
-
-                    </p>
-                </div>
-                <div class="binder">
-                    <a class="anchor" href="#bound">
-                        <h3 id="bound">
-                            bound
-                        </h3>
-                    </a>
-                    <div class="description">
-                        defn
-                    </div>
-                    <p class="sig">
-                        (Fn [(Ref String a)] (Maybe Long))
-                    </p>
-                    <pre class="args">
-                        (bound s)
-                    </pre>
-                    <p class="doc">
-                        <p>parses one decimal byte position — a <code>first-pos</code>, <code>last-pos</code> or
-<code>suffix-length</code> — as <code>(Maybe Long)</code>. A digit run too large for a <code>Long</code>
-saturates at <code>Long.MAX</code> instead of wrapping, so an absurd bound stays an
-out-of-range bound. <code>Nothing</code> when <code>s</code> is empty or holds anything but digits.</p>
-
-                    </p>
                 </div>
                 <div class="binder">
                     <a class="anchor" href="#copy">
@@ -233,13 +151,13 @@ out-of-range bound. <code>Nothing</code> when <code>s</code> is empty or holds a
                         instantiate
                     </div>
                     <p class="sig">
-                        (Fn [(Ref ByteRangeSpec a)] ByteRangeSpec)
+                        (Fn [(Ref Weighted a)] Weighted)
                     </p>
                     <span>
                         
                     </span>
                     <p class="doc">
-                        <p>copies a <code>ByteRangeSpec</code>.</p>
+                        <p>copies a <code>Weighted</code>.</p>
 
                     </p>
                 </div>
@@ -253,33 +171,56 @@ out-of-range bound. <code>Nothing</code> when <code>s</code> is empty or holds a
                         instantiate
                     </div>
                     <p class="sig">
-                        (Fn [ByteRangeSpec] ())
+                        (Fn [Weighted] ())
                     </p>
                     <span>
                         
                     </span>
                     <p class="doc">
-                        <p>deletes a <code>ByteRangeSpec</code>. This should usually not be called manually.</p>
+                        <p>deletes a <code>Weighted</code>. Should usually not be called manually.</p>
 
                     </p>
                 </div>
                 <div class="binder">
-                    <a class="anchor" href="#get-tag">
-                        <h3 id="get-tag">
-                            get-tag
+                    <a class="anchor" href="#init">
+                        <h3 id="init">
+                            init
                         </h3>
                     </a>
                     <div class="description">
                         instantiate
                     </div>
                     <p class="sig">
-                        (Fn [(Ref ByteRangeSpec a)] Int)
+                        (Fn [String, Double] Weighted)
                     </p>
                     <span>
                         
                     </span>
                     <p class="doc">
-                        <p>Gets the tag from a <code>ByteRangeSpec</code>.</p>
+                        <p>creates a <code>Weighted</code>.</p>
+
+                    </p>
+                </div>
+                <div class="binder">
+                    <a class="anchor" href="#parse-list">
+                        <h3 id="parse-list">
+                            parse-list
+                        </h3>
+                    </a>
+                    <div class="description">
+                        defn
+                    </div>
+                    <p class="sig">
+                        (Fn [(Ref String a)] (Array Weighted))
+                    </p>
+                    <pre class="args">
+                        (parse-list s)
+                    </pre>
+                    <p class="doc">
+                        <p>parses a weighted, comma-separated header list into its
+entries, in header order. Each entry's <code>value</code> is the lower-cased text before
+its first <code>;</code>, and its <code>q</code> is the <code>;q=</code> parameter, clamped to <code>[0.0, 1.0]</code> and
+defaulting to <code>1.0</code>. Entries with an empty value are skipped.</p>
 
                     </p>
                 </div>
@@ -293,13 +234,113 @@ out-of-range bound. <code>Nothing</code> when <code>s</code> is empty or holds a
                         instantiate
                     </div>
                     <p class="sig">
-                        (Fn [(Ref ByteRangeSpec a)] String)
+                        (Fn [(Ref Weighted a)] String)
                     </p>
                     <span>
                         
                     </span>
                     <p class="doc">
-                        <p>converts a <code>ByteRangeSpec</code> to a string.</p>
+                        <p>converts a <code>Weighted</code> to a string.</p>
+
+                    </p>
+                </div>
+                <div class="binder">
+                    <a class="anchor" href="#q">
+                        <h3 id="q">
+                            q
+                        </h3>
+                    </a>
+                    <div class="description">
+                        instantiate
+                    </div>
+                    <p class="sig">
+                        (Fn [(Ref Weighted a)] (Ref Double a))
+                    </p>
+                    <span>
+                        
+                    </span>
+                    <p class="doc">
+                        <p>gets the <code>q</code> property of a <code>Weighted</code>.</p>
+
+                    </p>
+                </div>
+                <div class="binder">
+                    <a class="anchor" href="#set-q">
+                        <h3 id="set-q">
+                            set-q
+                        </h3>
+                    </a>
+                    <div class="description">
+                        instantiate
+                    </div>
+                    <p class="sig">
+                        (Fn [Weighted, Double] Weighted)
+                    </p>
+                    <span>
+                        
+                    </span>
+                    <p class="doc">
+                        <p>sets the <code>q</code> property of a <code>Weighted</code>.</p>
+
+                    </p>
+                </div>
+                <div class="binder">
+                    <a class="anchor" href="#set-q!">
+                        <h3 id="set-q!">
+                            set-q!
+                        </h3>
+                    </a>
+                    <div class="description">
+                        instantiate
+                    </div>
+                    <p class="sig">
+                        (Fn [(Ref Weighted a), Double] ())
+                    </p>
+                    <span>
+                        
+                    </span>
+                    <p class="doc">
+                        <p>sets the <code>q</code> property of a <code>Weighted</code> in place.</p>
+
+                    </p>
+                </div>
+                <div class="binder">
+                    <a class="anchor" href="#set-value">
+                        <h3 id="set-value">
+                            set-value
+                        </h3>
+                    </a>
+                    <div class="description">
+                        instantiate
+                    </div>
+                    <p class="sig">
+                        (Fn [Weighted, String] Weighted)
+                    </p>
+                    <span>
+                        
+                    </span>
+                    <p class="doc">
+                        <p>sets the <code>value</code> property of a <code>Weighted</code>.</p>
+
+                    </p>
+                </div>
+                <div class="binder">
+                    <a class="anchor" href="#set-value!">
+                        <h3 id="set-value!">
+                            set-value!
+                        </h3>
+                    </a>
+                    <div class="description">
+                        instantiate
+                    </div>
+                    <p class="sig">
+                        (Fn [(Ref Weighted a), String] ())
+                    </p>
+                    <span>
+                        
+                    </span>
+                    <p class="doc">
+                        <p>sets the <code>value</code> property of a <code>Weighted</code> in place.</p>
 
                     </p>
                 </div>
@@ -310,19 +351,76 @@ out-of-range bound. <code>Nothing</code> when <code>s</code> is empty or holds a
                         </h3>
                     </a>
                     <div class="description">
-                        defn
+                        instantiate
                     </div>
                     <p class="sig">
-                        (Fn [(Ref ByteRangeSpec a)] String)
+                        (Fn [(Ref Weighted a)] String)
                     </p>
-                    <pre class="args">
-                        (str s)
-                    </pre>
+                    <span>
+                        
+                    </span>
                     <p class="doc">
-                        <p>serializes one spec back into its <code>range-spec</code> form: <code>0-499</code>, <code>500-</code>
-or <code>-500</code>. Anything <a href="ByteRange.html#parse"><code>ByteRange.parse</code></a> produced reads
-back into an equal spec; bounds are written as given, so a hand-built negative
-one writes a <code>range-spec</code> that parser rejects.</p>
+                        <p>converts a <code>Weighted</code> to a string.</p>
+
+                    </p>
+                </div>
+                <div class="binder">
+                    <a class="anchor" href="#update-q">
+                        <h3 id="update-q">
+                            update-q
+                        </h3>
+                    </a>
+                    <div class="description">
+                        instantiate
+                    </div>
+                    <p class="sig">
+                        (Fn [Weighted, (Ref (Fn [Double] Double a) b)] Weighted)
+                    </p>
+                    <span>
+                        
+                    </span>
+                    <p class="doc">
+                        <p>updates the <code>q</code> property of a <code>Weighted</code> using a function <code>f</code>.</p>
+
+                    </p>
+                </div>
+                <div class="binder">
+                    <a class="anchor" href="#update-value">
+                        <h3 id="update-value">
+                            update-value
+                        </h3>
+                    </a>
+                    <div class="description">
+                        instantiate
+                    </div>
+                    <p class="sig">
+                        (Fn [Weighted, (Ref (Fn [String] String a) b)] Weighted)
+                    </p>
+                    <span>
+                        
+                    </span>
+                    <p class="doc">
+                        <p>updates the <code>value</code> property of a <code>Weighted</code> using a function <code>f</code>.</p>
+
+                    </p>
+                </div>
+                <div class="binder">
+                    <a class="anchor" href="#value">
+                        <h3 id="value">
+                            value
+                        </h3>
+                    </a>
+                    <div class="description">
+                        instantiate
+                    </div>
+                    <p class="sig">
+                        (Fn [(Ref Weighted a)] (Ref String a))
+                    </p>
+                    <span>
+                        
+                    </span>
+                    <p class="doc">
+                        <p>gets the <code>value</code> property of a <code>Weighted</code>.</p>
 
                     </p>
                 </div>

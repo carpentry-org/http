@@ -29,6 +29,11 @@
                                 </a>
                             </li>
                             <li>
+                                <a href="SameSite.html">
+                                    SameSite
+                                </a>
+                            </li>
+                            <li>
                                 <a href="HttpDate.html">
                                     HttpDate
                                 </a>
@@ -44,8 +49,33 @@
                                 </a>
                             </li>
                             <li>
+                                <a href="Multipart.html">
+                                    Multipart
+                                </a>
+                            </li>
+                            <li>
+                                <a href="FormPart.html">
+                                    FormPart
+                                </a>
+                            </li>
+                            <li>
                                 <a href="TransferEncoding.html">
                                     TransferEncoding
+                                </a>
+                            </li>
+                            <li>
+                                <a href="MediaType.html">
+                                    MediaType
+                                </a>
+                            </li>
+                            <li>
+                                <a href="Accept.html">
+                                    Accept
+                                </a>
+                            </li>
+                            <li>
+                                <a href="MediaRange.html">
+                                    MediaRange
                                 </a>
                             </li>
                             <li>
@@ -56,6 +86,21 @@
                             <li>
                                 <a href="AcceptLanguage.html">
                                     AcceptLanguage
+                                </a>
+                            </li>
+                            <li>
+                                <a href="Weighted.html">
+                                    Weighted
+                                </a>
+                            </li>
+                            <li>
+                                <a href="Auth.html">
+                                    Auth
+                                </a>
+                            </li>
+                            <li>
+                                <a href="Credentials.html">
+                                    Credentials
                                 </a>
                             </li>
                             <li>
@@ -73,6 +118,11 @@
                                     ContentRange
                                 </a>
                             </li>
+                            <li>
+                                <a href="CacheControl.html">
+                                    CacheControl
+                                </a>
+                            </li>
                         </ul>
                     </div>
                 </div>
@@ -86,7 +136,14 @@ for Carp.</p>
 <a href="./Response.html#parse"><code>Response.parse</code></a>. Build requests with
 <a href="./Request.html#get"><code>Request.get</code></a>, <a href="./Request.html#post"><code>Request.post</code></a>, etc.</p>
 <p>Status codes are available as constants in the <a href="./Status.html"><code>Status</code></a> module.
-Form bodies can be parsed with <a href="./Form.html#parse"><code>Form.parse</code></a>.</p>
+Form bodies can be parsed with <a href="./Form.html#parse"><code>Form.parse</code></a>, and
+<code>multipart/form-data</code> ones with
+<a href="./Request.html#multipart-data"><code>Request.multipart-data</code></a>.</p>
+<p>Content is negotiated with <a href="./Accept.html"><code>Accept</code></a>,
+<a href="./AcceptEncoding.html"><code>AcceptEncoding</code></a> and
+<a href="./AcceptLanguage.html"><code>AcceptLanguage</code></a>, or the <code>Request</code> wrappers around them.
+<a href="./Auth.html"><code>Auth</code></a> reads and writes the RFC 7235 authentication headers,
+<a href="./ByteRange.html"><code>ByteRange</code></a> the RFC 9110 range headers.</p>
 <h3>Parsing</h3>
 <pre><code>(match (Request.parse &quot;GET / HTTP/1.1\r\nHost: example.com\r\n\r\n&quot;)
   (Result.Success req) (println* (Request.verb &amp;req))
