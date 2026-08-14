@@ -310,6 +310,31 @@
       (Maybe.Just (Result.Error _)) @"ERROR"
       (Maybe.Just (Result.Success specs)) (ByteRange.str &specs))))
 
+; ---- hostile-byte test helpers ----
+; a run of UTF-8 continuation bytes: `n` bytes long, zero characters long
+(defn continuation [n] (String.from-bytes &(Array.replicate n &128b)))
+
+(defn ctype-param [s k]
+  (Maybe.from (Map.get-maybe &(MediaType.parse-params s) k) @"<none>"))
+
+(defn cc-directive [s k]
+  (Maybe.from (Map.get-maybe &(CacheControl.parse s) k) @"<none>"))
+
+(defn cookie-summary [s]
+  (match (Cookie.parse-set s)
+    (Result.Success c) (fmt "%s=%s" (Cookie.name &c) (Cookie.value &c))
+    (Result.Error e) e))
+
+(defn resp-cookie-summary [s]
+  (match (Response.parse s)
+    (Result.Success r)
+      (let [cs (Response.cookies &r)]
+        (if (Array.empty? cs)
+          @"no cookie"
+          (let [c (Array.unsafe-first cs)]
+            (fmt "%s=%s" (Cookie.name c) (Cookie.value c)))))
+    (Result.Error e) e))
+
 (deftest test
   (assert-true test
     (match (Request.parse &simple-get) (Result.Success _) true _ false)
@@ -2202,4 +2227,50 @@
     "1970-01-01 00:00:01"
     &(resp-cookie-expiry
       "HTTP/1.1 200 OK\r\nSet-Cookie: sid=1; Expires=Thu, 01-Jan-1970 00:00:01 GMT; Path=/\r\n\r\n")
-    "Response.parse accepts the standard cookie-deletion Set-Cookie header"))
+    "Response.parse accepts the standard cookie-deletion Set-Cookie header")
+
+  ; ---- headers that are not valid UTF-8 ----
+  (assert-false test
+    (String.byte-starts-with? &(continuation 4) "path")
+    "byte-starts-with? measures the prefix in bytes")
+  (assert-true test
+    (String.byte-ends-with? &(String.append &(continuation 4) "/") "/")
+    "byte-ends-with? measures the suffix in bytes")
+  (assert-equal test
+    &(continuation 1)
+    &(ctype-param
+      &(String.append "multipart/form-data; boundary=" &(continuation 1))
+      "boundary")
+    "parse-params keeps a bare parameter value that is not valid UTF-8")
+  (assert-equal test
+    &(continuation 1)
+    &(ctype-param
+      &(String.append "multipart/form-data; boundary=\""
+                      &(String.append &(continuation 1) "\""))
+      "boundary")
+    "parse-params unquotes a parameter value that is not valid UTF-8")
+  (assert-equal test
+    &(continuation 1)
+    &(cc-directive &(String.append "max-age=" &(continuation 1)) "max-age")
+    "CacheControl keeps a bare directive value that is not valid UTF-8")
+  (assert-equal test
+    &(continuation 1)
+    &(cc-directive
+      &(String.append "community=\"" &(String.append &(continuation 1) "\""))
+      "community")
+    "CacheControl unquotes a directive value that is not valid UTF-8")
+  (assert-equal test
+    "id=abc"
+    &(cookie-summary
+      &(String.append "id=abc; " &(String.append &(continuation 7) "=x")))
+    "parse-set ignores a Set-Cookie attribute that is not valid UTF-8")
+  (assert-equal test
+    "sid=1"
+    &(resp-cookie-summary
+      &(String.append "HTTP/1.1 200 OK\r\nSet-Cookie: sid=1; "
+                      &(String.append &(continuation 7) "=x\r\n\r\n")))
+    "Response.parse survives a Set-Cookie attribute that is not valid UTF-8")
+  (assert-equal test
+    "en-US"
+    &(pick-lang "en, de;q=0.5" &[@"en-US" (continuation 3)])
+    "AcceptLanguage.negotiate tolerates an offer that is not valid UTF-8"))
