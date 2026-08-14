@@ -132,81 +132,38 @@
             </div>
             <div class="module">
                 <h1>
-                    TransferEncoding
+                    Multipart
                 </h1>
                 <div class="module-description">
-                    <p>provides encoding and decoding for HTTP transfer codings.</p>
-<p>Use <code>Request.chunked?</code>/<code>Response.chunked?</code> to detect a chunked body, then
-<a href="#dechunk">dechunk</a> to decode it, or <a href="#chunk">chunk</a> to encode one.</p>
+                    <p>decodes <code>multipart/form-data</code> bodies (RFC 7578) into their
+<a href="FormPart.html"><code>FormPart</code></a>s. The boundary is a parameter of the <code>Content-Type</code>
+header; <a href="Request.html#multipart-data"><code>Request.multipart-data</code></a> reads it off the
+request for you.</p>
+<pre><code>(match (Request.multipart-data &amp;req)
+  (Result.Success parts)
+    (println* (FormPart.name (Array.unsafe-nth &amp;parts 0)))
+  (Result.Error e) (IO.errorln &amp;e))
+</code></pre>
 
                 </div>
                 <div class="binder">
-                    <a class="anchor" href="#chunk">
-                        <h3 id="chunk">
-                            chunk
+                    <a class="anchor" href="#parse">
+                        <h3 id="parse">
+                            parse
                         </h3>
                     </a>
                     <div class="description">
                         defn
                     </div>
                     <p class="sig">
-                        (Fn [(Ref String a)] String)
+                        (Fn [(Ref String a), (Ref String b)] (Result (Array FormPart) String))
                     </p>
                     <pre class="args">
-                        (chunk body)
+                        (parse body boundary)
                     </pre>
                     <p class="doc">
-                        <p>chunk-encodes <code>body</code> as a single chunk followed by the terminating
-zero-size chunk (RFC 7230 §4.1). The result decodes back to <code>body</code> via
-<a href="#dechunk">dechunk</a>; an empty body yields just the terminator.</p>
-
-                    </p>
-                </div>
-                <div class="binder">
-                    <a class="anchor" href="#chunk-with-size">
-                        <h3 id="chunk-with-size">
-                            chunk-with-size
-                        </h3>
-                    </a>
-                    <div class="description">
-                        defn
-                    </div>
-                    <p class="sig">
-                        (Fn [(Ref String a), Int] String)
-                    </p>
-                    <pre class="args">
-                        (chunk-with-size body size)
-                    </pre>
-                    <p class="doc">
-                        <p>chunk-encodes <code>body</code> into chunks of at most <code>size</code> bytes
-per RFC 7230 §4.1 — each a hex size line, the data, and a CRLF — closed by the
-terminating zero-size chunk. <code>size</code> is clamped to at least 1. The result decodes
-back to <code>body</code> via <a href="#dechunk">dechunk</a>.</p>
-
-                    </p>
-                </div>
-                <div class="binder">
-                    <a class="anchor" href="#dechunk">
-                        <h3 id="dechunk">
-                            dechunk
-                        </h3>
-                    </a>
-                    <div class="description">
-                        defn
-                    </div>
-                    <p class="sig">
-                        (Fn [(Ref String a)] (Result String String))
-                    </p>
-                    <pre class="args">
-                        (dechunk body)
-                    </pre>
-                    <p class="doc">
-                        <p>decodes a chunked transfer-encoded <code>body</code> per RFC 7230 §4.1.</p>
-<p>Each chunk is a hexadecimal size line — any chunk extension after a <code>;</code> is
-ignored — followed by that many bytes of data and a CRLF, repeating until a
-zero-size chunk. Optional trailer headers after the final chunk are ignored.
-Returns the decoded body, or an <code>(Error String)</code> on malformed framing such as a
-bad hex size or a truncated chunk.</p>
+                        <p>decodes a <code>multipart/form-data</code> <code>body</code> with the given <code>boundary</code>
+into its <code>FormPart</code>s. Fails when the opening boundary delimiter is absent.</p>
 
                     </p>
                 </div>
