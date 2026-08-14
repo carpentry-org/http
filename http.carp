@@ -14,7 +14,21 @@ Returns -1 if not found.")
                       (= (char-at s (Int.inc i)) \newline))
           (set! result i)
           (break)))
-      result)))
+      result))
+
+  (doc byte-starts-with?
+    "checks whether `s` begins with `sub`, comparing bytes. Unlike core’s
+`starts-with?` it is safe on strings that are not valid UTF-8.")
+  (defn byte-starts-with? [s sub]
+    (let [n (length sub)] (and (>= (length s) n) (= sub &(byte-slice s 0 n)))))
+
+  (doc byte-ends-with?
+    "checks whether `s` ends with `sub`, comparing bytes. Unlike core’s
+`ends-with?` it is safe on strings that are not valid UTF-8.")
+  (defn byte-ends-with? [s sub]
+    (let [n (length s)
+          m (length sub)]
+      (and (>= n m) (= sub &(byte-slice s (- n m) n))))))
 
 (doc HttpDate "reads and writes HTTP-date values (RFC 9110 §5.6.7), the
 timestamp form used by `Date`, `Expires`, `Last-Modified`, `If-Modified-Since`
@@ -165,17 +179,17 @@ instants, not as wall-clock readings.")
           (cond
             (= lprop "secure") (Result.Success (set-secure c true))
             (= lprop "httponly") (Result.Success (set-httponly c true))
-            (starts-with? lprop "path")
+            (String.byte-starts-with? lprop "path")
               (if l<2
                 (Result.Error @"malformed path property in set-cookie, no value")
                 (Result.Success (set-path c (join "=" &(Array.suffix splt 1)))))
-            (starts-with? lprop "domain")
+            (String.byte-starts-with? lprop "domain")
               (if l<2
                 (Result.Error
                   @"malformed domain property in set-cookie, no value")
                 (Result.Success
                   (set-domain c (Maybe.Just (join "=" &(Array.suffix splt 1))))))
-            (starts-with? lprop "expires")
+            (String.byte-starts-with? lprop "expires")
               (if l<2
                 (Result.Error
                   @"malformed expires property in set-cookie, no value")
@@ -186,7 +200,7 @@ instants, not as wall-clock readings.")
                         (fmt "malformed expires date in set-cookie: %s" &e))
                     (Result.Success dt)
                       (Result.Success (set-expires c (Maybe.Just dt))))))
-            (starts-with? lprop "max-age")
+            (String.byte-starts-with? lprop "max-age")
               (if l<2
                 (Result.Error
                   @"malformed max-age property in set-cookie, no value")
@@ -197,7 +211,7 @@ instants, not as wall-clock readings.")
                     (Maybe.Just i)
                       (Result.Success
                         (set-expires c (Maybe.Just (max-age-expiry i)))))))
-            (starts-with? lprop "samesite")
+            (String.byte-starts-with? lprop "samesite")
               (if l<2
                 (Result.Error
                   @"malformed samesite property in set-cookie, no value")
@@ -219,7 +233,7 @@ instants, not as wall-clock readings.")
   (private max-age-attr?)
   (hidden max-age-attr?)
   (defn max-age-attr? [p]
-    (starts-with? &(String.ascii-to-lower &(trim p)) "max-age"))
+    (String.byte-starts-with? &(String.ascii-to-lower &(trim p)) "max-age"))
 
   (doc parse-set "parses a `Set-Cookie` form.
 
@@ -986,8 +1000,8 @@ surrounding quotes removed.")
   (private unquote)
   ; strips surrounding double quotes and resolves `\x` quoted-pairs.
   (defn unquote [v]
-    (if (and (String.starts-with? v "\"")
-             (and (String.ends-with? v "\"") (> (String.length v) 1)))
+    (if (and (String.byte-starts-with? v "\"")
+             (and (String.byte-ends-with? v "\"") (> (String.length v) 1)))
       (let-do [inner (String.byte-slice v 1 (Int.dec (String.length v)))
                out (the (Array Byte) [])
                i 0
@@ -1260,7 +1274,7 @@ ranges, in header order.")
   (defn matches? [range tag]
     (or (= range "*")
         (or (= range tag)
-            (and (String.starts-with? tag range)
+            (and (String.byte-starts-with? tag range)
                  (= \- (String.char-at tag (String.length range)))))))
 
   (hidden specificity)
@@ -1354,8 +1368,8 @@ for the common directives.")
   (private unquote)
   ; strips surrounding double quotes from a directive value.
   (defn unquote [v]
-    (if (and (String.starts-with? v "\"")
-             (and (String.ends-with? v "\"") (> (String.length v) 1)))
+    (if (and (String.byte-starts-with? v "\"")
+             (and (String.byte-ends-with? v "\"") (> (String.length v) 1)))
       (String.byte-slice v 1 (Int.dec (String.length v)))
       @v))
 
