@@ -862,6 +862,37 @@
     "encode/parse roundtrip single pair")
 
   (assert-equal test
+    "k=%E2%82%AC"
+    &(let-do [m (the (Map String String) {})]
+      (Map.put! &m "k" "€")
+      (Form.encode &m))
+    "encode a non-ASCII value one byte at a time")
+
+  (assert-equal test
+    "€"
+    &(let-do [m (the (Map String String) {})]
+      (Map.put! &m "k" "€")
+      (match (the (Result (Map String String) String)
+                  (Form.parse &(Form.encode &m)))
+        (Result.Success parsed) (Map.get &parsed "k")
+        _ @""))
+    "encode/parse roundtrip a non-ASCII value")
+
+  (assert-equal test
+    "b%4"
+    &(match (the (Result (Map String String) String) (Form.parse "k=b%4"))
+      (Result.Success m) (Map.get &m "k")
+      _ @"")
+    "parse a value ending in a truncated percent escape")
+
+  (assert-equal test
+    "b%"
+    &(match (the (Result (Map String String) String) (Form.parse "k=b%"))
+      (Result.Success m) (Map.get &m "k")
+      _ @"")
+    "parse a value ending in a bare percent")
+
+  (assert-equal test
     2
     (match (the
         (Result (Array (Pair String String)) String)
