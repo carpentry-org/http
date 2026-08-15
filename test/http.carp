@@ -413,6 +413,29 @@
     "GET"
     "request roundtrip preserves verb")
 
+  (assert-equal test
+    "GET / HTTP/1.1\r\n\r\n"
+    &(Request.str &(Request.get (URI.zero) [] {} @""))
+    "request-target of an empty path is /")
+
+  (assert-equal test
+    "GET /?a=1 HTTP/1.1\r\n\r\n"
+    &(Request.str
+      &(Request.get (URI.set-query (URI.zero) (Maybe.Just @"a=1")) [] {} @""))
+    "request-target of a query-only URI keeps its leading /")
+
+  (assert-equal test
+    "GET http://example.com HTTP/1.1\r\n\r\n"
+    &(Request.str
+      &(Request.get
+        (URI.set-scheme
+          (URI.set-host (URI.zero) (Maybe.Just @"example.com"))
+          (Maybe.Just @"http"))
+        []
+        {}
+        @""))
+    "absolute-form request-target is left alone")
+
   (assert-true test
     (match (Cookie.parse "name=value")
       (Result.Success c)
@@ -816,11 +839,11 @@
     "encode & as %26")
 
   (assert-equal test
-    "k=a%2bb"
+    "k=a%2Bb"
     &(let-do [m (the (Map String String) {})]
       (Map.put! &m "k" "a+b")
       (Form.encode &m))
-    "encode literal + as %2b")
+    "encode literal + as %2B")
 
   (assert-equal test
     "key+name=val"
@@ -837,6 +860,37 @@
         (Result.Success parsed) (= &parsed &m)
         _ false))
     "encode/parse roundtrip single pair")
+
+  (assert-equal test
+    "k=%E2%82%AC"
+    &(let-do [m (the (Map String String) {})]
+      (Map.put! &m "k" "€")
+      (Form.encode &m))
+    "encode a non-ASCII value one byte at a time")
+
+  (assert-equal test
+    "€"
+    &(let-do [m (the (Map String String) {})]
+      (Map.put! &m "k" "€")
+      (match (the (Result (Map String String) String)
+                  (Form.parse &(Form.encode &m)))
+        (Result.Success parsed) (Map.get &parsed "k")
+        _ @""))
+    "encode/parse roundtrip a non-ASCII value")
+
+  (assert-equal test
+    "b%4"
+    &(match (the (Result (Map String String) String) (Form.parse "k=b%4"))
+      (Result.Success m) (Map.get &m "k")
+      _ @"")
+    "parse a value ending in a truncated percent escape")
+
+  (assert-equal test
+    "b%"
+    &(match (the (Result (Map String String) String) (Form.parse "k=b%"))
+      (Result.Success m) (Map.get &m "k")
+      _ @"")
+    "parse a value ending in a bare percent")
 
   (assert-equal test
     2
