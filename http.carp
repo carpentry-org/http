@@ -1,7 +1,7 @@
 (load "git@github.com:carpentry-org/base64.carp@0.2.0")
-(load "git@github.com:carpentry-org/uri@0.1.0")
-(load "git@github.com:carpentry-org/time@0.5.0")
-(load "git@github.com:carpentry-org/strbuf@0.1.0")
+(load "git@github.com:carpentry-org/uri@0.5.0")
+(load "git@github.com:carpentry-org/time@0.5.1")
+(load "git@github.com:carpentry-org/strbuf@0.2.1")
 
 (defmodule String
   (doc find-crlf
@@ -310,12 +310,25 @@ attribute, whatever order the two appear in.")
   (doc ignore-body? "checks whether the body of the request should be ignored.")
   (defn ignore-body? [r] (= (verb r) "HEAD"))
 
+  (private target)
+  (hidden target)
+  ; RFC 9112 §3.2.1: an origin-form target with an empty path is sent as `/`.
+  (defn target [u]
+    (let [s (URI.str u)]
+      (if (and (Maybe.nothing? (URI.path u))
+               (Maybe.nothing? (URI.scheme u))
+               (Maybe.nothing? (URI.host u))
+               (Maybe.nothing? (URI.user u))
+               (Maybe.nothing? (URI.port u)))
+        (String.append "/" &s)
+        s)))
+
   (doc str "stringifies the request as it looks on the wire.")
   (defn str [r]
     (let-do [sb (StringBuf.create)]
       (StringBuf.append-str &sb (verb r))
       (StringBuf.append-char &sb \space)
-      (StringBuf.append-str &sb &(URI.str (uri r)))
+      (StringBuf.append-str &sb &(target (uri r)))
       (StringBuf.append-char &sb \space)
       (StringBuf.append-str &sb (version r))
       (let [ks &(Map.keys (headers r))]
