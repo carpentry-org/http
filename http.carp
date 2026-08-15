@@ -1,6 +1,6 @@
 (load "git@github.com:carpentry-org/base64.carp@0.2.0")
 (load "git@github.com:carpentry-org/uri@0.5.1")
-(load "git@github.com:carpentry-org/time@0.5.2")
+(load "git@github.com:carpentry-org/time@0.5.3")
 (load "git@github.com:carpentry-org/strbuf@0.2.1")
 
 (defmodule String
