@@ -765,6 +765,7 @@ zero-size chunk (RFC 7230 §4.1). The result decodes back to `body` via
   (def not-acceptable 406)
   (def conflict 409)
   (def gone 410)
+  (def precondition-failed 412)
   (def unsupported-media-type 415)
   (def range-not-satisfiable 416)
   (def unprocessable-entity 422)
@@ -817,6 +818,8 @@ zero-size chunk (RFC 7230 §4.1). The result decodes back to `body` via
           @"Conflict"
           410
           @"Gone"
+          412
+          @"Precondition Failed"
           415
           @"Unsupported Media Type"
           416
@@ -2158,6 +2161,286 @@ its `first-pos` fails, and so does a known `complete-length` at or below the
                 (Result.Error (fmt "malformed Content-Range: '%s'" s))
               (Maybe.Just cr) (Result.Success cr))))))))
 
+(doc ETag
+  "is an entity-tag (RFC 9110 §8.8.3): the opaque `value` a server sends
+in an `ETag` header to name one version of a representation, and `weak`, whether
+it carried the `W/` prefix that marks it as a weak validator. `value` is held
+without its surrounding quotes.
+
+```
+(ETag.str &(ETag.init @\"xyzzy\" false)) ; => \"xyzzy\"
+(ETag.str &(ETag.init @\"xyzzy\" true))  ; => W/\"xyzzy\"
+```")
+(deftype ETag [value String
+               weak Bool])
+
+(defmodule ETag
+  (hidden etagc?)
+  (private etagc?)
+  ; §8.8.3's `etagc`: any byte but DQUOTE, DEL, and the controls and space below
+  (defn etagc? [b]
+    (let [i (Byte.to-int @b)] (and (> i 32) (and (/= i 34) (/= i 127)))))
+
+  (doc parse "parses one `entity-tag` (RFC 9110 §8.8.3) as
+`(Result ETag String)`.
+
+Both forms are read: the strong `\"xyzzy\"` and the weak `W/\"xyzzy\"`. The `W/`
+prefix is case-sensitive, as §8.8.3's grammar has it, so a lowercase `w/` is not
+a weak tag but a malformed one. Whitespace around the tag is ignored. An
+unquoted tag, an unterminated one, and one whose opaque-tag holds a byte
+`etagc` has no room for — a control character, a space or a quote — all fail.")
+  (defn parse [s]
+    (let [t (String.trim s)
+          weak (String.byte-starts-with? &t "W/")
+          q (if weak (String.byte-slice &t 2 (String.length &t)) @&t)
+          n (String.length &q)]
+      (if (or (< n 2)
+              (or (not (String.byte-starts-with? &q "\""))
+                  (not (String.byte-ends-with? &q "\""))))
+        (Result.Error (fmt "malformed entity-tag: '%s'" s))
+        (let [v (String.byte-slice &q 1 (Int.dec n))]
+          (if (Array.all? &etagc? &(String.to-bytes &v))
+            (Result.Success (init v weak))
+            (Result.Error (fmt "malformed entity-tag: '%s'" s)))))))
+
+  (doc str "serializes `e` back into an `entity-tag`, e.g. `W/\"xyzzy\"`.
+Anything [parse](#parse) produced reads back into an equal `ETag`; a hand-built
+value holding a quote or a control character writes a tag `parse` rejects.")
+  (defn str [e]
+    (if @(weak e) (fmt "W/\"%s\"" (value e)) (fmt "\"%s\"" (value e))))
+  (implements str ETag.str)
+
+  (doc strong-match? "compares `a` and `b` with the strong comparison function
+of RFC 9110 §8.8.3.2: they match only when neither is weak and their opaque
+values are byte-identical. It is what `If-Match` uses (§13.1.1). A weak tag
+never matches strongly, not even itself.")
+  (defn strong-match? [a b]
+    (and (not @(weak a)) (and (not @(weak b)) (= (value a) (value b)))))
+
+  (doc weak-match? "compares `a` and `b` with the weak comparison function of
+RFC 9110 §8.8.3.2: they match whenever their opaque values are byte-identical,
+however either one is marked. It is what `If-None-Match` uses (§13.1.2).")
+  (defn weak-match? [a b] (= (value a) (value b))))
+
+(doc ETagList "is the field value of an `If-Match` or `If-None-Match` header
+(RFC 9110 §13.1.1, §13.1.2): `Any` for the `*` that names whatever
+representation the resource currently has, and `Tags` for a list of
+entity-tags.")
+(deftype ETagList
+  (Any [])
+  (Tags [(Array ETag)]))
+
+(defmodule ETagList
+  (hidden split-list)
+  (private split-list)
+  ; §5.6.1.2's list splitting; a comma inside an opaque-tag is not a delimiter
+  (defn split-list [s]
+    (let-do [bs (String.to-bytes s)
+             n (Array.length &bs)
+             out (the (Array String) [])
+             start 0
+             quoted false]
+      (for [i 0 n]
+        (let [b (Byte.to-int @(Array.unsafe-nth &bs i))]
+          (cond
+            (= b 34) (set! quoted (not quoted))
+            (and (= b 44) (not quoted))
+              (do
+                (Array.push-back! &out (String.byte-slice s start i))
+                (set! start (Int.inc i)))
+            ())))
+      (Array.push-back! &out (String.byte-slice s start n))
+      out))
+
+  (doc parse "parses an `If-Match` or `If-None-Match` field value as
+`(Result ETagList String)`.
+
+A field value of `*` yields `Any`; any other is read as a list of entity-tags,
+in header order. Whitespace around the commas is ignored, as are empty list
+elements (RFC 9110 §5.6.1.2); a comma inside an opaque-tag is not a delimiter.
+A member that is not a well-formed `entity-tag` fails, and so does an empty
+list, which neither header's grammar has room for.")
+  (defn parse [s]
+    (let [t (String.trim s)]
+      (if (= &t "*")
+        (Result.Success (ETagList.Any))
+        (let-do [segs (split-list &t)
+                 n (Array.length &segs)
+                 tags (the (Array ETag) [])
+                 bad @""
+                 i 0]
+          (while-do (and (< i n) (String.empty? &bad))
+            (let [seg (String.trim (Array.unsafe-nth &segs i))]
+              (unless (String.empty? &seg)
+                (match (ETag.parse &seg)
+                  (Result.Error e) (set! bad e)
+                  (Result.Success e) (Array.push-back! &tags e))))
+            (set! i (Int.inc i)))
+          (cond
+            (not (String.empty? &bad)) (Result.Error bad)
+            (Array.empty? &tags)
+              (Result.Error (fmt "empty entity-tag list: '%s'" s))
+            (Result.Success (ETagList.Tags tags)))))))
+
+  (hidden matches?)
+  (private matches?)
+  (defn matches? [l etag strong]
+    (match-ref l
+      (ETagList.Any) true
+      (ETagList.Tags ts)
+        (match-ref etag
+          (Maybe.Nothing) false
+          (Maybe.Just cur)
+            (let-do [found false]
+              (for [i 0 (Array.length ts)]
+                (let [t (Array.unsafe-nth ts i)]
+                  (when (if strong
+                      (ETag.strong-match? t cur)
+                      (ETag.weak-match? t cur))
+                    (set! found true))))
+              found))))
+
+  (doc strong-match? "whether `l` matches `etag`, the entity-tag of the
+representation the server selected — `Nothing` when it has none — under the
+strong comparison function `If-Match` calls for (RFC 9110 §13.1.1).
+
+`Any` matches whenever the resource has a current representation, which
+[`Precondition.evaluate`](Precondition.html#evaluate) takes to be so whenever it
+is called.")
+  (defn strong-match? [l etag] (matches? l etag true))
+
+  (doc weak-match? "whether `l` matches `etag` under the weak comparison
+function `If-None-Match` calls for (RFC 9110 §13.1.2). See
+[strong-match?](#strong-match?) for how `Any` is read.")
+  (defn weak-match? [l etag] (matches? l etag false)))
+
+(doc Precondition
+  "evaluates the conditional request headers of RFC 9110 §13 —
+`If-Match`, `If-Unmodified-Since`, `If-None-Match` and `If-Modified-Since` —
+against the validators of the representation a server selected, and answers with
+the status they demand.
+
+```
+(match (Request.preconditions &req &etag &modified)
+  (Maybe.Just code) (Response.respond code {} @\"\")
+  (Maybe.Nothing) (Response.ok {} @\"the body\"))
+```
+
+`If-Range` is not evaluated: a range request whose condition fails is answered
+with the whole representation, which is
+[`ByteRange`](ByteRange.html)'s business rather than a status.")
+(defmodule Precondition
+  (hidden list-header)
+  (private list-header)
+  ; the comma-joined values of a list-based header, `Nothing` when it has none
+  (defn list-header [hdrs name]
+    (let [vs (header-values hdrs name)]
+      (if (Array.empty? &vs) (Maybe.Nothing) (Maybe.Just (String.join ", " &vs)))))
+
+  (hidden date-header)
+  (private date-header)
+  ; §13.1.3 and §13.1.4 both have a recipient ignore an invalid HTTP-date
+  (defn date-header [hdrs name]
+    (match (header-lookup hdrs name)
+      (Maybe.Nothing) (Maybe.Nothing)
+      (Maybe.Just v) (Result.to-maybe (HttpDate.parse &v))))
+
+  (hidden read?)
+  (private read?)
+  (defn read? [method] (or (= method "GET") (= method "HEAD")))
+
+  (hidden match-status)
+  (private match-status)
+  ; §13.2.2 step 1; a field value the grammar has no room for fails closed
+  (defn match-status [v etag]
+    (match (ETagList.parse v)
+      (Result.Error _) (Maybe.Just Status.precondition-failed)
+      (Result.Success l)
+        (if (ETagList.strong-match? &l etag)
+          (Maybe.Nothing)
+          (Maybe.Just Status.precondition-failed))))
+
+  (hidden unmodified-since-status)
+  (private unmodified-since-status)
+  ; §13.2.2 step 2
+  (defn unmodified-since-status [hdrs modified]
+    (match (date-header hdrs "If-Unmodified-Since")
+      (Maybe.Nothing) (Maybe.Nothing)
+      (Maybe.Just d)
+        (match-ref modified
+          (Maybe.Nothing) (Maybe.Nothing)
+          (Maybe.Just m)
+            (if (Datetime.after-instant? m &d)
+              (Maybe.Just Status.precondition-failed)
+              (Maybe.Nothing)))))
+
+  (hidden none-match-status)
+  (private none-match-status)
+  ; §13.2.2 step 3; an unreadable field value is ignored
+  (defn none-match-status [v etag method]
+    (match (ETagList.parse v)
+      (Result.Error _) (Maybe.Nothing)
+      (Result.Success l)
+        (if (ETagList.weak-match? &l etag)
+          (Maybe.Just
+            (if (read? method) Status.not-modified Status.precondition-failed))
+          (Maybe.Nothing))))
+
+  (hidden modified-since-status)
+  (private modified-since-status)
+  ; §13.2.2 step 4
+  (defn modified-since-status [hdrs modified]
+    (match (date-header hdrs "If-Modified-Since")
+      (Maybe.Nothing) (Maybe.Nothing)
+      (Maybe.Just d)
+        (match-ref modified
+          (Maybe.Nothing) (Maybe.Nothing)
+          (Maybe.Just m)
+            (if (Datetime.after-instant? m &d)
+              (Maybe.Nothing)
+              (Maybe.Just Status.not-modified)))))
+
+  (doc evaluate "evaluates the conditional request headers in `hdrs` against
+`etag` and `modified`, the entity-tag and last modification date of the
+representation the server selected — either may be `Nothing` — for a request of
+method `method`. Returns the status to send as `(Maybe Int)`: `Nothing` when
+every precondition held and the request should be answered normally, otherwise
+a `304` or a `412`.
+
+The four headers are evaluated in the precedence RFC 9110 §13.2.2 lays down.
+`If-Match` is evaluated first, and only when it is absent is
+`If-Unmodified-Since`; then `If-None-Match`, and only when *it* is absent, and
+the method is `GET` or `HEAD`, is `If-Modified-Since`. A failed `If-None-Match`
+is a `304` for a `GET` or a `HEAD` and a `412` for anything else; every other
+failure is a `412`.
+
+Both date headers are ignored when the representation has no modification date
+or the field value is not a valid HTTP-date, as §13.1.3 and §13.1.4 require. An
+`If-None-Match` that is not a valid entity-tag list is ignored too, but an
+`If-Match` that is not fails closed with a `412`: the header is there to prevent
+a lost update, so a value the server cannot read is not one it may act on.
+
+A `*` is read as matching whenever `evaluate` is called, so a resource with no
+current representation must not reach here: answer that with a `404`, or with a
+`412` when the request carries an `If-Match`. Its existence is the one thing a
+`*` cannot be told apart from a representation carrying no entity-tag, so the
+conditional creation an `If-None-Match` of `*` guards is the caller's too;
+[`ETagList.parse`](ETagList.html#parse),
+[`ETagList.strong-match?`](ETagList.html#strong-match?) and
+[`ETagList.weak-match?`](ETagList.html#weak-match?) are public for it.")
+  (defn evaluate [hdrs method etag modified]
+    (let [early (match (list-header hdrs "If-Match")
+            (Maybe.Just v) (match-status &v etag)
+            (Maybe.Nothing) (unmodified-since-status hdrs modified))]
+      (if (Maybe.just? &early)
+        early
+        (match (list-header hdrs "If-None-Match")
+          (Maybe.Just v) (none-match-status &v etag method)
+          (Maybe.Nothing)
+            (if (read? method)
+              (modified-since-status hdrs modified)
+              (Maybe.Nothing)))))))
+
 (defmodule Request
   (doc form-data "parses the request body as URL-encoded form data.
 Returns `(Result (Map String String) String)`.")
@@ -2225,4 +2508,12 @@ representation rather than a `416`.")
   (defn range [r]
     (match (Request.header r "Range")
       (Maybe.Nothing) (Maybe.Nothing)
-      (Maybe.Just v) (Maybe.Just (ByteRange.parse &v)))))
+      (Maybe.Just v) (Maybe.Just (ByteRange.parse &v))))
+
+  (doc preconditions "the status the conditional request headers of this request
+demand for a representation whose entity-tag is `etag` and whose last
+modification date is `modified`, as `(Maybe Int)`. `Nothing` means every
+precondition held and the request should be answered normally. See
+[`Precondition.evaluate`](Precondition.html#evaluate).")
+  (defn preconditions [r etag modified]
+    (Precondition.evaluate (headers r) (verb r) etag modified)))

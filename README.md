@@ -168,6 +168,36 @@ is the `416` case.
   (Result.Error e) (IO.errorln &e))
 ```
 
+### Conditional requests
+
+`Precondition` evaluates the RFC 9110 §13 conditional request headers —
+`If-Match`, `If-Unmodified-Since`, `If-None-Match` and `If-Modified-Since` —
+against the validators of the representation the server selected, in the
+precedence §13.2.2 lays down, and answers with the status they demand.
+
+```clojure
+(match (Request.preconditions &req &etag &modified)
+  (Maybe.Just code) (Response.respond code {} @"")  ; 304 or 412
+  (Maybe.Nothing) (Response.ok {} @"the body"))
+```
+
+A failed `If-None-Match` is a `304` for a `GET` or a `HEAD` and a `412` for
+anything else; every other failure is a `412`. `If-Match` compares entity-tags
+strongly and `If-None-Match` weakly, per §13.1.1 and §13.1.2.
+
+`ETag` reads and writes one entity-tag, `ETagList` the `*`-or-list field value
+of an `If-Match` or `If-None-Match` header.
+
+```clojure
+(ETag.str &(ETag.init @"xyzzy" true))    ; => W/"xyzzy"
+
+(match (ETag.parse "W/\"xyzzy\"")
+  (Result.Success e) (println* (ETag.weak &e))  ; => true
+  (Result.Error e) (IO.errorln &e))
+```
+
+`If-Range` is not evaluated yet.
+
 ### Status codes
 
 ```clojure
@@ -202,6 +232,9 @@ Status.not-found    ; => 404
 | `CacheControl` | `Cache-Control` directive parser (RFC 7234 §5.2) |
 | `TransferEncoding` | Chunked transfer-encoding decoder |
 | `HttpDate` | HTTP-date parser and formatter (RFC 9110 §5.6.7) |
+| `ETag` | one entity-tag, strong or weak (RFC 9110 §8.8.3) |
+| `ETagList` | the `*`-or-list value of an `If-Match` or `If-None-Match` header |
+| `Precondition` | conditional request evaluator (RFC 9110 §13) |
 
 ## Testing
 

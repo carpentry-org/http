@@ -22,7 +22,10 @@ Content is negotiated with [`Accept`](./Accept.html),
 [`AcceptEncoding`](./AcceptEncoding.html) and
 [`AcceptLanguage`](./AcceptLanguage.html), or the `Request` wrappers around them.
 [`Auth`](./Auth.html) reads and writes the RFC 7235 authentication headers,
-[`ByteRange`](./ByteRange.html) the RFC 9110 range headers.
+[`ByteRange`](./ByteRange.html) the RFC 9110 range headers, and
+[`Precondition`](./Precondition.html) evaluates the RFC 9110 conditional request
+headers — `If-Match`, `If-None-Match`, `If-Modified-Since` and
+`If-Unmodified-Since` — into the `304` or `412` they demand.
 
 ### Parsing
 ```
@@ -59,5 +62,8 @@ Status.not-found    ; => 404
            ByteRange
            ByteRangeSpec
            ContentRange
+           ETag
+           ETagList
+           Precondition
            CacheControl)
 (quit)

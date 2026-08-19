@@ -147,60 +147,63 @@
             </div>
             <div class="module">
                 <h1>
-                    HttpDate
+                    Precondition
                 </h1>
                 <div class="module-description">
-                    <p>reads and writes HTTP-date values (RFC 9110 §5.6.7), the
-timestamp form used by <code>Date</code>, <code>Expires</code>, <code>Last-Modified</code>, <code>If-Modified-Since</code>
-and the <code>Expires</code> attribute of a <code>Set-Cookie</code> header.</p>
+                    <p>evaluates the conditional request headers of RFC 9110 §13 —
+<code>If-Match</code>, <code>If-Unmodified-Since</code>, <code>If-None-Match</code> and <code>If-Modified-Since</code> —
+against the validators of the representation a server selected, and answers with
+the status they demand.</p>
+<pre><code>(match (Request.preconditions &amp;req &amp;etag &amp;modified)
+  (Maybe.Just code) (Response.respond code {} @&quot;&quot;)
+  (Maybe.Nothing) (Response.ok {} @&quot;the body&quot;))
+</code></pre>
+<p><code>If-Range</code> is not evaluated: a range request whose condition fails is answered
+with the whole representation, which is
+<a href="ByteRange.html"><code>ByteRange</code></a>'s business rather than a status.</p>
 
                 </div>
                 <div class="binder">
-                    <a class="anchor" href="#format">
-                        <h3 id="format">
-                            format
+                    <a class="anchor" href="#evaluate">
+                        <h3 id="evaluate">
+                            evaluate
                         </h3>
                     </a>
                     <div class="description">
                         defn
                     </div>
                     <p class="sig">
-                        (Fn [(Ref Datetime a)] String)
+                        (Fn [(Ref (Map String (Array String)) a), (Ref String b), (Ref (Maybe ETag) c), (Ref (Maybe Datetime) d)] (Maybe Int))
                     </p>
                     <pre class="args">
-                        (format dt)
+                        (evaluate hdrs method etag modified)
                     </pre>
                     <p class="doc">
-                        <p>renders <code>dt</code> as an IMF-fixdate, e.g. <code>Sun, 06 Nov 1994 08:49:37 GMT</code>. It is the only format RFC 9110 §5.6.7 permits a sender to generate.</p>
-<p><code>dt</code> is converted to UTC first, so a <code>Datetime</code> carrying a local timezone names
-the same instant once labelled <code>GMT</code>.</p>
-
-                    </p>
-                </div>
-                <div class="binder">
-                    <a class="anchor" href="#parse">
-                        <h3 id="parse">
-                            parse
-                        </h3>
-                    </a>
-                    <div class="description">
-                        defn
-                    </div>
-                    <p class="sig">
-                        (Fn [(Ref String a)] (Result Datetime String))
-                    </p>
-                    <pre class="args">
-                        (parse s)
-                    </pre>
-                    <p class="doc">
-                        <p>parses an HTTP-date, returning the <code>Datetime</code> it names in UTC.</p>
-<p>All three formats RFC 9110 §5.6.7 obliges a recipient to accept are recognized —
-IMF-fixdate (<code>Sun, 06 Nov 1994 08:49:37 GMT</code>), rfc850-date (<code>Sunday, 06-Nov-94 08:49:37 GMT</code>) and asctime-date (<code>Sun Nov  6 08:49:37 1994</code>) — as are two dashed
-cookie-date forms RFC 6265 §5.1.1 accepts, both spelling the day name in its
-abbreviated form: with a four-digit year (<code>Thu, 01-Jan-1970 00:00:01 GMT</code>) and
-with a two-digit one (<code>Sun, 06-Nov-94 08:49:37 GMT</code>).</p>
-<p>A two-digit year is windowed as <code>69</code>–<code>99</code> → 1969–1999 and <code>00</code>–<code>68</code> →
-2000–2068.</p>
+                        <p>evaluates the conditional request headers in <code>hdrs</code> against
+<code>etag</code> and <code>modified</code>, the entity-tag and last modification date of the
+representation the server selected — either may be <code>Nothing</code> — for a request of
+method <code>method</code>. Returns the status to send as <code>(Maybe Int)</code>: <code>Nothing</code> when
+every precondition held and the request should be answered normally, otherwise
+a <code>304</code> or a <code>412</code>.</p>
+<p>The four headers are evaluated in the precedence RFC 9110 §13.2.2 lays down.
+<code>If-Match</code> is evaluated first, and only when it is absent is
+<code>If-Unmodified-Since</code>; then <code>If-None-Match</code>, and only when <em>it</em> is absent, and
+the method is <code>GET</code> or <code>HEAD</code>, is <code>If-Modified-Since</code>. A failed <code>If-None-Match</code>
+is a <code>304</code> for a <code>GET</code> or a <code>HEAD</code> and a <code>412</code> for anything else; every other
+failure is a <code>412</code>.</p>
+<p>Both date headers are ignored when the representation has no modification date
+or the field value is not a valid HTTP-date, as §13.1.3 and §13.1.4 require. An
+<code>If-None-Match</code> that is not a valid entity-tag list is ignored too, but an
+<code>If-Match</code> that is not fails closed with a <code>412</code>: the header is there to prevent
+a lost update, so a value the server cannot read is not one it may act on.</p>
+<p>A <code>*</code> is read as matching whenever <code>evaluate</code> is called, so a resource with no
+current representation must not reach here: answer that with a <code>404</code>, or with a
+<code>412</code> when the request carries an <code>If-Match</code>. Its existence is the one thing a
+<code>*</code> cannot be told apart from a representation carrying no entity-tag, so the
+conditional creation an <code>If-None-Match</code> of <code>*</code> guards is the caller's too;
+<a href="ETagList.html#parse"><code>ETagList.parse</code></a>,
+<a href="ETagList.html#strong-match?"><code>ETagList.strong-match?</code></a> and
+<a href="ETagList.html#weak-match?"><code>ETagList.weak-match?</code></a> are public for it.</p>
 
                     </p>
                 </div>
