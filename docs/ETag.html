@@ -154,7 +154,7 @@
 in an <code>ETag</code> header to name one version of a representation, and <code>weak</code>, whether
 it carried the <code>W/</code> prefix that marks it as a weak validator. <code>value</code> is held
 without its surrounding quotes.</p>
-<pre><code>(ETag.str &amp;(ETag.init @&quot;xyzzy&quot; false)) ; =&gt; &quot;xyzzy&quot;, quoted
+<pre><code>(ETag.str &amp;(ETag.init @&quot;xyzzy&quot; false)) ; =&gt; &quot;xyzzy&quot;
 (ETag.str &amp;(ETag.init @&quot;xyzzy&quot; true))  ; =&gt; W/&quot;xyzzy&quot;
 </code></pre>
 
