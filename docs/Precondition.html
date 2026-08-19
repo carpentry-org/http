@@ -193,9 +193,11 @@ is a <code>304</code> for a <code>GET</code> or a <code>HEAD</code> and a <code>
 failure is a <code>412</code>.</p>
 <p>Both date headers are ignored when the representation has no modification date
 or the field value is not a valid HTTP-date, as §13.1.3 and §13.1.4 require. An
-<code>If-None-Match</code> that is not a valid entity-tag list is ignored too, but an
-<code>If-Match</code> that is not fails closed with a <code>412</code>: the header is there to prevent
-a lost update, so a value the server cannot read is not one it may act on.</p>
+<code>If-None-Match</code> that is not a valid entity-tag list is ignored too, but it is
+still present, and step 4 is gated on presence: it suppresses <code>If-Modified-Since</code>
+just as a readable one would. An <code>If-Match</code> that is not readable fails closed
+with a <code>412</code> instead: the header is there to prevent a lost update, so a value
+the server cannot read is not one it may act on.</p>
 <p>A <code>*</code> is read as matching whenever <code>evaluate</code> is called, so a resource with no
 current representation must not reach here: answer that with a <code>404</code>, or with a
 <code>412</code> when the request carries an <code>If-Match</code>. Its existence is the one thing a

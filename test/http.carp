@@ -1679,6 +1679,19 @@
     "ERROR"
     &(etag-verdict "\"xy zzy\"")
     "a space in an opaque-tag is rejected")
+  (assert-equal test
+    "ERROR"
+    &(etag-verdict "\"")
+    "a lone quote is not an empty entity-tag")
+  (assert-equal test
+    "ERROR"
+    &(etag-verdict "\"a\"b\"")
+    "a quote inside an opaque-tag is rejected")
+  (assert-equal test
+    "ERROR"
+    &(etag-verdict
+      &(String.append "\"a" &(String.append &(String.from-bytes &[127b]) "b\"")))
+    "a DEL byte in an opaque-tag is rejected")
   (assert-true test
     (ETag.strong-match? &(ETag.init @"a" false) &(ETag.init @"a" false))
     "two strong entity-tags with the same value match strongly")
@@ -1921,6 +1934,21 @@
                        &(some-etag "a" false)
                        &(no-date))
     "Request.preconditions evaluates the request's own headers and method")
+  (assert-equal test
+    "412"
+    &(req-precondition {@"If-None-Match" [@"\"a\""]}
+                       "PUT"
+                       &(some-etag "a" false)
+                       &(no-date))
+    "Request.preconditions answers a non-GET If-None-Match with a 412")
+  (assert-equal test
+    "OK"
+    &(req-precondition
+      {@"If-Modified-Since" [@"Sun, 06 Nov 1994 08:49:37 GMT"]}
+      "POST"
+      &(no-etag)
+      &(at "Sun, 06 Nov 1994 08:49:37 GMT"))
+    "Request.preconditions gates If-Modified-Since on the request's own method")
   (assert-equal test
     412
     Status.precondition-failed

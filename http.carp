@@ -2416,9 +2416,11 @@ failure is a `412`.
 
 Both date headers are ignored when the representation has no modification date
 or the field value is not a valid HTTP-date, as §13.1.3 and §13.1.4 require. An
-`If-None-Match` that is not a valid entity-tag list is ignored too, but an
-`If-Match` that is not fails closed with a `412`: the header is there to prevent
-a lost update, so a value the server cannot read is not one it may act on.
+`If-None-Match` that is not a valid entity-tag list is ignored too, but it is
+still present, and step 4 is gated on presence: it suppresses `If-Modified-Since`
+just as a readable one would. An `If-Match` that is not readable fails closed
+with a `412` instead: the header is there to prevent a lost update, so a value
+the server cannot read is not one it may act on.
 
 A `*` is read as matching whenever `evaluate` is called, so a resource with no
 current representation must not reach here: answer that with a `404`, or with a
