@@ -312,14 +312,15 @@ attribute, whatever order the two appear in.")
 
   (private target)
   (hidden target)
+  ; RFC 9110 §4.2.4: a request target never carries userinfo.
   ; RFC 9112 §3.2.1: an origin-form target with an empty path is sent as `/`.
   (defn target [u]
-    (let [s (URI.str u)]
-      (if (and (Maybe.nothing? (URI.path u))
-               (Maybe.nothing? (URI.scheme u))
-               (Maybe.nothing? (URI.host u))
-               (Maybe.nothing? (URI.user u))
-               (Maybe.nothing? (URI.port u)))
+    (let [v (URI.set-password (URI.set-user @u (Maybe.Nothing)) (Maybe.Nothing))
+          s (URI.str &v)]
+      (if (and (Maybe.nothing? (URI.path &v))
+               (Maybe.nothing? (URI.scheme &v))
+               (Maybe.nothing? (URI.host &v))
+               (Maybe.nothing? (URI.port &v)))
         (String.append "/" &s)
         s)))
 

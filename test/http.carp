@@ -335,6 +335,12 @@
             (fmt "%s=%s" (Cookie.name c) (Cookie.value c)))))
     (Result.Error e) e))
 
+; ---- request-target test helpers ----
+(defn request-line [s]
+  (match (URI.parse s)
+    (Result.Success u) (Request.str &(Request.get u [] {} @""))
+    (Result.Error e) e))
+
 (deftest test
   (assert-true test
     (match (Request.parse &simple-get) (Result.Success _) true _ false)
@@ -435,6 +441,37 @@
         {}
         @""))
     "absolute-form request-target is left alone")
+
+  (assert-equal test
+    "GET http://h.example/a/c HTTP/1.1\r\n\r\n"
+    &(request-line "http://USER:PW@h.example/a/c")
+    "request-target drops user and password")
+
+  (assert-equal test
+    "GET http://h.example/a/c HTTP/1.1\r\n\r\n"
+    &(request-line "http://USER@h.example/a/c")
+    "request-target drops a user without a password")
+
+  (assert-equal test
+    "GET http://h.example/a/c HTTP/1.1\r\n\r\n"
+    &(request-line "http://h.example/a/c")
+    "request-target without userinfo is unchanged")
+
+  (assert-equal test
+    "GET / HTTP/1.1\r\n\r\n"
+    &(Request.str
+      &(Request.get (URI.set-user (URI.zero) (Maybe.Just @"solo")) [] {} @""))
+    "request-target of a userinfo-only URI is /")
+
+  (assert-true test
+    (match (URI.parse "http://USER:PW@h.example/a/c")
+      (Result.Success u)
+        (let [r (Request.get u [] {} @"")]
+          (and
+            (= &(Maybe.Just @"USER") (URI.user (Request.uri &r)))
+            (= &(Maybe.Just @"PW") (URI.password (Request.uri &r)))))
+      _ false)
+    "the credentials stay on the request’s URI")
 
   (assert-true test
     (match (Cookie.parse "name=value")
