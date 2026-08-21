@@ -508,6 +508,51 @@
       _ false)
     "the credentials stay on the request’s URI")
 
+  (assert-equal test
+    "GET http://h.example/a/b?q=1 HTTP/1.1\r\n\r\n"
+    &(request-line "http://h.example/a/b?q=1#sec2")
+    "request-target drops a fragment and keeps the query")
+
+  (assert-equal test
+    "GET http://h.example/a/b HTTP/1.1\r\n\r\n"
+    &(request-line "http://h.example/a/b#sec2")
+    "request-target drops a fragment without a query")
+
+  (assert-equal test
+    "GET http://h.example/a/b HTTP/1.1\r\n\r\n"
+    &(request-line "http://h.example/a/b#")
+    "request-target drops an empty fragment")
+
+  (assert-equal test
+    "GET http://h.example/a/b HTTP/1.1\r\n\r\n"
+    &(request-line "http://h.example/a/b#frag?notquery")
+    "request-target drops a fragment that looks like a query")
+
+  (assert-equal test
+    "GET http://h.example/a/b?q=a%23b HTTP/1.1\r\n\r\n"
+    &(request-line "http://h.example/a/b?q=a%23b")
+    "request-target keeps an encoded # inside the query")
+
+  (assert-equal test
+    "GET /?q=a#b HTTP/1.1\r\n\r\n"
+    &(Request.str
+      &(Request.get (URI.set-query (URI.zero) (Maybe.Just @"q=a#b")) [] {} @""))
+    "request-target keeps a literal # inside the query")
+
+  (assert-equal test
+    "GET / HTTP/1.1\r\n\r\n"
+    &(Request.str
+      &(Request.get (URI.set-fragment (URI.zero) (Maybe.Just @"sec2")) [] {} @""))
+    "request-target of a fragment-only URI is /")
+
+  (assert-true test
+    (match (URI.parse "http://h.example/a/b#sec2")
+      (Result.Success u)
+        (= &(Maybe.Just @"sec2")
+           (URI.fragment (Request.uri &(Request.get u [] {} @""))))
+      _ false)
+    "the fragment stays on the request’s URI")
+
   (assert-true test
     (match (Cookie.parse "name=value")
       (Result.Success c)
