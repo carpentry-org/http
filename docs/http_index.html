@@ -119,6 +119,21 @@
                                 </a>
                             </li>
                             <li>
+                                <a href="ETag.html">
+                                    ETag
+                                </a>
+                            </li>
+                            <li>
+                                <a href="ETagList.html">
+                                    ETagList
+                                </a>
+                            </li>
+                            <li>
+                                <a href="Precondition.html">
+                                    Precondition
+                                </a>
+                            </li>
+                            <li>
                                 <a href="CacheControl.html">
                                     CacheControl
                                 </a>
@@ -143,7 +158,10 @@ Form bodies can be parsed with <a href="./Form.html#parse"><code>Form.parse</cod
 <a href="./AcceptEncoding.html"><code>AcceptEncoding</code></a> and
 <a href="./AcceptLanguage.html"><code>AcceptLanguage</code></a>, or the <code>Request</code> wrappers around them.
 <a href="./Auth.html"><code>Auth</code></a> reads and writes the RFC 7235 authentication headers,
-<a href="./ByteRange.html"><code>ByteRange</code></a> the RFC 9110 range headers.</p>
+<a href="./ByteRange.html"><code>ByteRange</code></a> the RFC 9110 range headers, and
+<a href="./Precondition.html"><code>Precondition</code></a> evaluates the RFC 9110 conditional request
+headers — <code>If-Match</code>, <code>If-None-Match</code>, <code>If-Modified-Since</code> and
+<code>If-Unmodified-Since</code> — into the <code>304</code> or <code>412</code> they demand.</p>
 <h3>Parsing</h3>
 <pre><code>(match (Request.parse &quot;GET / HTTP/1.1\r\nHost: example.com\r\n\r\n&quot;)
   (Result.Success req) (println* (Request.verb &amp;req))

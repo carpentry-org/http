@@ -123,6 +123,21 @@
                             </a>
                         </li>
                         <li>
+                            <a href="ETag.html">
+                                ETag
+                            </a>
+                        </li>
+                        <li>
+                            <a href="ETagList.html">
+                                ETagList
+                            </a>
+                        </li>
+                        <li>
+                            <a href="Precondition.html">
+                                Precondition
+                            </a>
+                        </li>
+                        <li>
                             <a href="CacheControl.html">
                                 CacheControl
                             </a>
@@ -535,6 +550,30 @@ it will return a <code>(Success Request)</code>.</p>
                     </pre>
                     <p class="doc">
                         <p>builds a HTTP POST request (version <code>1.1</code>).</p>
+
+                    </p>
+                </div>
+                <div class="binder">
+                    <a class="anchor" href="#preconditions">
+                        <h3 id="preconditions">
+                            preconditions
+                        </h3>
+                    </a>
+                    <div class="description">
+                        defn
+                    </div>
+                    <p class="sig">
+                        (Fn [(Ref Request a), (Ref (Maybe ETag) b), (Ref (Maybe Datetime) c)] (Maybe Int))
+                    </p>
+                    <pre class="args">
+                        (preconditions r etag modified)
+                    </pre>
+                    <p class="doc">
+                        <p>the status the conditional request headers of this request
+demand for a representation whose entity-tag is <code>etag</code> and whose last
+modification date is <code>modified</code>, as <code>(Maybe Int)</code>. <code>Nothing</code> means every
+precondition held and the request should be answered normally. See
+<a href="Precondition.html#evaluate"><code>Precondition.evaluate</code></a>.</p>
 
                     </p>
                 </div>

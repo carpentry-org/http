@@ -310,6 +310,41 @@
       (Maybe.Just (Result.Error _)) @"ERROR"
       (Maybe.Just (Result.Success specs)) (ByteRange.str &specs))))
 
+; ---- conditional request test helpers ----
+(defn etag-verdict [s]
+  (match (ETag.parse s)
+    (Result.Success e) (ETag.str &e)
+    (Result.Error _) @"ERROR"))
+
+(defn tags-verdict [s]
+  (match (ETagList.parse s)
+    (Result.Error _) @"ERROR"
+    (Result.Success l)
+      (match l
+        (ETagList.Any) @"*"
+        (ETagList.Tags ts) (String.join ", " &(Array.copy-map &ETag.str &ts)))))
+
+(defn some-etag [v weak] (Maybe.Just (ETag.init @v weak)))
+
+(defn no-etag [] (the (Maybe ETag) (Maybe.Nothing)))
+
+(defn at [s] (Result.to-maybe (HttpDate.parse s)))
+
+(defn no-date [] (the (Maybe Datetime) (Maybe.Nothing)))
+
+(defn no-headers [] (the (Map String (Array String)) {}))
+
+(defn precondition [hdrs method etag modified]
+  (match (Precondition.evaluate &hdrs method etag modified)
+    (Maybe.Nothing) @"OK"
+    (Maybe.Just code) (Int.str code)))
+
+(defn req-precondition [hdrs method etag modified]
+  (let [r (Request.init @method @"HTTP/1.1" (URI.zero) [] hdrs @"")]
+    (match (Request.preconditions &r etag modified)
+      (Maybe.Nothing) @"OK"
+      (Maybe.Just code) (Int.str code))))
+
 ; ---- hostile-byte test helpers ----
 ; a run of UTF-8 continuation bytes: `n` bytes long, zero characters long
 (defn continuation [n] (String.from-bytes &(Array.replicate n &128b)))
@@ -1650,6 +1685,317 @@
     "a rejected Content-Range is reported against the wire header name")
 
   (assert-equal test
+    "\"xyzzy\""
+    &(etag-verdict "\"xyzzy\"")
+    "a strong entity-tag round-trips")
+  (assert-equal test
+    "W/\"xyzzy\""
+    &(etag-verdict "W/\"xyzzy\"")
+    "a weak entity-tag round-trips")
+  (assert-equal test
+    "\"\""
+    &(etag-verdict "\"\"")
+    "an empty opaque-tag is a valid entity-tag")
+  (assert-equal test
+    "\"xyzzy\""
+    &(etag-verdict "  \"xyzzy\"  ")
+    "whitespace around an entity-tag is ignored")
+  (assert-equal test
+    "ERROR"
+    &(etag-verdict "xyzzy")
+    "an unquoted entity-tag is rejected")
+  (assert-equal test
+    "ERROR"
+    &(etag-verdict "\"xyzzy")
+    "an unterminated entity-tag is rejected")
+  (assert-equal test
+    "ERROR"
+    &(etag-verdict "w/\"xyzzy\"")
+    "the weak prefix is case-sensitive")
+  (assert-equal test
+    "ERROR"
+    &(etag-verdict "\"xy zzy\"")
+    "a space in an opaque-tag is rejected")
+  (assert-equal test
+    "ERROR"
+    &(etag-verdict "\"")
+    "a lone quote is not an empty entity-tag")
+  (assert-equal test
+    "ERROR"
+    &(etag-verdict "\"a\"b\"")
+    "a quote inside an opaque-tag is rejected")
+  (assert-equal test
+    "ERROR"
+    &(etag-verdict
+      &(String.append "\"a" &(String.append &(String.from-bytes &[127b]) "b\"")))
+    "a DEL byte in an opaque-tag is rejected")
+  (assert-true test
+    (ETag.strong-match? &(ETag.init @"a" false) &(ETag.init @"a" false))
+    "two strong entity-tags with the same value match strongly")
+  (assert-false test
+    (ETag.strong-match? &(ETag.init @"a" true) &(ETag.init @"a" true))
+    "a weak entity-tag never matches strongly, not even itself")
+  (assert-false test
+    (ETag.strong-match? &(ETag.init @"a" false) &(ETag.init @"a" true))
+    "a strong entity-tag does not strongly match its weak twin")
+  (assert-true test
+    (ETag.weak-match? &(ETag.init @"a" false) &(ETag.init @"a" true))
+    "weak comparison ignores how either entity-tag is marked")
+  (assert-false test
+    (ETag.weak-match? &(ETag.init @"a" false) &(ETag.init @"b" false))
+    "entity-tags with different values never match")
+  (assert-equal test
+    "*"
+    &(tags-verdict "*")
+    "a field value of * is the any-representation list")
+  (assert-equal test
+    "\"a\", W/\"b\""
+    &(tags-verdict "\"a\", W/\"b\"")
+    "a multi-element entity-tag list round-trips")
+  (assert-equal test
+    "\"a\", \"b\""
+    &(tags-verdict "\"a\" , , \"b\"")
+    "empty entity-tag list elements are ignored")
+  (assert-equal test
+    "\"a,b\""
+    &(tags-verdict "\"a,b\"")
+    "a comma inside an opaque-tag is not a list delimiter")
+  (assert-equal test
+    "ERROR"
+    &(tags-verdict "")
+    "an empty entity-tag list is rejected")
+  (assert-equal test
+    "ERROR"
+    &(tags-verdict "\"a\", junk")
+    "an entity-tag list with a malformed member is rejected")
+  (assert-equal test
+    "OK"
+    &(precondition (no-headers)
+                   "GET"
+                   &(some-etag "a" false)
+                   &(at "Sun, 06 Nov 1994 08:49:37 GMT"))
+    "a request with no conditional headers is answered normally")
+  (assert-equal test
+    "OK"
+    &(precondition {@"If-Match" [@"\"a\""]}
+                   "PUT"
+                   &(some-etag "a" false)
+                   &(no-date))
+    "an If-Match that matches lets the request through")
+  (assert-equal test
+    "412"
+    &(precondition {@"If-Match" [@"\"b\""]}
+                   "PUT"
+                   &(some-etag "a" false)
+                   &(no-date))
+    "an If-Match that does not match is a 412")
+  (assert-equal test
+    "OK"
+    &(precondition {@"If-Match" [@"*"]} "PUT" &(no-etag) &(no-date))
+    "an If-Match of * holds for a representation with no entity-tag")
+  (assert-equal test
+    "412"
+    &(precondition {@"If-Match" [@"\"a\""]}
+                   "PUT"
+                   &(some-etag "a" true)
+                   &(no-date))
+    "If-Match compares strongly, so a weak entity-tag is a 412")
+  (assert-equal test
+    "412"
+    &(precondition {@"If-Match" [@"\"a\""]} "PUT" &(no-etag) &(no-date))
+    "an If-Match against a representation with no entity-tag is a 412")
+  (assert-equal test
+    "412"
+    &(precondition {@"If-Match" [@"junk"]}
+                   "PUT"
+                   &(some-etag "a" false)
+                   &(no-date))
+    "an If-Match the server cannot read fails closed with a 412")
+  (assert-equal test
+    "412"
+    &(precondition
+      {@"If-Unmodified-Since" [@"Sat, 05 Nov 1994 08:49:37 GMT"]}
+      "PUT"
+      &(no-etag)
+      &(at "Sun, 06 Nov 1994 08:49:37 GMT"))
+    "an If-Unmodified-Since older than the representation is a 412")
+  (assert-equal test
+    "OK"
+    &(precondition
+      {@"If-Unmodified-Since" [@"Mon, 07 Nov 1994 08:49:37 GMT"]}
+      "PUT"
+      &(no-etag)
+      &(at "Sun, 06 Nov 1994 08:49:37 GMT"))
+    "an If-Unmodified-Since newer than the representation lets it through")
+  (assert-equal test
+    "OK"
+    &(precondition
+      {@"If-Unmodified-Since" [@"Sat, 05 Nov 1994 08:49:37 GMT"]}
+      "PUT"
+      &(no-etag)
+      &(no-date))
+    "If-Unmodified-Since is ignored without a modification date")
+  (assert-equal test
+    "OK"
+    &(precondition {@"If-Unmodified-Since" [@"not a date"]}
+                   "PUT"
+                   &(no-etag)
+                   &(at "Sun, 06 Nov 1994 08:49:37 GMT"))
+    "If-Unmodified-Since is ignored when its value is not an HTTP-date")
+  (assert-equal test
+    "OK"
+    &(precondition
+      {@"If-Match" [@"\"a\""]
+       @"If-Unmodified-Since" [@"Sat, 05 Nov 1994 08:49:37 GMT"]}
+      "PUT"
+      &(some-etag "a" false)
+      &(at "Sun, 06 Nov 1994 08:49:37 GMT"))
+    "If-Unmodified-Since is evaluated only when If-Match is absent")
+  (assert-equal test
+    "304"
+    &(precondition {@"If-None-Match" [@"\"a\""]}
+                   "GET"
+                   &(some-etag "a" false)
+                   &(no-date))
+    "an If-None-Match that matches is a 304 for a GET")
+  (assert-equal test
+    "304"
+    &(precondition {@"If-None-Match" [@"\"a\""]}
+                   "HEAD"
+                   &(some-etag "a" false)
+                   &(no-date))
+    "an If-None-Match that matches is a 304 for a HEAD")
+  (assert-equal test
+    "412"
+    &(precondition {@"If-None-Match" [@"\"a\""]}
+                   "PUT"
+                   &(some-etag "a" false)
+                   &(no-date))
+    "an If-None-Match that matches is a 412 for anything but a GET or HEAD")
+  (assert-equal test
+    "304"
+    &(precondition {@"If-None-Match" [@"\"a\""]}
+                   "GET"
+                   &(some-etag "a" true)
+                   &(no-date))
+    "If-None-Match compares weakly, so a weak entity-tag still matches")
+  (assert-equal test
+    "OK"
+    &(precondition {@"If-None-Match" [@"\"b\""]}
+                   "GET"
+                   &(some-etag "a" false)
+                   &(no-date))
+    "an If-None-Match that does not match lets the request through")
+  (assert-equal test
+    "304"
+    &(precondition {@"If-None-Match" [@"*"]}
+                   "GET"
+                   &(some-etag "a" false)
+                   &(no-date))
+    "an If-None-Match of * matches any current representation")
+  (assert-equal test
+    "304"
+    &(precondition {@"If-None-Match" [@"\"x\", W/\"a\""]}
+                   "GET"
+                   &(some-etag "a" false)
+                   &(no-date))
+    "an If-None-Match matches on any member of its list")
+  (assert-equal test
+    "304"
+    &(precondition {@"If-None-Match" [@"\"x\"" @"\"a\""]}
+                   "GET"
+                   &(some-etag "a" false)
+                   &(no-date))
+    "an If-None-Match split across header lines is read as one list")
+  (assert-equal test
+    "OK"
+    &(precondition {@"If-None-Match" [@"junk"]}
+                   "GET"
+                   &(some-etag "a" false)
+                   &(no-date))
+    "an If-None-Match the server cannot read is ignored")
+  (assert-equal test
+    "412"
+    &(precondition
+      {@"If-Match" [@"\"b\""]
+       @"If-None-Match" [@"\"a\""]}
+      "GET"
+      &(some-etag "a" false)
+      &(no-date))
+    "a failed If-Match wins over an If-None-Match that would be a 304")
+  (assert-equal test
+    "304"
+    &(precondition
+      {@"If-Modified-Since" [@"Sun, 06 Nov 1994 08:49:37 GMT"]}
+      "GET"
+      &(no-etag)
+      &(at "Sun, 06 Nov 1994 08:49:37 GMT"))
+    "an If-Modified-Since equal to the modification date is a 304")
+  (assert-equal test
+    "OK"
+    &(precondition
+      {@"If-Modified-Since" [@"Sat, 05 Nov 1994 08:49:37 GMT"]}
+      "GET"
+      &(no-etag)
+      &(at "Sun, 06 Nov 1994 08:49:37 GMT"))
+    "an If-Modified-Since older than the modification date sends the body")
+  (assert-equal test
+    "OK"
+    &(precondition
+      {@"If-Modified-Since" [@"Sun, 06 Nov 1994 08:49:37 GMT"]}
+      "POST"
+      &(no-etag)
+      &(at "Sun, 06 Nov 1994 08:49:37 GMT"))
+    "If-Modified-Since is ignored for a method that is not GET or HEAD")
+  (assert-equal test
+    "OK"
+    &(precondition
+      {@"If-Modified-Since" [@"Sun, 06 Nov 1994 08:49:37 GMT"]}
+      "GET"
+      &(no-etag)
+      &(no-date))
+    "If-Modified-Since is ignored without a modification date")
+  (assert-equal test
+    "OK"
+    &(precondition
+      {@"If-None-Match" [@"\"b\""]
+       @"If-Modified-Since" [@"Sun, 06 Nov 1994 08:49:37 GMT"]}
+      "GET"
+      &(some-etag "a" false)
+      &(at "Sun, 06 Nov 1994 08:49:37 GMT"))
+    "If-Modified-Since is evaluated only when If-None-Match is absent")
+  (assert-equal test
+    "304"
+    &(req-precondition {@"If-None-Match" [@"\"a\""]}
+                       "GET"
+                       &(some-etag "a" false)
+                       &(no-date))
+    "Request.preconditions evaluates the request's own headers and method")
+  (assert-equal test
+    "412"
+    &(req-precondition {@"If-None-Match" [@"\"a\""]}
+                       "PUT"
+                       &(some-etag "a" false)
+                       &(no-date))
+    "Request.preconditions answers a non-GET If-None-Match with a 412")
+  (assert-equal test
+    "OK"
+    &(req-precondition
+      {@"If-Modified-Since" [@"Sun, 06 Nov 1994 08:49:37 GMT"]}
+      "POST"
+      &(no-etag)
+      &(at "Sun, 06 Nov 1994 08:49:37 GMT"))
+    "Request.preconditions gates If-Modified-Since on the request's own method")
+  (assert-equal test
+    412
+    Status.precondition-failed
+    "Status.precondition-failed is 412")
+  (assert-equal test
+    "Precondition Failed"
+    &(Status.reason 412)
+    "412 has a reason phrase")
+
+  (assert-equal test
     &(dechunk-ok "4\r\nWiki\r\n5\r\npedia\r\n0\r\n\r\n")
     "Wikipedia"
     "dechunk decodes a multi-chunk body")
@@ -2364,4 +2710,8 @@
   (assert-equal test
     "en-US"
     &(pick-lang "en, de;q=0.5" &[@"en-US" (continuation 3)])
-    "AcceptLanguage.negotiate tolerates an offer that is not valid UTF-8"))
+    "AcceptLanguage.negotiate tolerates an offer that is not valid UTF-8")
+  (assert-equal test
+    &(String.append "\"" &(String.append &(continuation 3) "\""))
+    &(etag-verdict &(String.append "\"" &(String.append &(continuation 3) "\"")))
+    "an entity-tag whose opaque-tag is not valid UTF-8 round-trips"))
