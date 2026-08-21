@@ -313,9 +313,12 @@ attribute, whatever order the two appear in.")
   (private target)
   (hidden target)
   ; RFC 9110 §4.2.4: a request target never carries userinfo.
+  ; RFC 9110 §7.1: the target URI excludes the fragment component.
   ; RFC 9112 §3.2.1: an origin-form target with an empty path is sent as `/`.
   (defn target [u]
-    (let [v (URI.set-password (URI.set-user @u (Maybe.Nothing)) (Maybe.Nothing))
+    (let [v (URI.set-fragment
+            (URI.set-password (URI.set-user @u (Maybe.Nothing)) (Maybe.Nothing))
+            (Maybe.Nothing))
           s (URI.str &v)]
       (if (and (Maybe.nothing? (URI.path &v))
                (Maybe.nothing? (URI.scheme &v))
