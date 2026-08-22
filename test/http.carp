@@ -345,6 +345,13 @@
       (Maybe.Nothing) @"OK"
       (Maybe.Just code) (Int.str code))))
 
+(defn if-range? [v etag modified]
+  (Precondition.if-range-matches?
+    &{@"Range" [@"bytes=0-499"]
+      @"If-Range" [@v]}
+    etag
+    modified))
+
 ; ---- hostile-byte test helpers ----
 ; a run of UTF-8 continuation bytes: `n` bytes long, zero characters long
 (defn continuation [n] (String.from-bytes &(Array.replicate n &128b)))
@@ -2031,6 +2038,73 @@
       &(no-etag)
       &(at "Sun, 06 Nov 1994 08:49:37 GMT"))
     "Request.preconditions gates If-Modified-Since on the request's own method")
+  (assert-true test
+    (if-range? "\"a\"" &(some-etag "a" false) &(no-date))
+    "an If-Range entity-tag matching the representation honors the Range")
+  (assert-false test
+    (if-range? "\"b\"" &(some-etag "a" false) &(no-date))
+    "an If-Range entity-tag naming another version ignores the Range")
+  (assert-false test
+    (if-range? "W/\"a\"" &(some-etag "a" false) &(no-date))
+    "an If-Range compares strongly, so a weak entity-tag never matches")
+  (assert-false test
+    (if-range? "\"a\"" &(some-etag "a" true) &(no-date))
+    "an If-Range against a weakly validated representation never matches")
+  (assert-false test
+    (if-range? "\"a\"" &(no-etag) &(no-date))
+    "an If-Range entity-tag against a representation with none is a non-match")
+  (assert-false test
+    (if-range? "junk" &(some-etag "a" false) &(no-date))
+    "an If-Range that reads as neither validator form is a non-match")
+  (assert-true test
+    (if-range? "Sun, 06 Nov 1994 08:49:37 GMT"
+               &(no-etag)
+               &(at "Sun, 06 Nov 1994 08:49:37 GMT"))
+    "an If-Range date equal to the modification date honors the Range")
+  (assert-false test
+    (if-range? "Sun, 06 Nov 1994 08:49:36 GMT"
+               &(no-etag)
+               &(at "Sun, 06 Nov 1994 08:49:37 GMT"))
+    "an If-Range date a second before the modification date is a non-match")
+  (assert-false test
+    (if-range? "Sun, 06 Nov 1994 08:49:38 GMT"
+               &(no-etag)
+               &(at "Sun, 06 Nov 1994 08:49:37 GMT"))
+    "an If-Range date a second after the modification date is a non-match")
+  (assert-true test
+    (if-range? "Sunday, 06-Nov-94 08:49:37 GMT"
+               &(no-etag)
+               &(at "Sun, 06 Nov 1994 08:49:37 GMT"))
+    "an If-Range date names an instant, whichever HTTP-date format spells it")
+  (assert-false test
+    (if-range? "not a date" &(no-etag) &(at "Sun, 06 Nov 1994 08:49:37 GMT"))
+    "an If-Range date the server cannot read is a non-match")
+  (assert-false test
+    (if-range? "Sun, 06 Nov 1994 08:49:37 GMT" &(some-etag "a" false) &(no-date))
+    "an If-Range date against a representation with none is a non-match")
+  (assert-true test
+    (Precondition.if-range-matches? &{@"Range" [@"bytes=0-499"]}
+                                    &(some-etag "a" false)
+                                    &(no-date))
+    "a Range with no If-Range is honored")
+  (assert-true test
+    (Precondition.if-range-matches? &{@"If-Range" [@"\"b\""]}
+                                    &(some-etag "a" false)
+                                    &(no-date))
+    "an If-Range without a Range to gate is ignored")
+  (assert-true test
+    (Precondition.if-range-matches? &(no-headers) &(no-etag) &(no-date))
+    "a request with neither header is honored")
+  (assert-false test
+    (Request.if-range-matches?
+      &(Request.get (URI.zero)
+                    []
+                    {@"Range" [@"bytes=0-499"]
+                     @"If-Range" [@"\"b\""]}
+                    @"")
+      &(some-etag "a" false)
+      &(no-date))
+    "Request.if-range-matches? evaluates the request's own headers")
   (assert-equal test
     412
     Status.precondition-failed

@@ -359,6 +359,30 @@ Returns <code>(Maybe String)</code>.</p>
                     </p>
                 </div>
                 <div class="binder">
+                    <a class="anchor" href="#if-range-matches?">
+                        <h3 id="if-range-matches?">
+                            if-range-matches?
+                        </h3>
+                    </a>
+                    <div class="description">
+                        defn
+                    </div>
+                    <p class="sig">
+                        (Fn [(Ref Request a), (Ref (Maybe ETag) b), (Ref (Maybe Datetime) c)] Bool)
+                    </p>
+                    <pre class="args">
+                        (if-range-matches? r etag modified)
+                    </pre>
+                    <p class="doc">
+                        <p>whether this request's <code>Range</code> header is to be honored
+for a representation whose entity-tag is <code>etag</code> and whose last modification date
+is <code>modified</code>. <code>false</code> means the <code>Range</code> is to be ignored and the whole
+representation sent. See
+<a href="Precondition.html#if-range-matches?"><code>Precondition.if-range-matches?</code></a>.</p>
+
+                    </p>
+                </div>
+                <div class="binder">
                     <a class="anchor" href="#ignore-body?">
                         <h3 id="ignore-body?">
                             ignore-body?
@@ -637,7 +661,8 @@ precondition held and the request should be answered normally. See
 <code>(Maybe (Result (Array ByteRangeSpec) String))</code>. <code>Nothing</code> when it carries no
 <code>Range</code> header. See <a href="ByteRange.html#parse"><code>ByteRange.parse</code></a>, whose <code>Error</code>
 means the header is one RFC 9110 §14.2 has the server ignore — serving the whole
-representation rather than a <code>416</code>.</p>
+representation rather than a <code>416</code>. A request that also carries an <code>If-Range</code>
+wants <a href="#if-range-matches?">if-range-matches?</a> consulted first.</p>
 
                     </p>
                 </div>

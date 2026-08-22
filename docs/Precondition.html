@@ -158,9 +158,9 @@ the status they demand.</p>
   (Maybe.Just code) (Response.respond code {} @&quot;&quot;)
   (Maybe.Nothing) (Response.ok {} @&quot;the body&quot;))
 </code></pre>
-<p><code>If-Range</code> is not evaluated: a range request whose condition fails is answered
-with the whole representation, which is
-<a href="ByteRange.html"><code>ByteRange</code></a>'s business rather than a status.</p>
+<p><code>If-Range</code> demands no status of its own, so it is evaluated apart from the four,
+by <a href="#if-range-matches?">if-range-matches?</a>: a range request whose condition fails
+is answered with the whole representation rather than an error.</p>
 
                 </div>
                 <div class="binder">
@@ -206,6 +206,42 @@ conditional creation an <code>If-None-Match</code> of <code>*</code> guards is t
 <a href="ETagList.html#parse"><code>ETagList.parse</code></a>,
 <a href="ETagList.html#strong-match?"><code>ETagList.strong-match?</code></a> and
 <a href="ETagList.html#weak-match?"><code>ETagList.weak-match?</code></a> are public for it.</p>
+
+                    </p>
+                </div>
+                <div class="binder">
+                    <a class="anchor" href="#if-range-matches?">
+                        <h3 id="if-range-matches?">
+                            if-range-matches?
+                        </h3>
+                    </a>
+                    <div class="description">
+                        defn
+                    </div>
+                    <p class="sig">
+                        (Fn [(Ref (Map String (Array String)) a), (Ref (Maybe ETag) b), (Ref (Maybe Datetime) c)] Bool)
+                    </p>
+                    <pre class="args">
+                        (if-range-matches? hdrs etag modified)
+                    </pre>
+                    <p class="doc">
+                        <p>whether the <code>Range</code> header in <code>hdrs</code> is to be honored,
+given <code>etag</code> and <code>modified</code>, the entity-tag and last modification date of the
+representation the server selected — either may be <code>Nothing</code>.</p>
+<p><code>true</code> when the request carries no <code>If-Range</code>, when it carries no <code>Range</code> for one
+to gate, or when the <code>If-Range</code> validator matches (RFC 9110 §13.1.5). <code>false</code>
+means the <code>Range</code> must be ignored and the whole representation sent with a <code>200</code>,
+the client holding a version other than the one it asks to continue.</p>
+<p>The two validator forms are told apart by the first characters of the field
+value: a quote or a <code>W/</code> names an entity-tag, anything else an HTTP-date. An
+entity-tag is compared strongly (§8.8.3.2), so a weak one — which §13.1.5 forbids
+a client to send and obliges a recipient to ignore — never matches. A date
+matches the modification date only when it names the very same instant, as
+§8.8.2.2's strong-validator rule demands. A field value that reads as neither
+form, and a validator the selected representation has no counterpart to, are
+non-matches.</p>
+<p>§13.2.1 orders the three steps of a conditional range request:
+<a href="#evaluate">evaluate</a> first, then this, then the <code>Range</code> itself.</p>
 
                     </p>
                 </div>

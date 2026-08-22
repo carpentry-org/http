@@ -2330,9 +2330,9 @@ the status they demand.
   (Maybe.Nothing) (Response.ok {} @\"the body\"))
 ```
 
-`If-Range` is not evaluated: a range request whose condition fails is answered
-with the whole representation, which is
-[`ByteRange`](ByteRange.html)'s business rather than a status.")
+`If-Range` demands no status of its own, so it is evaluated apart from the four,
+by [if-range-matches?](#if-range-matches?): a range request whose condition fails
+is answered with the whole representation rather than an error.")
 (defmodule Precondition
   (hidden list-header)
   (private list-header)
@@ -2445,7 +2445,59 @@ conditional creation an `If-None-Match` of `*` guards is the caller's too;
           (Maybe.Nothing)
             (if (read? method)
               (modified-since-status hdrs modified)
-              (Maybe.Nothing)))))))
+              (Maybe.Nothing))))))
+
+  (hidden if-range-etag-match?)
+  (private if-range-etag-match?)
+  (defn if-range-etag-match? [v etag]
+    (match (ETag.parse v)
+      (Result.Error _) false
+      (Result.Success e)
+        (match-ref etag
+          (Maybe.Nothing) false
+          (Maybe.Just cur) (ETag.strong-match? &e cur))))
+
+  (hidden if-range-date-match?)
+  (private if-range-date-match?)
+  (defn if-range-date-match? [v modified]
+    (match (HttpDate.parse v)
+      (Result.Error _) false
+      (Result.Success d)
+        (match-ref modified
+          (Maybe.Nothing) false
+          (Maybe.Just m) (Datetime.equal-instant? m &d))))
+
+  (doc if-range-matches? "whether the `Range` header in `hdrs` is to be honored,
+given `etag` and `modified`, the entity-tag and last modification date of the
+representation the server selected — either may be `Nothing`.
+
+`true` when the request carries no `If-Range`, when it carries no `Range` for one
+to gate, or when the `If-Range` validator matches (RFC 9110 §13.1.5). `false`
+means the `Range` must be ignored and the whole representation sent with a `200`,
+the client holding a version other than the one it asks to continue.
+
+The two validator forms are told apart by the first characters of the field
+value: a quote or a `W/` names an entity-tag, anything else an HTTP-date. An
+entity-tag is compared strongly (§8.8.3.2), so a weak one — which §13.1.5 forbids
+a client to send and obliges a recipient to ignore — never matches. A date
+matches the modification date only when it names the very same instant, as
+§8.8.2.2's strong-validator rule demands. A field value that reads as neither
+form, and a validator the selected representation has no counterpart to, are
+non-matches.
+
+§13.2.1 orders the three steps of a conditional range request:
+[evaluate](#evaluate) first, then this, then the `Range` itself.")
+  (defn if-range-matches? [hdrs etag modified]
+    (match (header-lookup hdrs "If-Range")
+      (Maybe.Nothing) true
+      (Maybe.Just v)
+        (if (Maybe.nothing? &(header-lookup hdrs "Range"))
+          true
+          (let [t (String.trim &v)]
+            (if (or (String.byte-starts-with? &t "\"")
+                    (String.byte-starts-with? &t "W/"))
+              (if-range-etag-match? &t etag)
+              (if-range-date-match? &t modified)))))))
 
 (defmodule Request
   (doc form-data "parses the request body as URL-encoded form data.
@@ -2510,7 +2562,8 @@ from the server's `offers`, honoring the request's `Accept-Language` header (RFC
 `(Maybe (Result (Array ByteRangeSpec) String))`. `Nothing` when it carries no
 `Range` header. See [`ByteRange.parse`](ByteRange.html#parse), whose `Error`
 means the header is one RFC 9110 §14.2 has the server ignore — serving the whole
-representation rather than a `416`.")
+representation rather than a `416`. A request that also carries an `If-Range`
+wants [if-range-matches?](#if-range-matches?) consulted first.")
   (defn range [r]
     (match (Request.header r "Range")
       (Maybe.Nothing) (Maybe.Nothing)
@@ -2522,4 +2575,12 @@ modification date is `modified`, as `(Maybe Int)`. `Nothing` means every
 precondition held and the request should be answered normally. See
 [`Precondition.evaluate`](Precondition.html#evaluate).")
   (defn preconditions [r etag modified]
-    (Precondition.evaluate (headers r) (verb r) etag modified)))
+    (Precondition.evaluate (headers r) (verb r) etag modified))
+
+  (doc if-range-matches? "whether this request's `Range` header is to be honored
+for a representation whose entity-tag is `etag` and whose last modification date
+is `modified`. `false` means the `Range` is to be ignored and the whole
+representation sent. See
+[`Precondition.if-range-matches?`](Precondition.html#if-range-matches?).")
+  (defn if-range-matches? [r etag modified]
+    (Precondition.if-range-matches? (headers r) etag modified)))
