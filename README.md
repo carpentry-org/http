@@ -196,7 +196,21 @@ of an `If-Match` or `If-None-Match` header.
   (Result.Error e) (IO.errorln &e))
 ```
 
-`If-Range` is not evaluated yet.
+`If-Range` gates a `Range` header on the client still holding the version it is
+asking to continue (§13.1.5). A non-match means ignoring the `Range` and sending
+the whole representation with a `200`, rather than splicing bytes of a changed
+representation into the client's copy.
+
+```clojure
+(if (Request.if-range-matches? &req &etag &modified)
+  (serve-range &req)      ; no If-Range, or its validator still matches
+  (whole-representation))
+```
+
+The validator is either an entity-tag, compared strongly — so a weak one never
+matches — or an HTTP-date, which must name the very instant the representation
+was last modified. §13.2.1 has the §13.2.2 preconditions evaluated first, then
+`If-Range`, then the `Range` itself.
 
 ### Status codes
 
