@@ -1781,11 +1781,10 @@ request for you.
 (defmodule Multipart
   (hidden at?)
   (private at?)
-  ; does `s` contain `sub` starting at byte offset `pos`?
-  (defn at? [s pos sub]
-    (let [subl (String.length sub)
-          sl (String.length s)]
-      (if (or (< pos 0) (> (+ pos subl) sl))
+  ; does `s`, whose byte length is `slen`, hold `sub` at byte offset `pos`?
+  (defn at? [s slen pos sub]
+    (let [subl (String.length sub)]
+      (if (or (< pos 0) (> (+ pos subl) slen))
         false
         (let-do [ok true
                  j 0]
@@ -1795,16 +1794,29 @@ request for you.
               (set! ok false)))
           ok))))
 
+  (hidden skip-table)
+  (private skip-table)
+  ; Boyer-Moore-Horspool bad-character shifts for `needle`, indexed by byte.
+  (defn skip-table [needle nlen]
+    (let-do [t (Array.replicate 256 &nlen)
+             last (Int.dec nlen)]
+      (for [i 0 last]
+        (Array.aset! &t (Char.to-int (String.char-at needle i)) (- last i)))
+      t))
+
   (hidden index-from)
   (private index-from)
-  ; first byte offset >= `from` where `needle` occurs in `s`, or -1.
-  (defn index-from [s needle from]
-    (let-do [slen (String.length s)
-             nlen (String.length needle)
-             res -1
-             i from]
+  ; first byte offset >= `from` where `needle` occurs in `s`, or -1. `skip` is
+  ; the needle’s `skip-table`.
+  (defn index-from [s slen needle nlen skip from]
+    (let-do [res -1
+             i from
+             last (Int.dec nlen)]
       (while (and (< res 0) (<= (+ i nlen) slen))
-        (if (at? s i needle) (set! res i) (set! i (Int.inc i))))
+        (let [c (String.char-at s (+ i last))]
+          (if (and (= c (String.char-at needle last)) (at? s slen i needle))
+            (set! res i)
+            (set! i (+ i @(Array.unsafe-nth skip (Char.to-int c)))))))
       res))
 
   (hidden header-value)
@@ -1857,13 +1869,14 @@ into its `FormPart`s. Fails when the opening boundary delimiter is absent.")
           cdlen (String.length &crlf-dash)
           dashlen (String.length &dash)
           len (String.length body)
+          skip (Multipart.skip-table &crlf-dash cdlen)
           ; the opening delimiter is `--boundary`, either at the very start or
           ; after a preamble that ends in CRLF; every later delimiter is
           ; `CRLF--boundary`, so searching for that avoids matching a bare
           ; `--boundary` that happens to occur inside a part body.
-          open (if (Multipart.at? body 0 &dash)
+          open (if (Multipart.at? body len 0 &dash)
             dashlen
-            (let [p (String.index-of-string body &crlf-dash)]
+            (let [p (Multipart.index-from body len &crlf-dash cdlen &skip 0)]
               (if (< p 0) -1 (+ p cdlen))))]
       (if (< open 0)
         (Result.Error @"multipart: boundary delimiter not found")
@@ -1872,11 +1885,16 @@ into its `FormPart`s. Fails when the opening boundary delimiter is absent.")
                  done false]
           (while (not done)
             (cond
-              (Multipart.at? body pos "--") (set! done true)
+              (Multipart.at? body len pos "--") (set! done true)
               (>= pos len) (set! done true)
               (do
-                (when (Multipart.at? body pos "\r\n") (set! pos (+ pos 2)))
-                (let [next (Multipart.index-from body &crlf-dash pos)]
+                (when (Multipart.at? body len pos "\r\n") (set! pos (+ pos 2)))
+                (let [next (Multipart.index-from body
+                                                 len
+                                                 &crlf-dash
+                                                 cdlen
+                                                 &skip
+                                                 pos)]
                   (if (< next 0)
                     (set! done true)
                     (do

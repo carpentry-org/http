@@ -1236,6 +1236,34 @@
       (Result.Error _) true
       (Result.Success _) false)
     "a missing boundary delimiter is an error")
+  (assert-equal test
+    &(continuation 64)
+    &(mp-body
+      &(mp-parts
+        &(fmt
+          "--b\r\nContent-Disposition: form-data; name=\"a\"\r\n\r\n%s\r\n--b--\r\n"
+          &(continuation 64))
+        "b")
+      0)
+    "a part body that is not valid UTF-8 round-trips")
+  (assert-equal test
+    "ok"
+    &(mp-body
+      &(mp-parts
+        &(fmt
+          "%s\r\n--b\r\nContent-Disposition: form-data; name=\"a\"\r\n\r\nok\r\n--b--\r\n"
+          &(continuation 64))
+        "b")
+      0)
+    "a preamble that is not valid UTF-8 is ignored")
+  (assert-equal test
+    "888--LongBoundary8"
+    &(mp-body
+      &(mp-parts
+        "--LongBoundary8\r\nContent-Disposition: form-data; name=\"a\"\r\n\r\n888--LongBoundary8\r\n--LongBoundary8--\r\n"
+        "LongBoundary8")
+      0)
+    "a body repeating the delimiter’s last byte is scanned correctly")
 
   ; ---- Request.multipart-data ----
   (assert-equal test
