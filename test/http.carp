@@ -1264,6 +1264,14 @@
         "LongBoundary8")
       0)
     "a body repeating the delimiter’s last byte is scanned correctly")
+  (assert-equal test
+    "hello"
+    &(mp-body
+      &(mp-parts
+        "--b\r\nContent-Disposition: form-data; name=\"a\"\r\n\r\nhello\r\n--b"
+        "b")
+      0)
+    "a delimiter that ends at the end of the body is still found")
 
   ; ---- Request.multipart-data ----
   (assert-equal test
