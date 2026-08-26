@@ -661,19 +661,42 @@ Use `Request.chunked?`/`Response.chunked?` to detect a chunked body, then
             (set! acc (+ (* acc 16) d)))))
       (if ok (Maybe.Just acc) (Maybe.Nothing))))
 
+  (private bws?)
+  (hidden bws?)
+  (defn bws? [c] (or (= c \space) (= c \tab)))
+
+  ; chunk-size = 1*HEXDIG, then chunk-ext = *( BWS ";" ... ) per RFC 9112 §7.1
+  (private parse-size-line)
+  (hidden parse-size-line)
+  (defn parse-size-line [line]
+    (let-do [len (String.length line)
+             digits 0
+             i 0]
+      (while (and (< digits len)
+                  (>= (hex-nibble (String.char-at line digits)) 0))
+        (set! digits (Int.inc digits)))
+      (set! i digits)
+      (while (and (< i len) (bws? (String.char-at line i))) (set! i (Int.inc i)))
+      (if (and (> digits 0)
+               (or (= digits len) (and (< i len) (= \; (String.char-at line i)))))
+        (parse-hex &(String.byte-slice line 0 digits))
+        (Maybe.Nothing))))
+
   (private crlf-at?)
   (hidden crlf-at?)
   (defn crlf-at? [s i]
     (and (= (String.char-at s i) \return)
          (= (String.char-at s (Int.inc i)) \newline)))
 
-  (doc dechunk "decodes a chunked transfer-encoded `body` per RFC 7230 §4.1.
+  (doc dechunk "decodes a chunked transfer-encoded `body` per RFC 9112 §7.1.
 
 Each chunk is a hexadecimal size line — any chunk extension after a `;` is
 ignored — followed by that many bytes of data and a CRLF, repeating until a
 zero-size chunk. Optional trailer headers after the final chunk are ignored.
 Returns the decoded body, or an `(Error String)` on malformed framing such as a
-bad hex size or a truncated chunk.")
+bad hex size or a truncated chunk. The size line is read strictly: it must begin
+with a hexadecimal digit, and nothing but a chunk extension may follow the
+size.")
   (defn dechunk [body]
     (let-do [len (String.length body)
              pos 0
@@ -684,18 +707,13 @@ bad hex size or a truncated chunk.")
         (let [eol (String.find-crlf body pos len)]
           (if (= eol -1)
             (set! err @"malformed chunked body: unterminated chunk size line")
-            (let [size-line &(String.byte-slice body pos eol)
-                  semi (String.index-of size-line \;)
-                  hex &(String.trim
-                    &(if (= semi -1)
-                      @size-line
-                      (String.byte-slice size-line 0 semi)))]
-              (match (parse-hex hex)
+            (let [size-line &(String.byte-slice body pos eol)]
+              (match (parse-size-line size-line)
                 (Maybe.Nothing)
                   (set! err
                         (fmt
                           "malformed chunked body: invalid chunk size '%s'"
-                          hex))
+                          size-line))
                 (Maybe.Just size)
                   (if (= size 0)
                     (set! terminated true)
