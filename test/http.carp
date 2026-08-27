@@ -2195,6 +2195,40 @@
     (dechunk-err? "4\r\nWiki\r\n5\r\npedia\r\n")
     "dechunk errors on a missing terminating zero-size chunk")
 
+  (assert-true test
+    (dechunk-err? " 5\r\nhello\r\n0\r\n\r\n")
+    "dechunk rejects a chunk size line with leading whitespace")
+
+  (assert-true test
+    (dechunk-err? "\t5\r\nhello\r\n0\r\n\r\n")
+    "dechunk rejects a chunk size line starting with a tab")
+
+  (assert-true test
+    (dechunk-err? "5 \r\nhello\r\n0\r\n\r\n")
+    "dechunk rejects a chunk size with trailing whitespace and no extension")
+
+  (assert-true test
+    (dechunk-err? "5\r\r\nhello\r\n0\r\n\r\n")
+    "dechunk rejects a stray CR between the chunk size and the CRLF")
+
+  (assert-true test
+    (dechunk-err? " 0 \r\n\r\n")
+    "dechunk rejects a whitespace-padded terminating chunk")
+
+  (assert-true test
+    (dechunk-err? ";name=value\r\nhello\r\n0\r\n\r\n")
+    "dechunk rejects a chunk extension with no size before it")
+
+  (assert-equal test
+    &(dechunk-ok "5 ;name=value\r\nhello\r\n0\r\n\r\n")
+    "hello"
+    "dechunk allows the bad whitespace RFC 9112 §7.1.1 permits before an extension")
+
+  (assert-equal test
+    &(dechunk-ok "1C\r\nabcdefghijklmnopqrstuvwxyz01\r\n0\r\n\r\n")
+    "abcdefghijklmnopqrstuvwxyz01"
+    "dechunk decodes an uppercase hex chunk size")
+
   (assert-equal test
     &(match (Response.parse
         "HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n4\r\nWiki\r\n5\r\npedia\r\n0\r\n\r\n")

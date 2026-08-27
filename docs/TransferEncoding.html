@@ -216,12 +216,14 @@ back to <code>body</code> via <a href="#dechunk">dechunk</a>.</p>
                         (dechunk body)
                     </pre>
                     <p class="doc">
-                        <p>decodes a chunked transfer-encoded <code>body</code> per RFC 7230 §4.1.</p>
+                        <p>decodes a chunked transfer-encoded <code>body</code> per RFC 9112 §7.1.</p>
 <p>Each chunk is a hexadecimal size line — any chunk extension after a <code>;</code> is
 ignored — followed by that many bytes of data and a CRLF, repeating until a
 zero-size chunk. Optional trailer headers after the final chunk are ignored.
 Returns the decoded body, or an <code>(Error String)</code> on malformed framing such as a
-bad hex size or a truncated chunk.</p>
+bad hex size or a truncated chunk. The size line is read strictly: it must begin
+with a hexadecimal digit, and nothing but a chunk extension may follow the
+size.</p>
 
                     </p>
                 </div>
