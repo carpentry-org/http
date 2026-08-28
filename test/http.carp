@@ -473,7 +473,7 @@
     "request-target of a query-only URI keeps its leading /")
 
   (assert-equal test
-    "GET http://example.com HTTP/1.1\r\n\r\n"
+    "GET / HTTP/1.1\r\n\r\n"
     &(Request.str
       &(Request.get
         (URI.set-scheme
@@ -482,22 +482,43 @@
         []
         {}
         @""))
-    "absolute-form request-target is left alone")
+    "request-target of an absolute URL drops the scheme and host")
 
   (assert-equal test
-    "GET http://h.example/a/c HTTP/1.1\r\n\r\n"
+    "GET /a/b?q=1 HTTP/1.1\r\n\r\n"
+    &(request-line "http://user:pw@h.example:8080/a/b?q=1#sec2")
+    "request-target keeps only the path and query")
+
+  (assert-equal test
+    "GET /a/b HTTP/1.1\r\n\r\n"
+    &(Request.str
+      &(Request.get (URI.set-path (URI.zero) (Maybe.Just @"/a/b")) [] {} @""))
+    "an already absolute path is not slashed twice")
+
+  (assert-true test
+    (match (URI.parse "http://h.example:8080/a/b")
+      (Result.Success u)
+        (let [r (Request.get u [] {} @"")]
+          (and
+            (= &(Maybe.Just @"h.example") (URI.host (Request.uri &r)))
+            (= &(Maybe.Just 8080) (URI.port (Request.uri &r)))))
+      _ false)
+    "the host and port stay on the request’s URI")
+
+  (assert-equal test
+    "GET /a/c HTTP/1.1\r\n\r\n"
     &(request-line "http://USER:PW@h.example/a/c")
     "request-target drops user and password")
 
   (assert-equal test
-    "GET http://h.example/a/c HTTP/1.1\r\n\r\n"
+    "GET /a/c HTTP/1.1\r\n\r\n"
     &(request-line "http://USER@h.example/a/c")
     "request-target drops a user without a password")
 
   (assert-equal test
-    "GET http://h.example/a/c HTTP/1.1\r\n\r\n"
+    "GET /a/c HTTP/1.1\r\n\r\n"
     &(request-line "http://h.example/a/c")
-    "request-target without userinfo is unchanged")
+    "request-target without userinfo is the plain path")
 
   (assert-equal test
     "GET / HTTP/1.1\r\n\r\n"
@@ -516,27 +537,27 @@
     "the credentials stay on the request’s URI")
 
   (assert-equal test
-    "GET http://h.example/a/b?q=1 HTTP/1.1\r\n\r\n"
+    "GET /a/b?q=1 HTTP/1.1\r\n\r\n"
     &(request-line "http://h.example/a/b?q=1#sec2")
     "request-target drops a fragment and keeps the query")
 
   (assert-equal test
-    "GET http://h.example/a/b HTTP/1.1\r\n\r\n"
+    "GET /a/b HTTP/1.1\r\n\r\n"
     &(request-line "http://h.example/a/b#sec2")
     "request-target drops a fragment without a query")
 
   (assert-equal test
-    "GET http://h.example/a/b HTTP/1.1\r\n\r\n"
+    "GET /a/b HTTP/1.1\r\n\r\n"
     &(request-line "http://h.example/a/b#")
     "request-target drops an empty fragment")
 
   (assert-equal test
-    "GET http://h.example/a/b HTTP/1.1\r\n\r\n"
+    "GET /a/b HTTP/1.1\r\n\r\n"
     &(request-line "http://h.example/a/b#frag?notquery")
     "request-target drops a fragment that looks like a query")
 
   (assert-equal test
-    "GET http://h.example/a/b?q=a%23b HTTP/1.1\r\n\r\n"
+    "GET /a/b?q=a%23b HTTP/1.1\r\n\r\n"
     &(request-line "http://h.example/a/b?q=a%23b")
     "request-target keeps an encoded # inside the query")
 

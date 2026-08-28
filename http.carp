@@ -312,22 +312,27 @@ attribute, whatever order the two appear in.")
 
   (private target)
   (hidden target)
-  ; RFC 9110 §4.2.4: a request target never carries userinfo.
-  ; RFC 9110 §7.1: the target URI excludes the fragment component.
-  ; RFC 9112 §3.2.1: an origin-form target with an empty path is sent as `/`.
+  ; RFC 9112 §3.2.1: a request to an origin server carries path and query only.
   (defn target [u]
-    (let [v (URI.set-fragment
-            (URI.set-password (URI.set-user @u (Maybe.Nothing)) (Maybe.Nothing))
-            (Maybe.Nothing))
-          s (URI.str &v)]
-      (if (and (Maybe.nothing? (URI.path &v))
-               (Maybe.nothing? (URI.scheme &v))
-               (Maybe.nothing? (URI.host &v))
-               (Maybe.nothing? (URI.port &v)))
-        (String.append "/" &s)
-        s)))
+    (let [pth (Maybe.from @(URI.path u) @"")
+          q (Maybe.from @(URI.query u) @"")]
+      (String.concat
+        &[@(if (String.byte-starts-with? &pth "/") "" "/")
+          pth
+          @(if (String.empty? &q) "" "?")
+          q])))
 
-  (doc str "stringifies the request as it looks on the wire.")
+  (doc str "stringifies the request as it looks on the wire.
+
+The request-target is rendered in origin-form: the path and query of the
+request’s URI, or `/` when it has neither, as RFC 9112 §3.2.1 requires of a
+request sent directly to an origin server. Scheme, host, port, userinfo and
+fragment stay on the URI and never reach the request line, so the authority has
+to travel in a `Host` header.
+
+The other request-target forms of RFC 9112 §3.2 are not produced:
+absolute-form addresses a proxy, authority-form a `CONNECT`, and asterisk-form
+a server-wide `OPTIONS`.")
   (defn str [r]
     (let-do [sb (StringBuf.create)]
       (StringBuf.append-str &sb (verb r))
