@@ -112,6 +112,14 @@
       [0b]
       (String.to-bytes ".jpg\"\r\n\r\ndata\r\n--b--\r\n")]))
 
+(def headerless-binary
+  (Array.concat
+    &[(String.to-bytes "--b\r\n\r\nbo") [0b] (String.to-bytes "dy\r\n--b--\r\n")]))
+
+; a well-formed first part, ready to be followed by another part’s delimiter
+(def mp-first
+  @"--b\r\nContent-Disposition: form-data; name=\"a\"\r\n\r\nhello\r\n")
+
 ; ---- content negotiation (Accept) test helpers ----
 (defn pick [accept offers]
   (match (Accept.negotiate accept offers)
@@ -1396,11 +1404,25 @@
         0))
     "an empty part body parses to an empty byte array")
   (assert-equal test
-    ""
-    &(bp-name
-      &(bp-parts &(String.to-bytes "--b\r\n\r\nbody\r\n--b--\r\n") "b")
-      0)
-    "a part with no headers at all decodes to an empty name")
+    "multipart: part headers not terminated by CRLF CRLF"
+    &(bp-error &(String.to-bytes "--b\r\n\r\nbody\r\n--b--\r\n") "b")
+    "a text part with no headers at all is rejected")
+  (assert-equal test
+    "multipart: part headers not terminated by CRLF CRLF"
+    &(bp-error &headerless-binary "b")
+    "a binary part with no headers is not diagnosed as a NUL in its headers")
+  (assert-equal test
+    "multipart: part headers not terminated by CRLF CRLF"
+    &(bp-error
+      &(Array.concat &[(String.to-bytes &mp-first) @&headerless-binary])
+      "b")
+    "a headerless part fails the whole body, discarding the parts before it")
+  (assert-equal test
+    "multipart: part headers not terminated by CRLF CRLF"
+    &(match (Multipart.parse "--b\r\n\r\nbody\r\n--b--\r\n" "b")
+      (Result.Error e) e
+      (Result.Success _) @"<ok>")
+    "the String entry point rejects a headerless part too")
   (assert-equal test
     2
     (Array.length &(bp-parts &mp-mixed "b"))

@@ -1788,7 +1788,7 @@ field `name`, an optional `filename` (present for file uploads), an optional
 (doc BinaryPart "is a single part decoded from a `multipart/form-data` body by
 [`Multipart.parse-bytes`](Multipart.html#parse-bytes). It carries the same
 fields as a [`FormPart`](FormPart.html), but its `body` is an `(Array Byte)`, so
-it survives the NUL bytes every binary upload contains.")
+it survives the NUL bytes a binary upload carries.")
 (deftype BinaryPart
   [name String
    filename (Maybe String)
@@ -1886,35 +1886,42 @@ for you.
   ; parses one part (`headers CRLF CRLF body`) into a BinaryPart.
   (defn parse-part [raw]
     (let [blank (String.to-bytes "\r\n\r\n")
-          sep (index-from raw &blank &(skip-table &blank) 0)
-          head (if (< sep 0) @raw (Array.prefix raw sep))
-          body (if (< sep 0) (the (Array Byte) []) (Array.suffix raw (+ sep 4)))]
-      (if (Array.any? &(fn [b] (= 0b @b)) &head)
-        (Result.Error @"multipart: NUL byte in part headers")
-        (let-do [lines (String.split-by &(String.from-bytes &head) &[\newline])
-                 nm @""
-                 fname (the (Maybe String) (Maybe.Nothing))
-                 ctype (the (Maybe String) (Maybe.Nothing))]
-          (for [i 0 (Array.length &lines)]
-            (let-do [line &(String.trim (Array.unsafe-nth &lines i))]
-              (match (header-value line "content-disposition")
-                (Maybe.Just cd)
-                  (let-do [ps (MediaType.parse-params &cd)]
-                    (set! nm (Map.get-with-default &ps "name" ""))
-                    (set! fname (Map.get-maybe &ps "filename")))
-                (Maybe.Nothing) ())
-              (match (header-value line "content-type")
-                (Maybe.Just ct) (set! ctype (Maybe.Just ct))
-                (Maybe.Nothing) ())))
-          (Result.Success (BinaryPart.init nm fname ctype body))))))
+          sep (index-from raw &blank &(skip-table &blank) 0)]
+      (if (< sep 0)
+        (Result.Error @"multipart: part headers not terminated by CRLF CRLF")
+        (let [head (Array.prefix raw sep)
+              body (Array.suffix raw (+ sep 4))]
+          (if (Array.any? &(fn [b] (= 0b @b)) &head)
+            (Result.Error @"multipart: NUL byte in part headers")
+            (let-do [lines (String.split-by &(String.from-bytes &head)
+                                            &[\newline])
+                     nm @""
+                     fname (the (Maybe String) (Maybe.Nothing))
+                     ctype (the (Maybe String) (Maybe.Nothing))]
+              (for [i 0 (Array.length &lines)]
+                (let-do [line &(String.trim (Array.unsafe-nth &lines i))]
+                  (match (header-value line "content-disposition")
+                    (Maybe.Just cd)
+                      (let-do [ps (MediaType.parse-params &cd)]
+                        (set! nm (Map.get-with-default &ps "name" ""))
+                        (set! fname (Map.get-maybe &ps "filename")))
+                    (Maybe.Nothing) ())
+                  (match (header-value line "content-type")
+                    (Maybe.Just ct) (set! ctype (Maybe.Just ct))
+                    (Maybe.Nothing) ())))
+              (Result.Success (BinaryPart.init nm fname ctype body))))))))
 
   (doc parse-bytes "decodes a `multipart/form-data` `body` with the given
 `boundary` into its [`BinaryPart`](BinaryPart.html)s, reading the body as bytes
 so that binary uploads survive intact.
 
-Fails when the opening boundary delimiter is absent, and when a part’s header
-region holds a NUL byte: header field lines are US-ASCII, and reading one as a
-`String` would cut a `filename` short without saying so.")
+Fails when the opening boundary delimiter is absent, when a part’s headers are
+not terminated by a CRLF CRLF — RFC 7578 requires every part to carry a
+`Content-Disposition`, so a part with no header block at all is malformed — and
+when a part’s header region holds a NUL byte: header field lines are US-ASCII,
+and reading one as a `String` would cut a `filename` short without saying so.
+
+Any of these fails the whole body, not just the offending part.")
   (defn parse-bytes [body boundary]
     (let [dash (String.to-bytes &(String.append "--" boundary))
           crlf-dash (String.to-bytes &(String.append "\r\n--" boundary))
@@ -1958,8 +1965,8 @@ region holds a NUL byte: header field lines are US-ASCII, and reading one as a
             (Maybe.Nothing) (Result.Success parts))))))
 
   (doc parse "decodes a `multipart/form-data` `body` with the given `boundary`
-into its [`FormPart`](FormPart.html)s. Fails when the opening boundary delimiter
-is absent.
+into its [`FormPart`](FormPart.html)s. Fails on the same bodies
+[`parse-bytes`](#parse-bytes) does.
 
 A Carp `String` ends at its first NUL byte, so a binary `body` — any PNG, PDF or
 zip upload — is cut short before parsing even begins, and usually decodes to no
@@ -2594,9 +2601,11 @@ the boundary from the `Content-Type` header. Returns
 `(Result (Array FormPart) String)`; fails when the request is not
 `multipart/form-data` or carries no boundary.
 
-A `Request` body is a `String` and therefore stops at its first NUL byte, so an
-upload that is not text has to be decoded with
-[`Multipart.parse-bytes`](Multipart.html#parse-bytes) instead.")
+A `Request` body is a `String`, and a Carp `String` ends at its first NUL byte,
+so a binary upload is already cut short before [`parse`](#parse) is handed the
+request text, and cannot be recovered from a `Request` afterwards. Decoding one
+means keeping the raw request bytes yourself and calling
+[`Multipart.parse-bytes`](Multipart.html#parse-bytes) on the body.")
   (defn multipart-data [r]
     (match (Request.header r "Content-Type")
       (Maybe.Nothing) (Result.Error @"multipart: no Content-Type header")

@@ -187,8 +187,8 @@ for you.</p>
                     </pre>
                     <p class="doc">
                         <p>decodes a <code>multipart/form-data</code> <code>body</code> with the given <code>boundary</code>
-into its <a href="FormPart.html"><code>FormPart</code></a>s. Fails when the opening boundary delimiter
-is absent.</p>
+into its <a href="FormPart.html"><code>FormPart</code></a>s. Fails on the same bodies
+<a href="#parse-bytes"><code>parse-bytes</code></a> does.</p>
 <p>A Carp <code>String</code> ends at its first NUL byte, so a binary <code>body</code> — any PNG, PDF or
 zip upload — is cut short before parsing even begins, and usually decodes to no
 parts at all. Reach for <a href="#parse-bytes"><code>parse-bytes</code></a> whenever the body might
@@ -215,9 +215,12 @@ not be text.</p>
                         <p>decodes a <code>multipart/form-data</code> <code>body</code> with the given
 <code>boundary</code> into its <a href="BinaryPart.html"><code>BinaryPart</code></a>s, reading the body as bytes
 so that binary uploads survive intact.</p>
-<p>Fails when the opening boundary delimiter is absent, and when a part’s header
-region holds a NUL byte: header field lines are US-ASCII, and reading one as a
-<code>String</code> would cut a <code>filename</code> short without saying so.</p>
+<p>Fails when the opening boundary delimiter is absent, when a part’s headers are
+not terminated by a CRLF CRLF — RFC 7578 requires every part to carry a
+<code>Content-Disposition</code>, so a part with no header block at all is malformed — and
+when a part’s header region holds a NUL byte: header field lines are US-ASCII,
+and reading one as a <code>String</code> would cut a <code>filename</code> short without saying so.</p>
+<p>Any of these fails the whole body, not just the offending part.</p>
 
                     </p>
                 </div>
