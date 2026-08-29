@@ -152,12 +152,13 @@
             </div>
             <div class="module">
                 <h1>
-                    FormPart
+                    BinaryPart
                 </h1>
                 <div class="module-description">
-                    <p>is a single part decoded from a <code>multipart/form-data</code> body: the
-field <code>name</code>, an optional <code>filename</code> (present for file uploads), an optional
-<code>content-type</code>, and the raw <code>body</code>.</p>
+                    <p>is a single part decoded from a <code>multipart/form-data</code> body by
+<a href="Multipart.html#parse-bytes"><code>Multipart.parse-bytes</code></a>. It carries the same
+fields as a <a href="FormPart.html"><code>FormPart</code></a>, but its <code>body</code> is an <code>(Array Byte)</code>, so
+it survives the NUL bytes every binary upload contains.</p>
 
                 </div>
                 <div class="binder">
@@ -170,13 +171,13 @@ field <code>name</code>, an optional <code>filename</code> (present for file upl
                         instantiate
                     </div>
                     <p class="sig">
-                        (Fn [(Ref FormPart a)] (Ref String a))
+                        (Fn [(Ref BinaryPart a)] (Ref (Array Byte) a))
                     </p>
                     <span>
                         
                     </span>
                     <p class="doc">
-                        <p>gets the <code>body</code> property of a <code>FormPart</code>.</p>
+                        <p>gets the <code>body</code> property of a <code>BinaryPart</code>.</p>
 
                     </p>
                 </div>
@@ -190,13 +191,13 @@ field <code>name</code>, an optional <code>filename</code> (present for file upl
                         instantiate
                     </div>
                     <p class="sig">
-                        (Fn [(Ref FormPart a)] (Ref (Maybe String) a))
+                        (Fn [(Ref BinaryPart a)] (Ref (Maybe String) a))
                     </p>
                     <span>
                         
                     </span>
                     <p class="doc">
-                        <p>gets the <code>content-type</code> property of a <code>FormPart</code>.</p>
+                        <p>gets the <code>content-type</code> property of a <code>BinaryPart</code>.</p>
 
                     </p>
                 </div>
@@ -210,13 +211,13 @@ field <code>name</code>, an optional <code>filename</code> (present for file upl
                         instantiate
                     </div>
                     <p class="sig">
-                        (Fn [(Ref FormPart a)] FormPart)
+                        (Fn [(Ref BinaryPart a)] BinaryPart)
                     </p>
                     <span>
                         
                     </span>
                     <p class="doc">
-                        <p>copies a <code>FormPart</code>.</p>
+                        <p>copies a <code>BinaryPart</code>.</p>
 
                     </p>
                 </div>
@@ -230,13 +231,13 @@ field <code>name</code>, an optional <code>filename</code> (present for file upl
                         instantiate
                     </div>
                     <p class="sig">
-                        (Fn [FormPart] ())
+                        (Fn [BinaryPart] ())
                     </p>
                     <span>
                         
                     </span>
                     <p class="doc">
-                        <p>deletes a <code>FormPart</code>. Should usually not be called manually.</p>
+                        <p>deletes a <code>BinaryPart</code>. Should usually not be called manually.</p>
 
                     </p>
                 </div>
@@ -250,13 +251,13 @@ field <code>name</code>, an optional <code>filename</code> (present for file upl
                         instantiate
                     </div>
                     <p class="sig">
-                        (Fn [(Ref FormPart a)] (Ref (Maybe String) a))
+                        (Fn [(Ref BinaryPart a)] (Ref (Maybe String) a))
                     </p>
                     <span>
                         
                     </span>
                     <p class="doc">
-                        <p>gets the <code>filename</code> property of a <code>FormPart</code>.</p>
+                        <p>gets the <code>filename</code> property of a <code>BinaryPart</code>.</p>
 
                     </p>
                 </div>
@@ -270,13 +271,13 @@ field <code>name</code>, an optional <code>filename</code> (present for file upl
                         instantiate
                     </div>
                     <p class="sig">
-                        (Fn [String, (Maybe String), (Maybe String), String] FormPart)
+                        (Fn [String, (Maybe String), (Maybe String), (Array Byte)] BinaryPart)
                     </p>
                     <span>
                         
                     </span>
                     <p class="doc">
-                        <p>creates a <code>FormPart</code>.</p>
+                        <p>creates a <code>BinaryPart</code>.</p>
 
                     </p>
                 </div>
@@ -290,13 +291,13 @@ field <code>name</code>, an optional <code>filename</code> (present for file upl
                         instantiate
                     </div>
                     <p class="sig">
-                        (Fn [(Ref FormPart a)] (Ref String a))
+                        (Fn [(Ref BinaryPart a)] (Ref String a))
                     </p>
                     <span>
                         
                     </span>
                     <p class="doc">
-                        <p>gets the <code>name</code> property of a <code>FormPart</code>.</p>
+                        <p>gets the <code>name</code> property of a <code>BinaryPart</code>.</p>
 
                     </p>
                 </div>
@@ -310,13 +311,13 @@ field <code>name</code>, an optional <code>filename</code> (present for file upl
                         instantiate
                     </div>
                     <p class="sig">
-                        (Fn [(Ref FormPart a)] String)
+                        (Fn [(Ref BinaryPart a)] String)
                     </p>
                     <span>
                         
                     </span>
                     <p class="doc">
-                        <p>converts a <code>FormPart</code> to a string.</p>
+                        <p>converts a <code>BinaryPart</code> to a string.</p>
 
                     </p>
                 </div>
@@ -330,13 +331,13 @@ field <code>name</code>, an optional <code>filename</code> (present for file upl
                         instantiate
                     </div>
                     <p class="sig">
-                        (Fn [FormPart, String] FormPart)
+                        (Fn [BinaryPart, (Array Byte)] BinaryPart)
                     </p>
                     <span>
                         
                     </span>
                     <p class="doc">
-                        <p>sets the <code>body</code> property of a <code>FormPart</code>.</p>
+                        <p>sets the <code>body</code> property of a <code>BinaryPart</code>.</p>
 
                     </p>
                 </div>
@@ -350,13 +351,13 @@ field <code>name</code>, an optional <code>filename</code> (present for file upl
                         instantiate
                     </div>
                     <p class="sig">
-                        (Fn [(Ref FormPart a), String] ())
+                        (Fn [(Ref BinaryPart a), (Array Byte)] ())
                     </p>
                     <span>
                         
                     </span>
                     <p class="doc">
-                        <p>sets the <code>body</code> property of a <code>FormPart</code> in place.</p>
+                        <p>sets the <code>body</code> property of a <code>BinaryPart</code> in place.</p>
 
                     </p>
                 </div>
@@ -370,13 +371,13 @@ field <code>name</code>, an optional <code>filename</code> (present for file upl
                         instantiate
                     </div>
                     <p class="sig">
-                        (Fn [FormPart, (Maybe String)] FormPart)
+                        (Fn [BinaryPart, (Maybe String)] BinaryPart)
                     </p>
                     <span>
                         
                     </span>
                     <p class="doc">
-                        <p>sets the <code>content-type</code> property of a <code>FormPart</code>.</p>
+                        <p>sets the <code>content-type</code> property of a <code>BinaryPart</code>.</p>
 
                     </p>
                 </div>
@@ -390,13 +391,13 @@ field <code>name</code>, an optional <code>filename</code> (present for file upl
                         instantiate
                     </div>
                     <p class="sig">
-                        (Fn [(Ref FormPart a), (Maybe String)] ())
+                        (Fn [(Ref BinaryPart a), (Maybe String)] ())
                     </p>
                     <span>
                         
                     </span>
                     <p class="doc">
-                        <p>sets the <code>content-type</code> property of a <code>FormPart</code> in place.</p>
+                        <p>sets the <code>content-type</code> property of a <code>BinaryPart</code> in place.</p>
 
                     </p>
                 </div>
@@ -410,13 +411,13 @@ field <code>name</code>, an optional <code>filename</code> (present for file upl
                         instantiate
                     </div>
                     <p class="sig">
-                        (Fn [FormPart, (Maybe String)] FormPart)
+                        (Fn [BinaryPart, (Maybe String)] BinaryPart)
                     </p>
                     <span>
                         
                     </span>
                     <p class="doc">
-                        <p>sets the <code>filename</code> property of a <code>FormPart</code>.</p>
+                        <p>sets the <code>filename</code> property of a <code>BinaryPart</code>.</p>
 
                     </p>
                 </div>
@@ -430,13 +431,13 @@ field <code>name</code>, an optional <code>filename</code> (present for file upl
                         instantiate
                     </div>
                     <p class="sig">
-                        (Fn [(Ref FormPart a), (Maybe String)] ())
+                        (Fn [(Ref BinaryPart a), (Maybe String)] ())
                     </p>
                     <span>
                         
                     </span>
                     <p class="doc">
-                        <p>sets the <code>filename</code> property of a <code>FormPart</code> in place.</p>
+                        <p>sets the <code>filename</code> property of a <code>BinaryPart</code> in place.</p>
 
                     </p>
                 </div>
@@ -450,13 +451,13 @@ field <code>name</code>, an optional <code>filename</code> (present for file upl
                         instantiate
                     </div>
                     <p class="sig">
-                        (Fn [FormPart, String] FormPart)
+                        (Fn [BinaryPart, String] BinaryPart)
                     </p>
                     <span>
                         
                     </span>
                     <p class="doc">
-                        <p>sets the <code>name</code> property of a <code>FormPart</code>.</p>
+                        <p>sets the <code>name</code> property of a <code>BinaryPart</code>.</p>
 
                     </p>
                 </div>
@@ -470,13 +471,13 @@ field <code>name</code>, an optional <code>filename</code> (present for file upl
                         instantiate
                     </div>
                     <p class="sig">
-                        (Fn [(Ref FormPart a), String] ())
+                        (Fn [(Ref BinaryPart a), String] ())
                     </p>
                     <span>
                         
                     </span>
                     <p class="doc">
-                        <p>sets the <code>name</code> property of a <code>FormPart</code> in place.</p>
+                        <p>sets the <code>name</code> property of a <code>BinaryPart</code> in place.</p>
 
                     </p>
                 </div>
@@ -490,13 +491,35 @@ field <code>name</code>, an optional <code>filename</code> (present for file upl
                         instantiate
                     </div>
                     <p class="sig">
-                        (Fn [(Ref FormPart a)] String)
+                        (Fn [(Ref BinaryPart a)] String)
                     </p>
                     <span>
                         
                     </span>
                     <p class="doc">
-                        <p>converts a <code>FormPart</code> to a string.</p>
+                        <p>converts a <code>BinaryPart</code> to a string.</p>
+
+                    </p>
+                </div>
+                <div class="binder">
+                    <a class="anchor" href="#to-form-part">
+                        <h3 id="to-form-part">
+                            to-form-part
+                        </h3>
+                    </a>
+                    <div class="description">
+                        defn
+                    </div>
+                    <p class="sig">
+                        (Fn [(Ref BinaryPart a)] FormPart)
+                    </p>
+                    <pre class="args">
+                        (to-form-part p)
+                    </pre>
+                    <p class="doc">
+                        <p>converts a <code>BinaryPart</code> into a <a href="FormPart.html"><code>FormPart</code></a>.
+The body becomes a <code>String</code>, and is therefore cut at its first NUL byte; only
+use this on parts you know are text.</p>
 
                     </p>
                 </div>
@@ -510,13 +533,13 @@ field <code>name</code>, an optional <code>filename</code> (present for file upl
                         instantiate
                     </div>
                     <p class="sig">
-                        (Fn [FormPart, (Ref (Fn [String] String a) b)] FormPart)
+                        (Fn [BinaryPart, (Ref (Fn [(Array Byte)] (Array Byte) a) b)] BinaryPart)
                     </p>
                     <span>
                         
                     </span>
                     <p class="doc">
-                        <p>updates the <code>body</code> property of a <code>FormPart</code> using a function <code>f</code>.</p>
+                        <p>updates the <code>body</code> property of a <code>BinaryPart</code> using a function <code>f</code>.</p>
 
                     </p>
                 </div>
@@ -530,13 +553,13 @@ field <code>name</code>, an optional <code>filename</code> (present for file upl
                         instantiate
                     </div>
                     <p class="sig">
-                        (Fn [FormPart, (Ref (Fn [(Maybe String)] (Maybe String) a) b)] FormPart)
+                        (Fn [BinaryPart, (Ref (Fn [(Maybe String)] (Maybe String) a) b)] BinaryPart)
                     </p>
                     <span>
                         
                     </span>
                     <p class="doc">
-                        <p>updates the <code>content-type</code> property of a <code>FormPart</code> using a function <code>f</code>.</p>
+                        <p>updates the <code>content-type</code> property of a <code>BinaryPart</code> using a function <code>f</code>.</p>
 
                     </p>
                 </div>
@@ -550,13 +573,13 @@ field <code>name</code>, an optional <code>filename</code> (present for file upl
                         instantiate
                     </div>
                     <p class="sig">
-                        (Fn [FormPart, (Ref (Fn [(Maybe String)] (Maybe String) a) b)] FormPart)
+                        (Fn [BinaryPart, (Ref (Fn [(Maybe String)] (Maybe String) a) b)] BinaryPart)
                     </p>
                     <span>
                         
                     </span>
                     <p class="doc">
-                        <p>updates the <code>filename</code> property of a <code>FormPart</code> using a function <code>f</code>.</p>
+                        <p>updates the <code>filename</code> property of a <code>BinaryPart</code> using a function <code>f</code>.</p>
 
                     </p>
                 </div>
@@ -570,13 +593,13 @@ field <code>name</code>, an optional <code>filename</code> (present for file upl
                         instantiate
                     </div>
                     <p class="sig">
-                        (Fn [FormPart, (Ref (Fn [String] String a) b)] FormPart)
+                        (Fn [BinaryPart, (Ref (Fn [String] String a) b)] BinaryPart)
                     </p>
                     <span>
                         
                     </span>
                     <p class="doc">
-                        <p>updates the <code>name</code> property of a <code>FormPart</code> using a function <code>f</code>.</p>
+                        <p>updates the <code>name</code> property of a <code>BinaryPart</code> using a function <code>f</code>.</p>
 
                     </p>
                 </div>

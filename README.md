@@ -243,6 +243,7 @@ Status.not-found    ; => 404
 | `Credentials` | one authentication scheme with its token68 or auth-params |
 | `Multipart` | `multipart/form-data` body decoder |
 | `FormPart` | a single decoded multipart part (name, filename, content-type, body) |
+| `BinaryPart` | a decoded multipart part whose body is bytes, for binary uploads |
 | `CacheControl` | `Cache-Control` directive parser (RFC 7234 §5.2) |
 | `TransferEncoding` | Chunked transfer-encoding decoder |
 | `HttpDate` | HTTP-date parser and formatter (RFC 9110 §5.6.7) |

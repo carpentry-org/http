@@ -63,6 +63,11 @@
                             </a>
                         </li>
                         <li>
+                            <a href="BinaryPart.html">
+                                BinaryPart
+                            </a>
+                        </li>
+                        <li>
                             <a href="TransferEncoding.html">
                                 TransferEncoding
                             </a>
@@ -442,6 +447,9 @@ representation sent. See
 the boundary from the <code>Content-Type</code> header. Returns
 <code>(Result (Array FormPart) String)</code>; fails when the request is not
 <code>multipart/form-data</code> or carries no boundary.</p>
+<p>A <code>Request</code> body is a <code>String</code> and therefore stops at its first NUL byte, so an
+upload that is not text has to be decoded with
+<a href="Multipart.html#parse-bytes"><code>Multipart.parse-bytes</code></a> instead.</p>
 
                     </p>
                 </div>
