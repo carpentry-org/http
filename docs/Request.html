@@ -953,6 +953,14 @@ wants <a href="#if-range-matches?">if-range-matches?</a> consulted first.</p>
                     </pre>
                     <p class="doc">
                         <p>stringifies the request as it looks on the wire.</p>
+<p>The request-target is rendered in origin-form: the path and query of the
+request’s URI, or <code>/</code> when it has neither, as RFC 9112 §3.2.1 requires of a
+request sent directly to an origin server. Scheme, host, port, userinfo and
+fragment stay on the URI and never reach the request line, so the authority has
+to travel in a <code>Host</code> header.</p>
+<p>The other request-target forms of RFC 9112 §3.2 are not produced:
+absolute-form addresses a proxy, authority-form a <code>CONNECT</code>, and asterisk-form
+a server-wide <code>OPTIONS</code>.</p>
 
                     </p>
                 </div>
