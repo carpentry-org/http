@@ -63,6 +63,11 @@
                             </a>
                         </li>
                         <li>
+                            <a href="BinaryPart.html">
+                                BinaryPart
+                            </a>
+                        </li>
+                        <li>
                             <a href="TransferEncoding.html">
                                 TransferEncoding
                             </a>
@@ -151,14 +156,18 @@
                 </h1>
                 <div class="module-description">
                     <p>decodes <code>multipart/form-data</code> bodies (RFC 7578) into their
-<a href="FormPart.html"><code>FormPart</code></a>s. The boundary is a parameter of the <code>Content-Type</code>
-header; <a href="Request.html#multipart-data"><code>Request.multipart-data</code></a> reads it off the
-request for you.</p>
+parts. The boundary is a parameter of the <code>Content-Type</code> header;
+<a href="Request.html#multipart-data"><code>Request.multipart-data</code></a> reads it off the request
+for you.</p>
 <pre><code>(match (Request.multipart-data &amp;req)
   (Result.Success parts)
     (println* (FormPart.name (Array.unsafe-nth &amp;parts 0)))
   (Result.Error e) (IO.errorln &amp;e))
 </code></pre>
+<p><a href="#parse"><code>parse</code></a> yields <a href="FormPart.html"><code>FormPart</code></a>s, whose bodies are
+<code>String</code>s and so stop at their first NUL byte. Uploads that are not text need
+<a href="#parse-bytes"><code>parse-bytes</code></a>, which yields
+<a href="BinaryPart.html"><code>BinaryPart</code></a>s instead.</p>
 
                 </div>
                 <div class="binder">
@@ -178,7 +187,40 @@ request for you.</p>
                     </pre>
                     <p class="doc">
                         <p>decodes a <code>multipart/form-data</code> <code>body</code> with the given <code>boundary</code>
-into its <code>FormPart</code>s. Fails when the opening boundary delimiter is absent.</p>
+into its <a href="FormPart.html"><code>FormPart</code></a>s. Fails on the same bodies
+<a href="#parse-bytes"><code>parse-bytes</code></a> does.</p>
+<p>A Carp <code>String</code> ends at its first NUL byte, so a binary <code>body</code> — any PNG, PDF or
+zip upload — is cut short before parsing even begins, and usually decodes to no
+parts at all. Reach for <a href="#parse-bytes"><code>parse-bytes</code></a> whenever the body might
+not be text.</p>
+
+                    </p>
+                </div>
+                <div class="binder">
+                    <a class="anchor" href="#parse-bytes">
+                        <h3 id="parse-bytes">
+                            parse-bytes
+                        </h3>
+                    </a>
+                    <div class="description">
+                        defn
+                    </div>
+                    <p class="sig">
+                        (Fn [(Ref (Array Byte) a), (Ref String b)] (Result (Array BinaryPart) String))
+                    </p>
+                    <pre class="args">
+                        (parse-bytes body boundary)
+                    </pre>
+                    <p class="doc">
+                        <p>decodes a <code>multipart/form-data</code> <code>body</code> with the given
+<code>boundary</code> into its <a href="BinaryPart.html"><code>BinaryPart</code></a>s, reading the body as bytes
+so that binary uploads survive intact.</p>
+<p>Fails when the opening boundary delimiter is absent, when a part’s headers are
+not terminated by a CRLF CRLF — RFC 7578 requires every part to carry a
+<code>Content-Disposition</code>, so a part with no header block at all is malformed — and
+when a part’s header region holds a NUL byte: header field lines are US-ASCII,
+and reading one as a <code>String</code> would cut a <code>filename</code> short without saying so.</p>
+<p>Any of these fails the whole body, not just the offending part.</p>
 
                     </p>
                 </div>

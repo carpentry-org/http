@@ -65,6 +65,61 @@
 (def mp-two
   @"--b\r\nContent-Disposition: form-data; name=\"a\"\r\n\r\n1\r\n--b\r\nContent-Disposition: form-data; name=\"c\"\r\n\r\n2\r\n--b--\r\n")
 
+(defn bp-parts [body boundary]
+  (match (Multipart.parse-bytes body boundary)
+    (Result.Success ps) ps
+    (Result.Error _) []))
+(defn bp-name [ps i] @(BinaryPart.name (Array.unsafe-nth ps i)))
+(defn bp-body [ps i] @(BinaryPart.body (Array.unsafe-nth ps i)))
+(defn bp-fname [ps i]
+  (Maybe.from @(BinaryPart.filename (Array.unsafe-nth ps i)) @"<none>"))
+(defn bp-error [body boundary]
+  (match (Multipart.parse-bytes body boundary)
+    (Result.Error e) e
+    (Result.Success _) @"<ok>"))
+(defn bp-as-form-parts [body boundary]
+  (Array.copy-map &(fn [p] (BinaryPart.to-form-part p))
+                  &(bp-parts body boundary)))
+
+; a one-part body whose payload is the bytes of `pre`, a NUL, then `post`
+(defn nul-part [pre post]
+  (Array.concat
+    &[(String.to-bytes
+        "--b\r\nContent-Disposition: form-data; name=\"f\"; filename=\"up.bin\"\r\n\r\n")
+      (String.to-bytes pre)
+      [0b]
+      (String.to-bytes post)
+      (String.to-bytes "\r\n--b--\r\n")]))
+
+(def mp-nul
+  (Array.concat
+    &[(String.to-bytes
+        "--B\r\nContent-Disposition: form-data; name=\"f\"; filename=\"a.bin\"\r\n\r\nXX")
+      [0b]
+      (String.to-bytes "Y\r\n--B--\r\n")]))
+
+(def mp-mixed
+  (Array.concat
+    &[(String.to-bytes
+        "--b\r\nContent-Disposition: form-data; name=\"a\"\r\n\r\nhello\r\n--b\r\nContent-Disposition: form-data; name=\"f\"; filename=\"x.bin\"\r\n\r\n")
+      [0b 1b 2b]
+      (String.to-bytes "\r\n--b--\r\n")]))
+
+(def mp-nul-filename
+  (Array.concat
+    &[(String.to-bytes
+        "--b\r\nContent-Disposition: form-data; name=\"f\"; filename=\"evil.php")
+      [0b]
+      (String.to-bytes ".jpg\"\r\n\r\ndata\r\n--b--\r\n")]))
+
+(def headerless-binary
+  (Array.concat
+    &[(String.to-bytes "--b\r\n\r\nbo") [0b] (String.to-bytes "dy\r\n--b--\r\n")]))
+
+; a well-formed first part, ready to be followed by another part’s delimiter
+(def mp-first
+  @"--b\r\nContent-Disposition: form-data; name=\"a\"\r\n\r\nhello\r\n")
+
 ; ---- content negotiation (Accept) test helpers ----
 (defn pick [accept offers]
   (match (Accept.negotiate accept offers)
@@ -1272,6 +1327,131 @@
         "b")
       0)
     "a delimiter that ends at the end of the body is still found")
+
+  ; ---- Multipart.parse-bytes (RFC 7578 bodies that are not text) ----
+  (assert-equal test
+    80
+    (Array.length &mp-nul)
+    "the binary fixture is 80 bytes long")
+  (assert-equal test
+    69
+    (String.length &(String.from-bytes &mp-nul))
+    "read as a String the binary fixture ends 11 bytes early, at its NUL")
+  (assert-equal test
+    0
+    (Array.length &(mp-parts &(String.from-bytes &mp-nul) "B"))
+    "Multipart.parse decodes the truncated fixture to no parts at all")
+  (assert-equal test
+    1
+    (Array.length &(bp-parts &mp-nul "B"))
+    "Multipart.parse-bytes decodes the same fixture to one part")
+  (assert-equal test
+    &[88b 88b 0b 89b]
+    &(bp-body &(bp-parts &mp-nul "B") 0)
+    "the part body keeps its NUL and the bytes behind it")
+  (assert-equal test
+    "a.bin"
+    &(bp-fname &(bp-parts &mp-nul "B") 0)
+    "the filename is still read off the part headers")
+  (assert-equal test
+    "XX"
+    (FormPart.body
+      &(BinaryPart.to-form-part (Array.unsafe-nth &(bp-parts &mp-nul "B") 0)))
+    "converting a binary part to a FormPart cuts the body at its NUL")
+  (assert-equal test
+    &[88b 88b 0b]
+    &(bp-body &(bp-parts &(nul-part "XX" "") "b") 0)
+    "a NUL immediately before the closing delimiter is kept")
+  (assert-equal test
+    &[0b 89b]
+    &(bp-body &(bp-parts &(nul-part "" "Y") "b") 0)
+    "a NUL at the very start of a part body is kept")
+  (assert-equal test
+    1
+    (Array.length &(bp-parts &(nul-part "foo--bbar" "z") "b"))
+    "a --boundary without a leading CRLF inside a body is not a delimiter")
+  (assert-equal test
+    11
+    (Array.length &(bp-body &(bp-parts &(nul-part "foo--bbar" "z") "b") 0))
+    "and the body carrying it survives whole")
+  (assert-equal test
+    &[88b 0b 89b]
+    &(bp-body
+      &(bp-parts
+        &(Array.concat &[(String.to-bytes "preamble\r\n") (nul-part "X" "Y")])
+        "b")
+      0)
+    "an opening delimiter after a preamble is found")
+  (assert-equal test
+    0
+    (Array.length
+      &(bp-parts
+        &(Array.concat
+          &[(String.to-bytes
+              "--b\r\nContent-Disposition: form-data; name=\"f\"\r\n\r\nXX")
+            [0b]
+            (String.to-bytes "Y")])
+        "b"))
+    "a body whose closing delimiter is missing yields no parts")
+  (assert-equal test
+    0
+    (Array.length
+      &(bp-body
+        &(bp-parts
+          &(String.to-bytes
+            "--b\r\nContent-Disposition: form-data; name=\"a\"\r\n\r\n\r\n--b--\r\n")
+          "b")
+        0))
+    "an empty part body parses to an empty byte array")
+  (assert-equal test
+    "multipart: part headers not terminated by CRLF CRLF"
+    &(bp-error &(String.to-bytes "--b\r\n\r\nbody\r\n--b--\r\n") "b")
+    "a text part with no headers at all is rejected")
+  (assert-equal test
+    "multipart: part headers not terminated by CRLF CRLF"
+    &(bp-error &headerless-binary "b")
+    "a binary part with no headers is not diagnosed as a NUL in its headers")
+  (assert-equal test
+    "multipart: part headers not terminated by CRLF CRLF"
+    &(bp-error
+      &(Array.concat &[(String.to-bytes &mp-first) @&headerless-binary])
+      "b")
+    "a headerless part fails the whole body, discarding the parts before it")
+  (assert-equal test
+    "multipart: part headers not terminated by CRLF CRLF"
+    &(match (Multipart.parse "--b\r\n\r\nbody\r\n--b--\r\n" "b")
+      (Result.Error e) e
+      (Result.Success _) @"<ok>")
+    "the String entry point rejects a headerless part too")
+  (assert-equal test
+    2
+    (Array.length &(bp-parts &mp-mixed "b"))
+    "a body mixing a text part and a binary one decodes to two parts")
+  (assert-equal test
+    "hello"
+    &(String.from-bytes &(bp-body &(bp-parts &mp-mixed "b") 0))
+    "the text part of a mixed body is unaffected")
+  (assert-equal test
+    &[0b 1b 2b]
+    &(bp-body &(bp-parts &mp-mixed "b") 1)
+    "the binary part of a mixed body keeps its leading NUL")
+  (assert-equal test
+    "multipart: NUL byte in part headers"
+    &(bp-error &mp-nul-filename "b")
+    "a NUL inside a filename is an error, not a silently shortened name")
+  (assert-true test
+    (match (Multipart.parse-bytes &(String.to-bytes "no boundary here") "b")
+      (Result.Error _) true
+      (Result.Success _) false)
+    "a missing boundary delimiter is an error on the byte path too")
+  (assert-equal test
+    &(str &(mp-parts &mp-file "b"))
+    &(str &(bp-as-form-parts &(String.to-bytes &mp-file) "b"))
+    "a text file part decodes identically through parse and parse-bytes")
+  (assert-equal test
+    &(str &(mp-parts &mp-two "b"))
+    &(str &(bp-as-form-parts &(String.to-bytes &mp-two) "b"))
+    "a two-part text body decodes identically through both entry points")
 
   ; ---- Request.multipart-data ----
   (assert-equal test

@@ -50,6 +50,7 @@ Status.not-found    ; => 404
            Form
            Multipart
            FormPart
+           BinaryPart
            TransferEncoding
            MediaType
            Accept

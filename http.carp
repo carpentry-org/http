@@ -1785,29 +1785,54 @@ field `name`, an optional `filename` (present for file uploads), an optional
    content-type (Maybe String)
    body String])
 
+(doc BinaryPart "is a single part decoded from a `multipart/form-data` body by
+[`Multipart.parse-bytes`](Multipart.html#parse-bytes). It carries the same
+fields as a [`FormPart`](FormPart.html), but its `body` is an `(Array Byte)`, so
+it survives the NUL bytes a binary upload carries.")
+(deftype BinaryPart
+  [name String
+   filename (Maybe String)
+   content-type (Maybe String)
+   body (Array Byte)])
+
+(defmodule BinaryPart
+  (doc to-form-part "converts a `BinaryPart` into a [`FormPart`](FormPart.html).
+The body becomes a `String`, and is therefore cut at its first NUL byte; only
+use this on parts you know are text.")
+  (defn to-form-part [p]
+    (FormPart.init @(name p)
+                   @(filename p)
+                   @(content-type p)
+                   (String.from-bytes (body p)))))
+
 (doc Multipart "decodes `multipart/form-data` bodies (RFC 7578) into their
-[`FormPart`](FormPart.html)s. The boundary is a parameter of the `Content-Type`
-header; [`Request.multipart-data`](Request.html#multipart-data) reads it off the
-request for you.
+parts. The boundary is a parameter of the `Content-Type` header;
+[`Request.multipart-data`](Request.html#multipart-data) reads it off the request
+for you.
 
 ```
 (match (Request.multipart-data &req)
   (Result.Success parts)
     (println* (FormPart.name (Array.unsafe-nth &parts 0)))
   (Result.Error e) (IO.errorln &e))
-```")
+```
+
+[`parse`](#parse) yields [`FormPart`](FormPart.html)s, whose bodies are
+`String`s and so stop at their first NUL byte. Uploads that are not text need
+[`parse-bytes`](#parse-bytes), which yields
+[`BinaryPart`](BinaryPart.html)s instead.")
 (defmodule Multipart
   (hidden at?)
   (private at?)
-  ; does `s`, whose byte length is `slen`, hold `sub` at byte offset `pos`?
-  (defn at? [s slen pos sub]
-    (let [subl (String.length sub)]
-      (if (or (< pos 0) (> (+ pos subl) slen))
+  ; do the bytes `sub` occur in `bs` at byte offset `pos`?
+  (defn at? [bs pos sub]
+    (let [subl (Array.length sub)]
+      (if (or (< pos 0) (> (+ pos subl) (Array.length bs)))
         false
         (let-do [ok true
                  j 0]
           (while (and ok (< j subl))
-            (if (= (String.char-at s (+ pos j)) (String.char-at sub j))
+            (if (= (Array.unsafe-nth bs (+ pos j)) (Array.unsafe-nth sub j))
               (set! j (Int.inc j))
               (set! ok false)))
           ok))))
@@ -1815,26 +1840,29 @@ request for you.
   (hidden skip-table)
   (private skip-table)
   ; Boyer-Moore-Horspool bad-character shifts for `needle`, indexed by byte.
-  (defn skip-table [needle nlen]
-    (let-do [t (Array.replicate 256 &nlen)
+  (defn skip-table [needle]
+    (let-do [nlen (Array.length needle)
+             t (Array.replicate 256 &nlen)
              last (Int.dec nlen)]
       (for [i 0 last]
-        (Array.aset! &t (Char.to-int (String.char-at needle i)) (- last i)))
+        (Array.aset! &t (Byte.to-int @(Array.unsafe-nth needle i)) (- last i)))
       t))
 
   (hidden index-from)
   (private index-from)
-  ; first byte offset >= `from` where `needle` occurs in `s`, or -1. `skip` is
+  ; first byte offset >= `from` where `needle` occurs in `bs`, or -1. `skip` is
   ; the needle’s `skip-table`.
-  (defn index-from [s slen needle nlen skip from]
+  (defn index-from [bs needle skip from]
     (let-do [res -1
+             len (Array.length bs)
+             nlen (Array.length needle)
              i from
              last (Int.dec nlen)]
-      (while (and (< res 0) (<= (+ i nlen) slen))
-        (let [c (String.char-at s (+ i last))]
-          (if (and (= c (String.char-at needle last)) (at? s slen i needle))
+      (while (and (< res 0) (<= (+ i nlen) len))
+        (let [c @(Array.unsafe-nth bs (+ i last))]
+          (if (and (= c @(Array.unsafe-nth needle last)) (at? bs i needle))
             (set! res i)
-            (set! i (+ i @(Array.unsafe-nth skip (Char.to-int c)))))))
+            (set! i (+ i @(Array.unsafe-nth skip (Byte.to-int c)))))))
       res))
 
   (hidden header-value)
@@ -1855,73 +1883,101 @@ request for you.
 
   (hidden parse-part)
   (private parse-part)
-  ; parses one part (`headers CRLF CRLF body`) into a FormPart.
+  ; parses one part (`headers CRLF CRLF body`) into a BinaryPart.
   (defn parse-part [raw]
-    (let [sep (String.index-of-string raw "\r\n\r\n")
-          head (if (< sep 0) @raw (String.byte-slice raw 0 sep))
-          body (if (< sep 0)
-            @""
-            (String.byte-slice raw (+ sep 4) (String.length raw)))
-          lines (String.split-by &head &[\newline])]
-      (let-do [nm @""
-               fname (the (Maybe String) (Maybe.Nothing))
-               ctype (the (Maybe String) (Maybe.Nothing))]
-        (for [i 0 (Array.length &lines)]
-          (let-do [line &(String.trim (Array.unsafe-nth &lines i))]
-            (match (header-value line "content-disposition")
-              (Maybe.Just cd)
-                (let-do [ps (MediaType.parse-params &cd)]
-                  (set! nm (Map.get-with-default &ps "name" ""))
-                  (set! fname (Map.get-maybe &ps "filename")))
-              (Maybe.Nothing) ())
-            (match (header-value line "content-type")
-              (Maybe.Just ct) (set! ctype (Maybe.Just ct))
-              (Maybe.Nothing) ())))
-        (FormPart.init nm fname ctype body))))
+    (let [blank (String.to-bytes "\r\n\r\n")
+          sep (index-from raw &blank &(skip-table &blank) 0)]
+      (if (< sep 0)
+        (Result.Error @"multipart: part headers not terminated by CRLF CRLF")
+        (let [head (Array.prefix raw sep)
+              body (Array.suffix raw (+ sep 4))]
+          (if (Array.any? &(fn [b] (= 0b @b)) &head)
+            (Result.Error @"multipart: NUL byte in part headers")
+            (let-do [lines (String.split-by &(String.from-bytes &head)
+                                            &[\newline])
+                     nm @""
+                     fname (the (Maybe String) (Maybe.Nothing))
+                     ctype (the (Maybe String) (Maybe.Nothing))]
+              (for [i 0 (Array.length &lines)]
+                (let-do [line &(String.trim (Array.unsafe-nth &lines i))]
+                  (match (header-value line "content-disposition")
+                    (Maybe.Just cd)
+                      (let-do [ps (MediaType.parse-params &cd)]
+                        (set! nm (Map.get-with-default &ps "name" ""))
+                        (set! fname (Map.get-maybe &ps "filename")))
+                    (Maybe.Nothing) ())
+                  (match (header-value line "content-type")
+                    (Maybe.Just ct) (set! ctype (Maybe.Just ct))
+                    (Maybe.Nothing) ())))
+              (Result.Success (BinaryPart.init nm fname ctype body))))))))
 
-  (doc parse "decodes a `multipart/form-data` `body` with the given `boundary`
-into its `FormPart`s. Fails when the opening boundary delimiter is absent.")
-  (defn parse [body boundary]
-    (let [dash (String.append "--" boundary)
-          crlf-dash (String.append "\r\n" &dash)
-          cdlen (String.length &crlf-dash)
-          dashlen (String.length &dash)
-          len (String.length body)
-          skip (Multipart.skip-table &crlf-dash cdlen)
+  (doc parse-bytes "decodes a `multipart/form-data` `body` with the given
+`boundary` into its [`BinaryPart`](BinaryPart.html)s, reading the body as bytes
+so that binary uploads survive intact.
+
+Fails when the opening boundary delimiter is absent, when a part’s headers are
+not terminated by a CRLF CRLF — RFC 7578 requires every part to carry a
+`Content-Disposition`, so a part with no header block at all is malformed — and
+when a part’s header region holds a NUL byte: header field lines are US-ASCII,
+and reading one as a `String` would cut a `filename` short without saying so.
+
+Any of these fails the whole body, not just the offending part.")
+  (defn parse-bytes [body boundary]
+    (let [dash (String.to-bytes &(String.append "--" boundary))
+          crlf-dash (String.to-bytes &(String.append "\r\n--" boundary))
+          crlf (String.to-bytes "\r\n")
+          dashes (String.to-bytes "--")
+          cdlen (Array.length &crlf-dash)
+          dashlen (Array.length &dash)
+          len (Array.length body)
+          skip (Multipart.skip-table &crlf-dash)
           ; the opening delimiter is `--boundary`, either at the very start or
           ; after a preamble that ends in CRLF; every later delimiter is
           ; `CRLF--boundary`, so searching for that avoids matching a bare
           ; `--boundary` that happens to occur inside a part body.
-          open (if (Multipart.at? body len 0 &dash)
+          open (if (Multipart.at? body 0 &dash)
             dashlen
-            (let [p (Multipart.index-from body len &crlf-dash cdlen &skip 0)]
+            (let [p (Multipart.index-from body &crlf-dash &skip 0)]
               (if (< p 0) -1 (+ p cdlen))))]
       (if (< open 0)
         (Result.Error @"multipart: boundary delimiter not found")
-        (let-do [parts (the (Array FormPart) [])
+        (let-do [parts (the (Array BinaryPart) [])
+                 err (the (Maybe String) (Maybe.Nothing))
                  pos open
                  done false]
           (while (not done)
             (cond
-              (Multipart.at? body len pos "--") (set! done true)
+              (Multipart.at? body pos &dashes) (set! done true)
               (>= pos len) (set! done true)
               (do
-                (when (Multipart.at? body len pos "\r\n") (set! pos (+ pos 2)))
-                (let [next (Multipart.index-from body
-                                                 len
-                                                 &crlf-dash
-                                                 cdlen
-                                                 &skip
-                                                 pos)]
+                (when (Multipart.at? body pos &crlf) (set! pos (+ pos 2)))
+                (let [next (Multipart.index-from body &crlf-dash &skip pos)]
                   (if (< next 0)
                     (set! done true)
                     (do
-                      (Array.push-back! &parts
-                                        (Multipart.parse-part &(String.byte-slice body
-                                                                                  pos
-                                                                                  next)))
+                      (match (Multipart.parse-part &(Array.slice body pos next))
+                        (Result.Success p) (Array.push-back! &parts p)
+                        (Result.Error e)
+                          (do (set! err (Maybe.Just e)) (set! done true)))
                       (set! pos (+ next cdlen))))))))
-          (Result.Success parts))))))
+          (match err
+            (Maybe.Just e) (Result.Error e)
+            (Maybe.Nothing) (Result.Success parts))))))
+
+  (doc parse "decodes a `multipart/form-data` `body` with the given `boundary`
+into its [`FormPart`](FormPart.html)s. Fails on the same bodies
+[`parse-bytes`](#parse-bytes) does.
+
+A Carp `String` ends at its first NUL byte, so a binary `body` — any PNG, PDF or
+zip upload — is cut short before parsing even begins, and usually decodes to no
+parts at all. Reach for [`parse-bytes`](#parse-bytes) whenever the body might
+not be text.")
+  (defn parse [body boundary]
+    (match (Multipart.parse-bytes &(String.to-bytes body) boundary)
+      (Result.Error e) (Result.Error e)
+      (Result.Success ps)
+        (Result.Success
+          (Array.copy-map &(fn [p] (BinaryPart.to-form-part p)) &ps)))))
 
 (doc ByteRangeSpec "is one `range-spec` of a `Range` header in the `bytes` unit
 (RFC 9110 §14.1.1): `FirstLast` for `0-499`, `From` for `500-` — everything from
@@ -2543,7 +2599,13 @@ Returns `(Result (Map String String) String)`.")
   (doc multipart-data "parses the request body as `multipart/form-data`, taking
 the boundary from the `Content-Type` header. Returns
 `(Result (Array FormPart) String)`; fails when the request is not
-`multipart/form-data` or carries no boundary.")
+`multipart/form-data` or carries no boundary.
+
+A `Request` body is a `String`, and a Carp `String` ends at its first NUL byte,
+so a binary upload is already cut short before [`parse`](#parse) is handed the
+request text, and cannot be recovered from a `Request` afterwards. Decoding one
+means keeping the raw request bytes yourself and calling
+[`Multipart.parse-bytes`](Multipart.html#parse-bytes) on the body.")
   (defn multipart-data [r]
     (match (Request.header r "Content-Type")
       (Maybe.Nothing) (Result.Error @"multipart: no Content-Type header")
