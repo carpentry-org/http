@@ -1,6 +1,6 @@
 (load "git@github.com:carpentry-org/base64.carp@0.2.0")
-(load "git@github.com:carpentry-org/uri@0.5.1")
-(load "git@github.com:carpentry-org/time@0.5.3")
+(load "git@github.com:carpentry-org/uri@0.6.0")
+(load "git@github.com:carpentry-org/time@0.6.0")
 (load "git@github.com:carpentry-org/strbuf@0.3.0")
 
 (defmodule String
@@ -173,7 +173,7 @@ instants, not as wall-clock readings.")
   ; RFC 6265 §5.2.2: a max-age of zero or less expires the cookie immediately
   (defn max-age-expiry [i]
     (if (<= i 0)
-      (Datetime.from-unix-timestamp 0)
+      (Datetime.from-unix-timestamp 0l)
       (Datetime.add-seconds &(Datetime.now) i)))
 
   (private parse-set-prop)
