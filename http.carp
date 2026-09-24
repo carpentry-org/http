@@ -1,7 +1,7 @@
 (load "git@github.com:carpentry-org/base64.carp@0.2.0")
 (load "git@github.com:carpentry-org/uri@0.5.1")
 (load "git@github.com:carpentry-org/time@0.5.3")
-(load "git@github.com:carpentry-org/strbuf@0.2.1")
+(load "git@github.com:carpentry-org/strbuf@0.3.0")
 
 (defmodule String
   (doc find-crlf
@@ -361,7 +361,7 @@ a server-wide `OPTIONS`.")
       (StringBuf.append-crlf &sb)
       (StringBuf.append-crlf &sb)
       (StringBuf.append-str &sb (body r))
-      (let-do [s (StringBuf.to-string &sb)] (StringBuf.delete sb) s)))
+      (StringBuf.into-string sb)))
   (implements str Request.str)
 
   (doc request "builds a HTTP `1.1` request.")
@@ -523,7 +523,7 @@ such a body with `TransferEncoding.dechunk`.")
       (StringBuf.append-crlf &sb)
       (StringBuf.append-crlf &sb)
       (StringBuf.append-str &sb (body r))
-      (let-do [s (StringBuf.to-string &sb)] (StringBuf.delete sb) s)))
+      (StringBuf.into-string sb)))
   (implements str Response.str)
 
   (doc ok? "checks whether the status code is less than 400.")
@@ -743,8 +743,7 @@ size.")
                           (set! pos (+ data-end 2)))))))))))
       (when (and (String.empty? &err) (not terminated))
         (set! err @"malformed chunked body: missing terminating zero-size chunk"))
-      (let-do [decoded (StringBuf.to-string &sb)]
-        (StringBuf.delete sb)
+      (let [decoded (StringBuf.into-string sb)]
         (if (String.empty? &err) (Result.Success decoded) (Result.Error err)))))
 
   (doc chunk-with-size "chunk-encodes `body` into chunks of at most `size` bytes
@@ -764,7 +763,7 @@ back to `body` via [dechunk](#dechunk).")
           (StringBuf.append-str &sb "\r\n")
           (set! pos end)))
       (StringBuf.append-str &sb "0\r\n\r\n")
-      (let-do [s (StringBuf.to-string &sb)] (StringBuf.delete sb) s)))
+      (StringBuf.into-string sb)))
 
   (doc chunk "chunk-encodes `body` as a single chunk followed by the terminating
 zero-size chunk (RFC 7230 §4.1). The result decodes back to `body` via
@@ -1558,7 +1557,7 @@ for any of them.")
         (do
           (StringBuf.append-char &sb \space)
           (StringBuf.append-str &sb (token c))))
-      (let-do [s (StringBuf.to-string &sb)] (StringBuf.delete sb) s)))
+      (StringBuf.into-string sb)))
   (implements str Credentials.str))
 
 (doc Auth "parses and builds HTTP authentication headers (RFC 7235): the
@@ -2143,7 +2142,7 @@ at least one spec: RFC 9110 §14.1.1 has no empty range-set.")
           (when (> i 0) (StringBuf.append-str &sb ", "))
           (StringBuf.append-str &sb
                                 &(ByteRangeSpec.str (Array.unsafe-nth specs i)))))
-      (let-do [s (StringBuf.to-string &sb)] (StringBuf.delete sb) s))))
+      (StringBuf.into-string sb))))
 
 (doc ContentRange "is a `Content-Range` header value in the `bytes` unit (RFC
 9110 §14.4): the inclusive `range` of positions the content covers — `Nothing`

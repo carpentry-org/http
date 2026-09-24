@@ -261,7 +261,7 @@
             (StringBuf.append-str &sb (Pair.a p))
             (StringBuf.append-char &sb \=)
             (StringBuf.append-str &sb (Pair.b p))))))
-    (let-do [r (StringBuf.to-string &sb)] (StringBuf.delete sb) r)))
+    (StringBuf.into-string sb)))
 
 (defn chal-count [s] (Array.length &(Auth.parse-challenges s)))
 
@@ -278,7 +278,7 @@
       (do
         (when (> i 0) (StringBuf.append-str &sb ", "))
         (StringBuf.append-str &sb &(Credentials.str (Array.unsafe-nth &cs i)))))
-    (let-do [r (StringBuf.to-string &sb)] (StringBuf.delete sb) r)))
+    (StringBuf.into-string sb)))
 
 (defn auth-scheme-is? [s name]
   (match (Auth.parse s)
@@ -310,7 +310,7 @@
 (defn repeated [s n]
   (let-do [sb (StringBuf.create)]
     (for [i 0 n] (StringBuf.append-str &sb s))
-    (let-do [r (StringBuf.to-string &sb)] (StringBuf.delete sb) r)))
+    (StringBuf.into-string sb)))
 
 (defn unauthorized-header [challenge headers]
   (Maybe.from
