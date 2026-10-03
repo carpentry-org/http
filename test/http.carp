@@ -417,6 +417,9 @@
 (defn cc-directive [s k]
   (Maybe.from (Map.get-maybe &(CacheControl.parse s) k) @"<none>"))
 
+(defn cc-max-age [s]
+  (Maybe.from (CacheControl.max-age &(CacheControl.parse s)) -1))
+
 (defn cookie-summary [s]
   (match (Cookie.parse-set s)
     (Result.Success c) (fmt "%s=%s" (Cookie.name &c) (Cookie.value &c))
@@ -494,6 +497,31 @@
     404
     (resp-code "HTTP/1.1 404 Not Found\r\n\r\n")
     "parse 404 response")
+
+  (assert-equal test
+    -1
+    (resp-code "HTTP/1.1 2000 OK\r\n\r\n")
+    "a four-digit status code is malformed")
+
+  (assert-equal test
+    -1
+    (resp-code "HTTP/1.1 20 OK\r\n\r\n")
+    "a two-digit status code is malformed")
+
+  (assert-equal test
+    -1
+    (resp-code "HTTP/1.1 +200 OK\r\n\r\n")
+    "a status code with a plus sign is malformed")
+
+  (assert-equal test
+    -1
+    (resp-code "HTTP/1.1 -200 OK\r\n\r\n")
+    "a negative status code is malformed")
+
+  (assert-equal test
+    -1
+    (resp-code "HTTP/1.1  200 OK\r\n\r\n")
+    "a status code after a doubled space is malformed")
 
   (assert-true test
     (Response.ok? &(Response.init 200 @"OK" @"HTTP/1.1" [] {} @""))
@@ -1549,6 +1577,10 @@
     "text/html"
     &(pick "text/html;q=bogus, image/png;q=0.5" &[@"text/html" @"image/png"])
     "an unparseable q falls back to weight 1")
+  (assert-equal test
+    "text/html"
+    &(pick "text/html;q=nan, text/html;q=0.5" &[@"text/html"])
+    "a NaN q falls back to weight 1 whatever the order of the ranges")
   (assert-true test
     (= 3
        (Array.length
@@ -1640,6 +1672,22 @@
     "gzip@0.5"
     &(weighted-entry &(AcceptEncoding.parse "br, GZIP;q=0.5") 1)
     "parse lower-cases a coding and keeps its weight")
+  (assert-equal test
+    "gzip@1.0"
+    &(weighted-entry &(AcceptEncoding.parse "gzip;q=nan") 0)
+    "a NaN q falls back to weight 1")
+  (assert-equal test
+    "gzip"
+    &(pick-enc "gzip;q=" &[@"gzip"])
+    "an empty q falls back to weight 1 instead of refusing the coding")
+  (assert-equal test
+    "gzip@1.0"
+    &(weighted-entry &(AcceptEncoding.parse "gzip;q=2") 0)
+    "a q above 1 is clamped to 1")
+  (assert-equal test
+    "gzip@0.0"
+    &(weighted-entry &(AcceptEncoding.parse "gzip;q=-1") 0)
+    "a q below 0 is clamped to 0")
   (assert-equal test
     "gzip"
     &(req-pick-enc (the (Map String (Array String)) {}) &[@"gzip" @"identity"])
@@ -2517,6 +2565,38 @@
       (Maybe.from (CacheControl.s-maxage &m) -1))
     "CacheControl.s-maxage is parsed as an Int")
   (assert-equal test
+    -1
+    (cc-max-age "max-age=")
+    "CacheControl.max-age is Nothing for an empty value")
+  (assert-equal test
+    -1
+    (cc-max-age "max-age=-5")
+    "CacheControl.max-age is Nothing for a negative value")
+  (assert-equal test
+    -1
+    (cc-max-age "max-age=+5")
+    "CacheControl.max-age is Nothing for a value with a plus sign")
+  (assert-equal test
+    7
+    (cc-max-age "max-age=007")
+    "CacheControl.max-age reads leading zeros")
+  (assert-equal test
+    Int.MAX
+    (cc-max-age "max-age=2147483647")
+    "CacheControl.max-age reads Int.MAX exactly")
+  (assert-equal test
+    Int.MAX
+    (cc-max-age "max-age=2147483648")
+    "CacheControl.max-age saturates one past Int.MAX")
+  (assert-equal test
+    Int.MAX
+    (cc-max-age "max-age=4294967296")
+    "CacheControl.max-age saturates 2^32 instead of wrapping to 0")
+  (assert-equal test
+    Int.MAX
+    (cc-max-age "max-age=99999999999999999999")
+    "CacheControl.max-age saturates a value past 64 bits")
+  (assert-equal test
     2
     (Map.length &(CacheControl.parse "no-cache=\"Set-Cookie, X\", max-age=5"))
     "CacheControl keeps a comma inside a quoted value as one directive")
@@ -2702,6 +2782,30 @@
     "live"
     &(expiry-verdict "id=abc; Max-Age=3600")
     "a positive Max-Age keeps the cookie alive")
+  (assert-equal test
+    "malformed max-age value in set-cookie"
+    &(expiry-verdict "id=abc; Max-Age=")
+    "an empty Max-Age is malformed rather than expiring the cookie")
+  (assert-equal test
+    "malformed max-age value in set-cookie"
+    &(expiry-verdict "id=abc; Max-Age=+60")
+    "a Max-Age with a plus sign is malformed")
+  (assert-equal test
+    "live"
+    &(expiry-verdict "id=abc; Max-Age=0060")
+    "a Max-Age with leading zeros keeps the cookie alive")
+  (assert-equal test
+    "live"
+    &(expiry-verdict "id=abc; Max-Age= 60")
+    "whitespace before a Max-Age value is ignored")
+  (assert-equal test
+    "live"
+    &(expiry-verdict "id=abc; Max-Age=4294967296")
+    "a Max-Age too large for an Int saturates instead of wrapping")
+  (assert-equal test
+    "expired"
+    &(expiry-verdict "id=abc; Max-Age=-99999999999999999999")
+    "a Max-Age too negative for an Int still expires the cookie")
   (assert-equal test
     "expired"
     &(expiry-verdict "id=abc; Expires=Wed, 09 Jun 2021 10:18:14 GMT")
