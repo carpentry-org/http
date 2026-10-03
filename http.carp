@@ -231,12 +231,12 @@ instants, not as wall-clock readings.")
                 (Result.Error
                   @"malformed max-age property in set-cookie, no value")
                 (let [v (trim &(join "=" &(Array.suffix splt 1)))
-                      mi (if (String.byte-starts-with? &v "-")
-                        (Maybe.apply
-                          (parse-digits
-                            &(String.byte-slice &v 1 (String.length &v)))
-                          &Int.neg)
-                        (parse-digits &v))]
+                      negative (String.byte-starts-with? &v "-")
+                      digits (if (or negative (String.byte-starts-with? &v "+"))
+                        (parse-digits
+                          &(String.byte-slice &v 1 (String.length &v)))
+                        (parse-digits &v))
+                      mi (if negative (Maybe.apply digits &Int.neg) digits)]
                   (match mi
                     (Maybe.Nothing)
                       (Result.Error @"malformed max-age value in set-cookie")
@@ -557,6 +557,15 @@ such a body with `TransferEncoding.dechunk`.")
   (doc server-error? "checks whether the status code is between 500 and 600.")
   (defn server-error? [r] (let [c @(code r)] (and (<= 500 c) (< c 600))))
 
+  (hidden skip-sp)
+  (private skip-sp)
+  (defn skip-sp [s i]
+    (let-do [j i
+             len (String.length s)]
+      (while (and (< j len) (= (String.char-at s j) \space))
+        (set! j (Int.inc j)))
+      j))
+
   (doc parse "parses a HTTP response from a string `txt`.
 
 Returns a `(Error String)` holding the error message if it fails, otherwise
@@ -572,14 +581,13 @@ it will return a `(Success Response)`.")
             (if (= sp1 -1)
               (Result.Error
                 (fmt "Malformed response: found first line '%s'" first-line))
-              (let [sp2 (String.index-of-from first-line \space (Int.inc sp1))]
+              (let [code-start (skip-sp first-line (Int.inc sp1))
+                    sp2 (String.index-of-from first-line \space code-start)]
                 (if (= sp2 -1)
                   (Result.Error
                     (fmt "Malformed response: found first line '%s'" first-line))
                   (let [version &(String.byte-slice first-line 0 sp1)
-                        code-str &(String.byte-slice first-line
-                                                     (Int.inc sp1)
-                                                     sp2)
+                        code-str &(String.byte-slice first-line code-start sp2)
                         message &(String.byte-slice first-line
                                                     (Int.inc sp2)
                                                     (String.length first-line))]
