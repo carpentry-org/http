@@ -217,6 +217,11 @@
 
 (defn cookie-roundtrip [c] (Cookie.parse-set &(Cookie.set &c)))
 
+(defn canonical-set-cookie [s]
+  (match (Cookie.parse-set s)
+    (Result.Success c) (Cookie.set &c)
+    (Result.Error e) e))
+
 ; ---- HTTP-date test helpers ----
 ; renders a parsed date as `YYYY-MM-DD HH:MM:SS`, or the error message
 (defn http-date [s]
@@ -799,6 +804,51 @@
       (Result.Success c) (= (Cookie.name &c) "id")
       _ false)
     "parse-set still ignores a genuinely unknown attribute (lowercase)")
+
+  (assert-equal test
+    "id=abc; Path=/; SameSite=Lax"
+    &(canonical-set-cookie "id=abc; pathx=1")
+    "parse-set ignores an attribute whose name only begins with Path")
+  (assert-equal test
+    "id=abc; Path=/; SameSite=Lax"
+    &(canonical-set-cookie "id=abc; Domainx=evil.example")
+    "parse-set ignores an attribute whose name only begins with Domain")
+  (assert-equal test
+    "id=abc; Path=/; SameSite=Lax"
+    &(canonical-set-cookie "id=abc; max-agex=100")
+    "parse-set ignores an attribute whose name only begins with Max-Age")
+  (assert-equal test
+    "id=abc; Path=/; SameSite=Lax"
+    &(canonical-set-cookie "id=abc; Expiresx=foo")
+    "parse-set ignores an attribute whose name only begins with Expires")
+  (assert-equal test
+    "id=abc; Path=/; SameSite=Lax"
+    &(canonical-set-cookie "id=abc; samesitey=whatever")
+    "parse-set ignores an attribute whose name only begins with SameSite")
+  (assert-equal test
+    "id=abc; Path=/; Secure; SameSite=Lax"
+    &(canonical-set-cookie "id=abc; Secure=1")
+    "parse-set honors a Secure attribute that has a value")
+  (assert-equal test
+    "id=abc; Path=/; HttpOnly; SameSite=Lax"
+    &(canonical-set-cookie "id=abc; HttpOnly=1")
+    "parse-set honors an HttpOnly attribute that has a value")
+  (assert-equal test
+    "id=abc; Path=/; Secure; HttpOnly; SameSite=Lax"
+    &(canonical-set-cookie "id=abc; SECURE; hTTpOnly=yes")
+    "parse-set matches Secure and HttpOnly in any case, with or without a value")
+  (assert-equal test
+    "id=abc; Path=/sp; SameSite=Lax"
+    &(canonical-set-cookie "id=abc; Path= /sp")
+    "parse-set trims whitespace from an attribute value")
+  (assert-equal test
+    "id=abc; Path=/; SameSite=Strict"
+    &(canonical-set-cookie "id=abc; SameSite = Strict")
+    "parse-set allows whitespace on both sides of an attribute’s =")
+  (assert-equal test
+    "malformed path property in set-cookie, no value"
+    &(canonical-set-cookie "id=abc; Path")
+    "parse-set still rejects a Path attribute without a value")
 
   (assert-true test
     (match (Cookie.parse "session=YWJjZA==")
@@ -2780,6 +2830,11 @@
     "expired"
     &(expiry-verdict "id=abc; Expires=Thu, 01 Jan 2037 00:00:00 GMT; Max-Age=0")
     "Max-Age wins over an Expires that comes before it")
+  (assert-equal test
+    "live"
+    &(expiry-verdict
+      "id=abc; Max-Age=3600; Expires=Thu, 01 Jan 1970 00:00:01 GMT; max-agex=0")
+    "an attribute whose name only begins with Max-Age does not take precedence")
   (assert-equal test
     "expired"
     &(expiry-verdict "id=abc; Max-Age=0")
