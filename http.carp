@@ -46,6 +46,50 @@ Returns -1 if not found.")
           (set! acc (+ (* acc 10) d)))))
     (if ok (Maybe.Just acc) (Maybe.Nothing))))
 
+(private split-outside-quotes)
+(hidden split-outside-quotes)
+; splits `s` on `sep`, ignoring any that sit inside a quoted-string
+(defn split-outside-quotes [s sep]
+  (let-do [segs (the (Array String) [])
+           start 0
+           i 0
+           in-q false
+           len (String.length s)]
+    (while (< i len)
+      (let [c (String.char-at s i)]
+        (cond
+          (= c \") (do (set! in-q (not in-q)) (set! i (Int.inc i)))
+          (and in-q (and (= c \\) (< (Int.inc i) len))) (set! i (+ i 2))
+          (and (= c sep) (not in-q))
+            (do
+              (Array.push-back! &segs (String.byte-slice s start i))
+              (set! i (Int.inc i))
+              (set! start i))
+          (set! i (Int.inc i)))))
+    (Array.push-back! &segs (String.byte-slice s start len))
+    segs))
+
+(private unquote-string)
+(hidden unquote-string)
+; strips surrounding double quotes and resolves `\x` quoted-pairs
+(defn unquote-string [v]
+  (if (and (String.byte-starts-with? v "\"")
+           (and (String.byte-ends-with? v "\"") (> (String.length v) 1)))
+    (let-do [inner (String.byte-slice v 1 (Int.dec (String.length v)))
+             out (the (Array Byte) [])
+             i 0
+             ilen (String.length &inner)]
+      (while (< i ilen)
+        (let [c (String.char-at &inner i)]
+          (if (and (= c \\) (< (Int.inc i) ilen))
+            (do
+              (Array.push-back! &out
+                                (Char.to-byte (String.char-at &inner (Int.inc i))))
+              (set! i (+ i 2)))
+            (do (Array.push-back! &out (Char.to-byte c)) (set! i (Int.inc i))))))
+      (String.from-bytes &out))
+    @v))
+
 (doc HttpDate "reads and writes HTTP-date values (RFC 9110 §5.6.7), the
 timestamp form used by `Date`, `Expires`, `Last-Modified`, `If-Modified-Since`
 and the `Expires` attribute of a `Set-Cookie` header.")
@@ -336,7 +380,7 @@ attribute, whatever order the two appear in.")
     &(fn [v]
       (Array.any?
         &(fn [tok] (= &(String.trim tok) "chunked"))
-        &(String.split-by &(String.ascii-to-lower v) &[\,])))
+        &(split-outside-quotes &(String.ascii-to-lower v) \,)))
     &(header-values hdrs "transfer-encoding")))
 
 (doc Request "is a request data type. It holds the `verb` of the request, the
@@ -1078,51 +1122,6 @@ surrounding quotes removed.")
                     params (Map String String)])
 
 (defmodule MediaType
-  (hidden split-params)
-  (private split-params)
-  ; splits `s` on `;`, ignoring semicolons that sit inside a quoted-string.
-  (defn split-params [s]
-    (let-do [segs (the (Array String) [])
-             start 0
-             i 0
-             in-q false
-             len (String.length s)]
-      (while (< i len)
-        (let [c (String.char-at s i)]
-          (cond
-            (= c \") (do (set! in-q (not in-q)) (set! i (Int.inc i)))
-            (and in-q (and (= c \\) (< (Int.inc i) len))) (set! i (+ i 2))
-            (and (= c \;) (not in-q))
-              (do
-                (Array.push-back! &segs (String.byte-slice s start i))
-                (set! i (Int.inc i))
-                (set! start i))
-            (set! i (Int.inc i)))))
-      (Array.push-back! &segs (String.byte-slice s start len))
-      segs))
-
-  (hidden unquote)
-  (private unquote)
-  ; strips surrounding double quotes and resolves `\x` quoted-pairs.
-  (defn unquote [v]
-    (if (and (String.byte-starts-with? v "\"")
-             (and (String.byte-ends-with? v "\"") (> (String.length v) 1)))
-      (let-do [inner (String.byte-slice v 1 (Int.dec (String.length v)))
-               out (the (Array Byte) [])
-               i 0
-               ilen (String.length &inner)]
-        (while (< i ilen)
-          (let [c (String.char-at &inner i)]
-            (if (and (= c \\) (< (Int.inc i) ilen))
-              (do
-                (Array.push-back! &out
-                                  (Char.to-byte (String.char-at &inner
-                                                                (Int.inc i))))
-                (set! i (+ i 2)))
-              (do (Array.push-back! &out (Char.to-byte c)) (set! i (Int.inc i))))))
-        (String.from-bytes &out))
-      @v))
-
   (doc parse-params
     "parses an RFC 2045 parameter list — the `; k=v; k2=\"quoted\"`
 tail shared by `Content-Type` and `Content-Disposition` — into a map from
@@ -1131,14 +1130,14 @@ lower-cased parameter names to unquoted values. Any leading segment without an
 value may be passed.")
   (defn parse-params [s]
     (let-do [m (the (Map String String) {})
-             segs (split-params s)]
+             segs (split-outside-quotes s \;)]
       (for [i 0 (Array.length &segs)]
         (let [seg &(String.trim (Array.unsafe-nth &segs i))
               eq (String.index-of seg \=)]
           (when (> eq 0)
             (let [k (String.ascii-to-lower
                     &(String.trim &(String.byte-slice seg 0 eq)))
-                  v (unquote
+                  v (unquote-string
                     &(String.trim
                       &(String.byte-slice seg (Int.inc eq) (String.length seg))))]
               (Map.put! &m &k &v)))))
@@ -1205,7 +1204,7 @@ its first `;`, and its `q` is the `;q=` parameter, clamped to `[0.0, 1.0]` and
 defaulting to `1.0`. Entries with an empty value are skipped.")
   (defn parse-list [s]
     (let-do [entries (the (Array Weighted) [])
-             segs (String.split-by s &[\,])]
+             segs (split-outside-quotes s \,)]
       (for [i 0 (Array.length &segs)]
         (let [seg (Array.unsafe-nth &segs i)
               semi (String.index-of seg \;)
@@ -1449,45 +1448,14 @@ first offer; `Nothing` means nothing is acceptable.")
 map of lower-cased directive names to their values, with convenience accessors
 for the common directives.")
 (defmodule CacheControl
-  (hidden split-directives)
-  (private split-directives)
-  ; splits `s` on `,`, ignoring commas that sit inside a quoted-string.
-  (defn split-directives [s]
-    (let-do [segs (the (Array String) [])
-             start 0
-             i 0
-             in-q false
-             len (String.length s)]
-      (while (< i len)
-        (let [c (String.char-at s i)]
-          (cond
-            (= c \") (do (set! in-q (not in-q)) (set! i (Int.inc i)))
-            (and in-q (and (= c \\) (< (Int.inc i) len))) (set! i (+ i 2))
-            (and (= c \,) (not in-q))
-              (do
-                (Array.push-back! &segs (String.byte-slice s start i))
-                (set! i (Int.inc i))
-                (set! start i))
-            (set! i (Int.inc i)))))
-      (Array.push-back! &segs (String.byte-slice s start len))
-      segs))
-
-  (hidden unquote)
-  (private unquote)
-  ; strips surrounding double quotes from a directive value.
-  (defn unquote [v]
-    (if (and (String.byte-starts-with? v "\"")
-             (and (String.byte-ends-with? v "\"") (> (String.length v) 1)))
-      (String.byte-slice v 1 (Int.dec (String.length v)))
-      @v))
-
   (doc parse "parses a `Cache-Control` header value into a map from lower-cased
 directive names to values. A valueless directive (e.g. `no-cache`) maps to the
-empty string; a quoted value has its surrounding quotes removed. Empty segments
-are ignored, so an empty header yields an empty map.")
+empty string; a quoted value has its surrounding quotes removed and its
+quoted-pairs resolved. Empty segments are ignored, so an empty header yields an
+empty map.")
   (defn parse [s]
     (let-do [m (the (Map String String) {})
-             segs (split-directives s)]
+             segs (split-outside-quotes s \,)]
       (for [i 0 (Array.length &segs)]
         (let [seg &(String.trim (Array.unsafe-nth &segs i))]
           (unless (String.empty? seg)
@@ -1496,7 +1464,7 @@ are ignored, so an empty header yields an empty map.")
                 (Map.put! &m &(String.ascii-to-lower seg) "")
                 (let [k (String.ascii-to-lower
                         &(String.trim &(String.byte-slice seg 0 eq)))
-                      v (unquote
+                      v (unquote-string
                         &(String.trim
                           &(String.byte-slice seg
                                               (Int.inc eq)
